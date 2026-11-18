@@ -1,0 +1,9 @@
+# Temporary backup files
+*.bak
+*.tmp
+*.swp
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+.DS_Store

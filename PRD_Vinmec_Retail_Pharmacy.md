@@ -1,12 +1,12 @@
 # PRODUCT REQUIREMENTS DOCUMENT (PRD)
 
-## HỆ THỐNG BÁN THUỐC CHO KHÁCH MUA LẺ -- VINMEC RETAIL PHARMACY
+## HỆ THỐNG DƯỢC BÁN LẺ -- VINMEC PHARMA (RETAIL POS)
 
 > **Thông tin tài liệu**
 >
 >   Thuộc tính         Nội dung
 >   ------------------ ---------------------------------------------
->   Tên sản phẩm       Vinmec Retail Pharmacy
+>   Tên sản phẩm       Vinmec Pharma (Retail POS)
 >   Loại tài liệu      Product Requirements Document
 >   Phiên bản          Draft v1.0
 >   Đơn vị sử dụng     Nhà thuốc -- Khoa Dược Vinmec

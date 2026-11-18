@@ -159,6 +159,6 @@
   }
 
   VM.backup.onChange(() => { if (VM.ui.current === 'backup') { drawStatus(); drawSnaps(); } });
-  VM.ui.register({ id: 'backup', title: 'Sao lưu & khôi phục', group: 'system', icon: 'shield', crumb: 'Hệ thống · Bảo vệ dữ liệu', render,
+  VM.ui.register({ id: 'backup', title: 'Sao lưu & khôi phục', group: 'system', icon: 'shield', render,
     badge: () => { const l = VM.backup.status().level; return l === 'ok' ? null : { n: '!', soft: l === 'warn', title: 'Cần sao lưu' }; } });
 })(window.VM);

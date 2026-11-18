@@ -149,9 +149,9 @@
       <div class="card">
         <div class="toolbar">
           <div class="seg" id="iBook"><button data-b="">Tất cả</button><button data-b="OPD">Ngoại trú</button><button data-b="IPD">Nội trú</button></div>
-          <div class="input-icon grow">${icon('search')}<input class="input" id="iQ" type="search" placeholder="NCC, số HĐ, mã tra cứu, PR/PO, tên thuốc, số lô…"></div>
-          <select class="select" id="iSup" aria-label="Nhà cung cấp" style="max-width:260px"><option value="">Mọi nhà cung cấp</option>${sups.map(s => `<option ${s === f.sup ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
-          <input class="input" type="date" id="iFrom" value="${f.from}" aria-label="Từ ngày" style="width:auto"><input class="input" type="date" id="iTo" value="${f.to}" aria-label="Đến ngày" style="width:auto">
+          <div class="input-icon grow">${icon('search')}<input class="input" id="iQ" type="search" placeholder="Tìm kiếm" title="NCC, số HĐ, mã tra cứu, PR/PO, tên thuốc, số lô"></div>
+          <select class="select xd" id="iSup" aria-label="Nhà cung cấp" style="max-width:260px"><option value="">Mọi nhà cung cấp</option>${sups.map(s => `<option ${s === f.sup ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
+          <input class="input xd" type="date" id="iFrom" value="${f.from}" aria-label="Từ ngày" style="width:auto"><input class="input xd" type="date" id="iTo" value="${f.to}" aria-label="Đến ngày" style="width:auto">
         </div>
         <div class="toolbar" style="padding:10px 18px"><div class="seg" id="iTabs"></div><div id="iBulk" style="margin-left:auto;display:flex;gap:8px;align-items:center"></div></div>
         <div class="table-wrap" id="iTable"></div>
@@ -209,19 +209,19 @@
       $('#iTable').innerHTML = VM.ui.empty(f.tab === 'pending' ? 'checkc' : 'file', f.tab === 'pending' ? 'Không còn hóa đơn tồn đọng' : 'Không có hóa đơn', f.tab === 'pending' ? 'Mọi hóa đơn đã được nhập hệ thống.' : 'Thử đổi bộ lọc hoặc ghi hóa đơn mới.', `<button class="btn primary" id="iNew2">${icon('plus', 's')} Ghi hóa đơn</button>`);
       $('#iNew2').onclick = () => openEditor();
     } else {
-      $('#iTable').innerHTML = `<table class="t"><thead><tr><th style="width:40px"><input type="checkbox" id="iAll" aria-label="Chọn tất cả"></th><th>Hàng về</th><th>Nhà cung cấp · Số HĐ</th><th class="hide-m">Sổ</th><th class="num hide-m">Mặt hàng</th><th class="num">Tổng tiền</th><th class="hide-m">Bàn giao</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+      $('#iTable').innerHTML = `<table class="t it"><thead><tr><th style="width:40px"><input type="checkbox" id="iAll" aria-label="Chọn tất cả"></th><th>Hàng về</th><th>Nhà cung cấp · Số HĐ</th><th class="hide-m">Sổ</th><th class="num hide-m xd">Mặt hàng</th><th class="num">Tổng tiền</th><th class="hide-m xd">Bàn giao</th><th>Trạng thái</th><th></th></tr></thead><tbody>
         ${list.map(i => {
           const st = IS[i.status] || IS.received, od = VM.store.invoiceOverdue(i), nx = NEXT[i.status];
           return `<tr class="clickable ${i.status === 'entered' || i.status === 'cancelled' ? 'done' : ''}" data-id="${i.id}">
             <td onclick="event.stopPropagation()"><input type="checkbox" data-sel="${i.id}" ${selected.has(i.id) ? 'checked' : ''} aria-label="Chọn"></td>
-            <td><b>${VM.fmtDate(i.receivedAt)}</b><div class="t-sub">${VM.ago(i.createdAt)}</div></td>
-            <td><div class="t-title">${esc(i.supplier)}</div><div class="t-sub">${i.invoiceNo ? `HĐ <span class="mono">${esc(i.invoiceNo)}</span>${i.invoiceDate ? ' · ' + VM.fmtDate(i.invoiceDate) : ''}` : '<span style="color:var(--danger)">Chưa có số hóa đơn</span>'}${i.poNo ? ` · PO <span class="mono">${esc(i.poNo)}</span>` : ''}</div>${i.note ? `<div class="t-sub">“${esc(i.note)}”</div>` : ''}</td>
+            <td class="i-date" title="Ghi sổ ${esc(VM.ago(i.createdAt))}"><b>${VM.fmtDate(i.receivedAt)}</b><div class="t-sub xd">${VM.ago(i.createdAt)}</div></td>
+            <td class="i-ncc"><div class="t-title" title="${esc(i.supplier)}">${esc(i.supplier)}</div><div class="t-sub">${i.invoiceNo ? `HĐ <span class="mono">${esc(i.invoiceNo)}</span><span class="xd">${i.invoiceDate ? ' · ngày HĐ ' + VM.fmtDate(i.invoiceDate) : ''}${i.poNo ? ` · PO <span class="mono">${esc(i.poNo)}</span>` : ''}</span>` : '<span style="color:var(--danger)">Chưa có số HĐ</span>'}</div>${i.note ? `<div class="t-sub xd">“${esc(i.note)}”</div>` : ''}</td>
             <td class="hide-m">${VM.ui.pill(i.book === 'IPD' ? 'info' : 'pri', BOOK[i.book] || i.book)}</td>
-            <td class="num hide-m">${num(i.itemCount || 0)}</td>
-            <td class="num"><b>${i.total ? money(i.total) : '—'}</b>${i.tax ? `<div class="t-sub">VAT ${num(i.tax)}</div>` : ''}</td>
-            <td class="hide-m">${i.nvdReceiver ? `<div>${esc(i.nvdReceiver)}</div><div class="t-sub">${VM.fmtDT(i.nvdAt)}</div>` : '<span class="muted">—</span>'}</td>
-            <td>${VM.ui.pill(st.cls, st.label)}${st.step >= 0 ? `<div class="steps" style="margin-top:6px" title="Bước ${st.step}/3">${[1, 2, 3].map(k => `<i class="${st.step >= k ? 'on' : ''}"></i>`).join('')}</div>` : ''}${od ? `<div style="margin-top:4px">${VM.ui.pill('bad', 'Quá hạn', 'alert')}</div>` : ''}</td>
-            <td onclick="event.stopPropagation()"><div class="actions">${nx ? `<button class="btn ${i.status === 'no_invoice' ? '' : 'tonal'} sm" data-next="${i.id}">${icon(nx.ic, 's')} ${nx.label}</button>` : ''}${i.status !== 'cancelled' ? `<button class="btn ghost icon sm" data-qtrow="${i.id}" title="Copy 3 ô cho file quyết toán: ngày hàng về · SL tổng · số HĐ" aria-label="Copy cho file quyết toán">${icon('copy', 's')}</button>` : ''}<button class="btn ghost icon sm" data-open="${i.id}" aria-label="Chi tiết">${icon('chevr', 's')}</button></div></td></tr>`;
+            <td class="num hide-m xd">${num(i.itemCount || 0)}</td>
+            <td class="num"><b>${i.total ? money(i.total) : '—'}</b>${i.tax ? `<div class="t-sub xd">VAT ${num(i.tax)}</div>` : ''}</td>
+            <td class="hide-m xd">${i.nvdReceiver ? `<div>${esc(i.nvdReceiver)}</div><div class="t-sub">${VM.fmtDT(i.nvdAt)}</div>` : '<span class="muted">—</span>'}</td>
+            <td>${VM.ui.pill(st.cls, st.label)}${st.step >= 0 ? `<div class="steps xd" style="margin-top:6px" title="Bước ${st.step}/3">${[1, 2, 3].map(k => `<i class="${st.step >= k ? 'on' : ''}"></i>`).join('')}</div>` : ''}${od ? `<div style="margin-top:4px">${VM.ui.pill('bad', 'Quá hạn', 'alert')}</div>` : ''}</td>
+            <td onclick="event.stopPropagation()"><div class="actions">${nx ? `<button class="btn ${i.status === 'no_invoice' ? '' : 'tonal'} sm" data-next="${i.id}">${icon(nx.ic, 's')} ${nx.label}</button>` : ''}${i.status !== 'cancelled' ? `<button class="btn ghost icon sm" data-qtrow="${i.id}" title="Copy 3 ô cho file quyết toán: ngày hàng về · SL tổng · số HĐ" aria-label="Copy cho file quyết toán">${icon('copy', 's')}</button>` : ''}<button class="btn ghost icon sm xd" data-open="${i.id}" aria-label="Chi tiết">${icon('chevr', 's')}</button></div></td></tr>`;
         }).join('')}</tbody></table>`;
       $$('#iTable tr[data-id]').forEach(tr => tr.onclick = () => openDetail(tr.dataset.id));
       $$('#iTable [data-open]').forEach(b => b.onclick = () => openDetail(b.dataset.open));
@@ -671,7 +671,7 @@
   }
 
   VM.invoices = { openEditor, openScan };
-  VM.ui.register({ id: 'invoices', title: 'Sổ hóa đơn', group: 'invoices', icon: 'file', crumb: 'Sổ số hóa · Hóa đơn ngoại trú & nội trú', render,
+  VM.ui.register({ id: 'invoices', title: 'Sổ hóa đơn', group: 'invoices', icon: 'file', render, detail: true,
     keys: [['S', 'Quét hóa đơn'], ['N', 'Ghi tay'], ['Q', 'Copy quyết toán trong ngày'], ['Enter', 'Thêm dòng hàng']],
     tour: () => [
       { el: '#iScan', title: 'Quét hóa đơn', text: 'Phím <kbd>S</kbd>. Chọn file XML hóa đơn điện tử (chính xác 100%) hoặc chụp ảnh hóa đơn giấy để OCR nội bộ đọc. Ô do máy đọc được tô <b class="tour-hot">vàng</b>.' },

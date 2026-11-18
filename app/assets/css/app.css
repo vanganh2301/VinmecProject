@@ -277,8 +277,6 @@ table.t{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
 .mic-mode.cloud{background:var(--danger)}
 .voice-live{font-size:13px;color:var(--muted);padding:0 4px;min-height:18px}
 .voice-live b{color:var(--ink)}
-.hot-strip{display:flex;gap:8px;align-items:center;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
-.hot-strip .hs-l{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--hot);white-space:nowrap;padding-right:2px}
 .hot-chip{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 13px;border-radius:999px;border:1px solid var(--hot-100);background:var(--hot-50);font-weight:600;font-size:13px;white-space:nowrap;color:var(--ink)}
 .hot-chip:hover{border-color:var(--hot);background:#fff3c4}
 .hot-chip small{color:var(--muted);font-weight:500}
@@ -526,7 +524,8 @@ details.more[open] summary{margin-bottom:4px}
 
 @media print{
   body{background:#fff}
-  .app,.overlay,.toasts{display:none!important}
+  /* Chỉ in #printArea: ẩn mọi lớp nổi (thông báo hoàn thành, toast, modal, tour…) */
+  body>*:not(#printArea),.app,.overlay,.toasts,.done-pop{display:none!important}
   #printArea{display:block;font:12px/1.45 Arial,sans-serif;color:#000}
   #printArea h2{font-size:16px;margin:0 0 4px}
   #printArea table{width:100%;border-collapse:collapse;margin-top:8px}
@@ -937,3 +936,279 @@ tr.flash,.nl-row.flash{animation:flash 1.6s ease}
   .qd-bar .seg,.st-filter .seg{width:100%;flex-wrap:nowrap}.qd-bar .seg button,.st-filter .seg button{flex:1;padding:0 8px;justify-content:center}
   .st-legend{flex-direction:column}
 }
+
+/* =========================================================
+   18/11 – Màu theo nghiệp vụ, thanh phân loại hàng, danh mục 1 dòng, KPI nổi bật
+   Mỗi nghiệp vụ một màu nhận diện (--ac): Bán lẻ teal · Sổ vay xanh dương · Hóa đơn tím · Khác xám.
+   Màu trạng thái (xanh lá / vàng / đỏ) giữ riêng cho tình trạng, luôn kèm icon + chữ.
+   ========================================================= */
+:root{
+  --other:#475569;--other-50:#eef1f5;
+  --a-retail:#0b7a75;--a-loans:#2160c4;--a-inv:#6d3fc0;--a-sys:#475569;
+  --ac:var(--a-retail);--ac50:#e6f4f2;--ac100:#cce9e5;
+}
+.app[data-area=loans]{--ac:var(--a-loans);--ac50:#e9f0fc;--ac100:#cfdff8}
+.app[data-area=invoices]{--ac:var(--a-inv);--ac50:#f1ebfb;--ac100:#e0d4f6}
+.app[data-area=system]{--ac:var(--a-sys);--ac50:#eef1f5;--ac100:#dde3ea}
+.tag.other{background:var(--other-50);color:var(--other)}
+.tag.mute{background:var(--line-2);color:var(--muted);margin-right:6px}
+
+/* Khung: rail / rèm / tiêu đề mang màu nghiệp vụ đang mở */
+.rail-btn.active{color:var(--ac)}
+.rail-btn[data-area=retail]:not(.active) svg{color:#7fe0d6}
+.rail-btn[data-area=loans]:not(.active) svg{color:#9cc2ff}
+.rail-btn[data-area=invoices]:not(.active) svg{color:#cdb4ff}
+.cur-h b{display:flex;align-items:center;gap:8px}
+.cur-h b::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--ac)}
+.cur-item.active,.cur-sub.active{background:var(--ac50);color:var(--ac)}
+.cur-item.active::before,.cur-sub.active::before{background:var(--ac)}
+.topbar{box-shadow:inset 0 3px 0 var(--ac)}
+.topbar h1{font-size:21px;font-weight:800;letter-spacing:-.2px}
+.page-ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:none;background:var(--ac50);color:var(--ac);box-shadow:inset 0 0 0 1px var(--ac100)}
+.page-ic:empty{display:none}
+.t tbody tr:hover td{background:color-mix(in srgb,var(--ac50) 55%,#fff)}
+
+/* KPI: dải màu bên trái + icon đặc + số to, để số quan trọng nhìn là thấy */
+.kpi{position:relative;overflow:hidden;--k:var(--primary);--k50:var(--primary-50);background:linear-gradient(120deg,var(--k50) 0%,var(--surface) 58%)}
+.kpi:has(.kpi-ic.info){--k:var(--info);--k50:var(--info-50)}
+.kpi:has(.kpi-ic.warn){--k:var(--warning);--k50:var(--warning-50)}
+.kpi:has(.kpi-ic.danger){--k:var(--danger);--k50:var(--danger-50)}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--k)}
+.kpi .kpi-ic{background:var(--k);color:#fff;box-shadow:0 4px 12px color-mix(in srgb,var(--k) 32%,transparent)}
+.kpi span{font-weight:600;color:var(--ink-2)}
+.kpi strong{font-size:28px;font-weight:800;letter-spacing:-.5px}
+.kpis.compact .kpi strong{font-size:24px}
+button.kpi:hover{border-color:var(--k);box-shadow:0 6px 18px color-mix(in srgb,var(--k) 18%,transparent)}
+
+/* Chữ & nút: to hơn một chút, nút chính có chiều sâu */
+.t{font-size:13.5px}
+.t td .t-title{font-size:14px}
+.card-h h3{font-size:16px}
+.pill{font-size:12.5px;box-shadow:inset 0 0 0 1px color-mix(in srgb,currentColor 20%,transparent)}
+.btn.primary{background:linear-gradient(180deg,#0f8d86,var(--primary));box-shadow:0 2px 8px rgba(11,122,117,.28)}
+.btn.primary:hover{background:var(--primary-600)}
+
+/* ---------- Thanh phân loại: nhóm hàng bên trái, "Hay bán" bên phải ---------- */
+.cat-bar{display:flex;align-items:center;gap:10px;min-width:0}
+.cat-tabs{display:flex;gap:8px;flex-wrap:nowrap;min-width:0;overflow-x:auto;scrollbar-width:none;padding:2px}
+.cat-tabs::-webkit-scrollbar{display:none}
+.pos .cat-tabs{gap:6px}
+.pos .cat-tab{min-height:40px;padding:0 9px 0 10px;font-size:13.5px;gap:6px}
+.cat-tab{--c:var(--ink-2);--c50:var(--line-2);display:inline-flex;align-items:center;gap:7px;min-height:42px;padding:0 12px 0 11px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);font-weight:700;font-size:14px;color:var(--ink-2);white-space:nowrap;transition:background .12s,border-color .12s,color .12s}
+.cat-tab.otc{--c:var(--otc);--c50:var(--otc-50)}
+.cat-tab.supp{--c:var(--supp);--c50:var(--supp-50)}
+.cat-tab.device{--c:var(--device);--c50:var(--device-50)}
+.cat-tab.other{--c:var(--other);--c50:var(--other-50)}
+.cat-tab svg{color:var(--c)}
+.cat-tab .cnt{font-size:11.5px;font-weight:800;min-width:24px;text-align:center;padding:1px 7px;border-radius:999px;background:var(--c50);color:var(--c)}
+.cat-tab:hover{border-color:var(--c);background:var(--c50)}
+.cat-tab.active{background:var(--c);border-color:var(--c);color:#fff;box-shadow:0 3px 10px color-mix(in srgb,var(--c) 30%,transparent)}
+.cat-tab.active svg{color:#fff}
+.cat-tab.active .cnt{background:rgba(255,255,255,.24);color:#fff}
+.dd-i .tag{flex:none}
+.dd-i .star{margin-left:-4px}
+
+/* ---------- Danh mục hàng: mỗi mặt hàng đúng 1 dòng, vừa màn hình, không kéo ngang ---------- */
+.ct-bar{padding:12px 18px;border-bottom:1px solid var(--line-2)}
+.qchip{display:inline-flex;align-items:center;gap:4px;padding:2px 9px 2px 6px;border-radius:999px;font-weight:700;font-size:12.5px;white-space:nowrap;max-width:100%;overflow:hidden}
+.qchip svg{width:13px;height:13px;stroke-width:2.6;flex:none}
+.qchip.warn{background:var(--warning-50);color:var(--warning);box-shadow:inset 0 0 0 1px #f5d9a8}
+.qchip.bad{background:var(--danger-50);color:var(--danger);box-shadow:inset 0 0 0 1px #f3c4c4}
+.qchip small{font-weight:600}
+table.ct{table-layout:fixed;min-width:0}
+.ct th,.ct td{padding-left:8px;padding-right:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ct th{padding-top:10px;padding-bottom:10px}
+.ct td{padding-top:8px;padding-bottom:8px;height:50px}
+.ct th:first-child,.ct td:first-child{padding-left:18px}
+.ct th:last-child,.ct td:last-child{padding-right:14px}
+.ct .ct-code{width:86px}
+.ct .ct-name{width:auto}
+.ct .ct-cat{width:68px}
+.ct .ct-str{width:92px}
+.ct .ct-kho{width:88px}
+.ct .ct-unit{width:58px}
+.ct .ct-price{width:92px}
+.ct .ct-stock{width:94px}
+.ct .ct-exp{width:108px}
+.ct .ct-lot{width:90px}
+.ct .ct-act{width:90px;overflow:visible}
+.ct td .qchip{font-size:12px;padding:2px 7px 2px 5px;gap:3px}
+.ct td .qchip svg{width:12px;height:12px}
+.ct td.ct-code{font-size:12.5px;color:var(--ink-2)}
+.ct td.ct-name b{font-size:14px;font-weight:700;color:var(--ink)}
+.ct td.ct-str,.ct td.ct-kho{color:var(--ink-2)}
+.ct td.ct-unit sup{font-size:10px;color:var(--muted);font-weight:700;margin-left:2px}
+.ct td.ct-price b{font-size:14px;color:var(--primary-700)}
+.ct td.ct-stock b{font-size:14px}
+.ct td.ct-stock small{color:var(--muted);font-weight:500}
+.ct td.ct-lot{font-size:12px;color:var(--muted)}
+.ct .actions{gap:6px}
+.ct tbody tr.iss-bad td:first-child{box-shadow:inset 4px 0 0 var(--danger)}
+.ct tbody tr.iss-warn td:first-child{box-shadow:inset 4px 0 0 #f59e0b}
+.ct tbody tr.off td{color:var(--faint)}
+.ct tbody tr.off td.ct-name b{color:var(--muted);font-weight:600}
+.ct-card .toolbar .seg svg{color:var(--warning)}
+.imp-prev{max-height:300px;border:1px solid var(--line);border-radius:12px;margin-bottom:12px}
+.imp-prev .t td,.imp-prev .t th{white-space:nowrap;padding:8px 10px}
+
+/* Form thêm / sửa mặt hàng: 10 trường chính, phần còn lại thu gọn */
+.pe-more{border:1px dashed var(--line);border-radius:12px;padding:10px 14px;background:var(--surface-2)}
+.pe-more summary{cursor:pointer;display:flex;align-items:center;gap:8px;min-height:32px;list-style:none;font-size:13px}
+.pe-more summary::-webkit-details-marker{display:none}
+.pe-more summary svg{transition:transform .15s;color:var(--muted)}
+.pe-more[open] summary svg{transform:rotate(90deg)}
+.pe-more summary .muted{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+
+/* Ẩn cột theo bề rộng thật của bảng (không theo màn hình): thu gọn rèm là hiện lại đủ cột, không bao giờ kéo ngang */
+.ct-card{container:ct/inline-size}
+@container ct (max-width:1068px){ .ct .ct-kho{display:none} }
+@container ct (max-width:984px){ .ct .ct-lot{display:none} }
+@container ct (max-width:894px){ .ct .ct-str,.ct .ct-cat{display:none} }
+@container ct (max-width:700px){
+  .ct .ct-code,.ct .ct-unit,.ct .ct-exp{display:none}
+  .ct .ct-price{width:84px}.ct .ct-stock{width:86px}.ct .ct-act{width:84px}
+  .ct td.ct-name{padding-left:12px}
+}
+@media (min-width:768px){
+  .topbar-actions{flex-shrink:0}
+  .topbar>div:not(.topbar-actions){flex:1 1 auto}
+}
+@media (max-width:1380px){
+  .page-ic{display:none}
+}
+@media (max-width:767px){
+  .page-ic{display:none}
+  .topbar h1{font-size:18px}
+  .cat-bar{flex-wrap:wrap}
+  .cat-tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;flex:1 1 100%;order:2}
+  .cat-tabs::-webkit-scrollbar{display:none}
+  .ct .ct-code,.ct .ct-unit,.ct .ct-exp{display:none}
+  .ct .ct-price{width:84px}.ct .ct-stock{width:86px}.ct .ct-act{width:84px}
+  .ct th:first-child,.ct td:first-child{padding-left:12px}
+  .pe-grid>.c3,.pe-grid>.c6{grid-column:span 6}
+  .pe-grid>.c6:nth-child(2){grid-column:span 12}
+  .kpi strong{font-size:24px}
+}
+
+/* KPI: số dài (tiền) tự co theo bề rộng thẻ, không tràn */
+.kpi{container-type:inline-size}
+.kpi>div:not(.kpi-ic){min-width:0;flex:1 1 auto}
+.kpi .kpi-ic{flex:none}
+.kpi strong{white-space:nowrap;font-size:clamp(18px,10.5cqi,28px)}
+.kpis.compact .kpi strong{font-size:clamp(17px,9.5cqi,24px)}
+.kpi span,.kpi small{overflow-wrap:anywhere}
+.linkbtn.hint{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:12.5px;text-decoration:none}
+.linkbtn.hint:hover{text-decoration:underline}
+/* Bảng danh mục hẹp: bỏ nút điều chỉnh tồn (vẫn có trong form Sửa) để nhường chỗ cho tên hàng */
+@container ct (max-width:700px){ .ct [data-adj]{display:none} .ct .ct-act{width:52px} .ct .ct-price{width:96px} }
+
+/* ===== 18/11 (2) – Tối giản: chỉ hiện thông tin cần thiết, chi tiết khi bật "Hiển thị tất cả" ===== */
+.app:not(.show-all) .xd{display:none!important}
+.detail-btn{flex:none;color:var(--ink-2);border:1px solid var(--line);background:var(--surface)}
+.detail-btn.on{background:var(--ac50);border-color:var(--ac100);color:var(--ac)}
+.topbar h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Thanh phân loại: không còn nút Hay bán – tab xuống dòng khi hẹp, không bị che / cắt */
+.cat-bar{display:block}
+.cat-tabs{flex-wrap:wrap;overflow:visible}
+
+/* Hộp phím tắt dưới rèm: phím và chú thích thẳng cột, không tràn */
+.cur-keys{grid-template-columns:max-content minmax(0,1fr);column-gap:8px;row-gap:7px;align-items:center}
+.cur-keys .label-t{grid-column:1/-1}
+.cur-keys>div:not(.label-t){display:contents}
+.cur-keys kbd{min-width:0;justify-self:start;white-space:nowrap;font-size:11px;padding:2px 6px}
+.cur-keys span{line-height:1.35;overflow-wrap:anywhere}
+
+/* ---- Bán hàng: trái = tìm + danh sách hàng · phải = giỏ hàng + thanh toán ---- */
+.pos{display:grid;grid-template-columns:minmax(0,1fr) minmax(400px,44%);gap:16px;align-items:start}
+.pos-left{min-width:0;display:flex;flex-direction:column;gap:10px}
+.pos-search{padding:4px 4px 4px 14px;border-radius:14px}
+.pos-search input{font-size:16px;min-height:44px}
+.pos .mic-btn{width:44px;height:44px}
+.pos-res{overflow-y:auto;max-height:calc(100vh - 236px);min-height:220px;padding:4px}
+.pr-i{display:grid;grid-template-columns:50px minmax(0,1fr) auto auto;gap:10px;align-items:center;width:100%;min-height:46px;padding:5px 12px;border:0;background:none;border-radius:10px;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
+.pr-i:hover{background:var(--surface-2)}
+.pr-i.hl{background:var(--ac50);box-shadow:inset 3px 0 0 var(--ac)}
+.pr-i.off{opacity:.55}
+.pr-i .tag{justify-self:start}
+.pr-nm{min-width:0;display:flex;flex-direction:column}
+.pr-nm b{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr-nm small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr-nm .pr-iss.bad{color:var(--danger);font-weight:600}
+.pr-nm .pr-iss.warn{color:var(--warning);font-weight:600}
+.pr-i .qtyb{font-weight:800;font-size:12px;color:#fff;background:var(--ac);border-radius:6px;padding:1px 7px}
+.pr-pr{font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right}
+.pr-pr small{font-weight:500;color:var(--muted);font-size:12px}
+.pr-empty{padding:36px 16px;text-align:center;color:var(--muted)}
+.pr-empty svg{display:block;margin:0 auto 8px;color:var(--faint)}
+.pr-empty b{display:block;color:var(--ink);margin-bottom:4px}
+
+.pos>.cart{position:sticky;top:76px;display:flex;flex-direction:column;max-height:calc(100vh - 92px);min-height:0}
+.pos .cart-h{padding:10px 12px 10px 16px;flex-wrap:nowrap}
+.pos .cart-h .cart-clear{margin-left:auto}
+.pos .cart-items{flex:1 1 auto;min-height:150px;max-height:none;overflow-y:auto}
+.pos .crow{grid-template-columns:minmax(0,1fr) 106px 88px 28px;gap:8px;padding:5px 8px 5px 14px;min-height:52px}
+.pos .crow .cr-name{min-width:0;display:flex;flex-direction:column;gap:1px}
+.pos .crow .cr-name b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pos .crow .cr-name small{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;min-width:0}
+.pos .crow .cr-name small .xd{overflow:hidden;text-overflow:ellipsis}
+.pos .crow .cr-iss{color:var(--danger);font-weight:600}
+.pos .crow .unit-sel{min-height:0;height:24px;width:auto;padding:0 2px;font-size:12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink-2)}
+.pos .crow .unit-txt{padding:0;font-size:12px}
+.pos .crow .cr-price{font-size:12px}
+.pos .crow .stepper button{width:32px;height:32px}
+.pos .crow .stepper input{width:40px;height:32px;font-size:14px}
+.pos .crow .cr-total{font-size:14px}
+.pos .crow .spc{margin-right:5px;vertical-align:1px}
+.cart-foot{border-top:1px solid var(--line);padding:10px 14px 14px;display:flex;flex-direction:column;gap:10px}
+.cart-foot .sum-total{border-top:0;padding-top:0}
+.cart-foot .sum-total strong{font-size:28px}
+.cart-foot .cust summary{min-height:26px;font-size:12.5px;font-weight:500;color:var(--muted)}
+.cust-f{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.cust-f .input{min-height:38px}
+.pos .pay-btns{grid-template-columns:1fr 1fr;gap:8px}
+.pos .pay-btns .btn.xl{min-height:54px;font-size:16px;padding:0 14px}
+
+/* ---- Lịch sử bán: chữ nhỏ, mỗi ô 1 dòng, mỗi mặt hàng 1 dòng ---- */
+.ht{table-layout:fixed;font-size:12.5px}
+.ht th{padding:9px 10px}
+.ht td{padding:8px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ht .h-c{width:40px}.ht .h-code{width:82px}.ht .h-time{width:92px}.ht .h-who{width:150px}.ht .h-cus{width:160px}.ht .h-pay{width:108px}.ht .h-tot{width:104px}.ht .h-rec{width:112px}
+.ht td.h-items>div{display:flex;gap:6px;min-width:0;line-height:1.55}
+.ht .h-nm{overflow:hidden;text-overflow:ellipsis;font-weight:600;color:var(--ink)}
+.ht .h-q{flex:none;color:var(--muted)}
+.ht .pill{font-size:11.5px;padding:2px 8px}
+.ht td.mono{font-size:12px}
+
+/* ---- Sổ hóa đơn: NCC 1 dòng ---- */
+.it .i-ncc .t-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px}
+.it .i-date{white-space:nowrap}
+
+@media (max-width:1024px){
+  .pos{grid-template-columns:1fr}
+  .pos>.cart{position:static;max-height:none}
+  .pos-res{max-height:46vh}
+  .pos .cart-items{max-height:none}
+}
+@media (max-width:767px){
+  .pos .crow{grid-template-columns:minmax(0,1fr) 28px;grid-template-areas:"nm x" "st tt";row-gap:6px;padding:8px 10px}
+  .pos .crow .cr-name{grid-area:nm}.pos .crow .stepper{grid-area:st;justify-self:start}.pos .crow .cr-total{grid-area:tt;align-self:center}.pos .crow .c-del{grid-area:x}
+  .pr-i{grid-template-columns:44px minmax(0,1fr) auto;gap:8px}
+  .pr-i .qtyb{display:none}
+  .ht .h-code{width:70px}
+  .it .i-ncc .t-title{max-width:180px}
+}
+.pos .crow .cr-name{align-items:stretch;white-space:normal}
+.pos .crow .cr-name b,.pos .crow .cr-name small{flex:none;min-width:0}
+@media (min-width:1025px){.pos{grid-template-columns:minmax(0,1fr) minmax(380px,41%)}}
+@media (max-width:767px){
+  .topbar-actions{flex-wrap:nowrap;gap:6px}
+  .topbar>div:not(.topbar-actions){flex:1 1 0;min-width:0}
+  .detail-btn .label{display:none}
+  .detail-btn{padding:0 10px}
+  .topbar .page-ic{display:none}
+}
+.pos .cat-tabs{gap:6px}
+.pos .cat-tab{min-height:38px;padding:0 8px 0 10px;font-size:13.5px;gap:5px}
+.pos .cat-tab .cnt{min-width:20px;padding:1px 6px;font-size:11px}
+@media (max-width:767px){ .ht .h-time,.ht .h-pay,.ht .h-rec{display:none} .ht .h-tot{width:96px} }

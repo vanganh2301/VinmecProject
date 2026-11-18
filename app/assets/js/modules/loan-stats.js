@@ -150,7 +150,7 @@
     const nice = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000, 10000, 20000, 50000];
     const step = nice.find(s => max / s <= 5) || Math.ceil(max / 5);
     const yMax = Math.ceil(max / step) * step;
-    const W = 760, Hh = 250, L = 46, Rr = 10, T = 16, Bm = 30, cw = (W - L - Rr) / n, bw = Math.max(4, Math.min(30, cw * .62));
+    const W = 760, Hh = 250, L = 46, Rr = 58, T = 16, Bm = 30, cw = (W - L - Rr) / n, bw = Math.max(4, Math.min(30, cw * .62));
     const y = v => T + (Hh - T - Bm) * (1 - v / yMax);
     const lab = Math.ceil(n / 12);
     let g = '';
@@ -161,9 +161,10 @@
       const x = L + i * cw + (cw - bw) / 2, top = y(c), h = Hh - Bm - top, r = Math.min(4, h, bw / 2);
       const isFc = i === n - 1, isCur = i === n - 2;
       if (c > 0) g += `<path class="bar ${isFc ? 'fc' : isCur ? 'cur' : ''}" data-b="${i}" d="M${x},${Hh - Bm} V${top + r} q0,-${r} ${r},-${r} h${bw - 2 * r} q${r},0 ${r},${r} V${Hh - Bm} Z"/>`;
-      if (isFc || i % lab === (n - 2) % lab) g += `<text class="ax ${isFc ? 'st-fct' : ''}" x="${L + i * cw + cw / 2}" y="${Hh - 10}" text-anchor="middle">${isFc ? 'Dự báo' : esc(R.B[i].short)}</text>`;
+      // Nhãn trục: cách đều, và không đè lên nhãn "Dự báo" ở cột cuối
+      if (isFc || (i % lab === (n - 2) % lab && (n - 1 - i) * cw >= 46)) g += `<text class="ax ${isFc ? 'st-fct' : ''}" x="${L + i * cw + cw / 2}" y="${Hh - 10}" text-anchor="middle">${isFc ? 'Dự báo' : esc(R.B[i].short)}</text>`;
     });
-    if (avg > 0) g += `<line class="st-avg" x1="${L}" x2="${fx}" y1="${y(avg)}" y2="${y(avg)}"/><text class="ax st-avgt" x="${L + 4}" y="${y(avg) - 5}" text-anchor="start">TB ${fmt1(avg)}</text>`;
+    if (avg > 0) g += `<line class="st-avg" x1="${L}" x2="${fx}" y1="${y(avg)}" y2="${y(avg)}"/><text class="ax st-avgt" x="${W - Rr + 6}" y="${y(avg) + 4}" text-anchor="start">TB ${fmt1(avg)}</text>`;
     all.forEach((c, i) => { g += `<rect x="${L + i * cw}" y="${T}" width="${cw}" height="${Hh - T - Bm}" fill="transparent" data-i="${i}"/>`; });
     const el = $('#sChart');
     el.innerHTML = `<svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc($('#sChartT').textContent)}">${g}</svg><div class="chart-tip" id="sTip"></div>
@@ -174,7 +175,7 @@
         const i = +r.dataset.i, isFc = i === n - 1, box = svg.getBoundingClientRect(), sc = box.width / W;
         const nb = isFc ? bucket(o.g, addP(o.g, R.B[R.B.length - 1].s, 1)) : R.B[i];
         tip.innerHTML = `<b>${esc(nb.long)}</b><br>${isFc ? 'Dự báo: ' : ''}${num(all[i])} ${esc(unit)}${!d && !isFc ? ` · ${R.per[i].n} lượt thuốc` : ''}${i === n - 2 ? '<br><i>đang diễn ra</i>' : ''}`;
-        tip.style.left = (L + i * cw + cw / 2) * sc + 'px'; tip.style.top = y(all[i]) * sc + 8 + 'px';
+        tip.style.left = Math.min(Math.max((L + i * cw + cw / 2) * sc, 90), box.width - 90) + 'px'; tip.style.top = Math.max(y(all[i]) * sc - 4, 50) + 'px';
         tip.classList.add('show');
         el.querySelectorAll('.bar').forEach(b => b.classList.toggle('hl', +b.dataset.b === i));
       };
@@ -248,7 +249,7 @@
   }
 
   VM.ui.register({
-    id: 'loanstats', title: 'Thống kê vay thuốc', group: 'loans', icon: 'trend', crumb: 'Sổ vay · Thuốc vay thường xuyên & dự báo nhu cầu', render,
+    id: 'loanstats', title: 'Thống kê vay thuốc', group: 'loans', icon: 'trend', render,
     tour: () => [
       { el: '#sG', title: 'Theo ngày, tuần hoặc tháng', text: 'Chọn cách gom số liệu và số kỳ muốn xem. Lọc riêng <b>Nhà thuốc vay</b> hoặc <b>Kho nội trú vay</b> để biết kho nào hay thiếu thuốc.' },
       { el: '#sChart', title: 'Diễn biến theo kỳ', text: 'Cột nhạt là kỳ hiện tại (chưa hết), cột viền đứt là <b>dự báo kỳ tới</b>. Đường nét đứt là trung bình.' },

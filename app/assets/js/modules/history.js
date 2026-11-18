@@ -25,12 +25,12 @@
     const sellers = S().staff;
     view.innerHTML = `<div class="card">
       <div class="toolbar">
-        <div class="input-icon grow">${icon('search')}<input class="input" id="hQ" type="search" placeholder="Mã đơn, tên/mã thuốc, khách, PID…" value="${esc(f.q)}"></div>
-        <input class="input" type="date" id="hFrom" value="${f.from}" style="width:auto" aria-label="Từ ngày" title="Từ ngày">
-        <input class="input" type="date" id="hTo" value="${f.to}" style="width:auto" aria-label="Đến ngày" title="Đến ngày">
-        <select class="select" id="hSeller" aria-label="Dược sĩ"><option value="">Tất cả dược sĩ</option>${sellers.map(s => `<option value="${s.id}" ${f.seller === s.id ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>
-        <select class="select" id="hPay" aria-label="Thanh toán"><option value="">Mọi hình thức</option><option value="qr" ${f.pay === 'qr' ? 'selected' : ''}>QR</option><option value="cash" ${f.pay === 'cash' ? 'selected' : ''}>Tiền mặt</option></select>
-        <select class="select" id="hRecon" aria-label="Đối soát"><option value="">Mọi trạng thái đối soát</option><option value="pending" ${f.recon === 'pending' ? 'selected' : ''}>Chưa nhập OH/SAP</option><option value="done" ${f.recon === 'done' ? 'selected' : ''}>Đã nhập OH/SAP</option></select>
+        <div class="input-icon grow">${icon('search')}<input class="input" id="hQ" type="search" placeholder="Tìm kiếm" value="${esc(f.q)}"></div>
+        <input class="input xd" type="date" id="hFrom" value="${f.from}" style="width:auto" aria-label="Từ ngày" title="Từ ngày">
+        <input class="input xd" type="date" id="hTo" value="${f.to}" style="width:auto" aria-label="Đến ngày" title="Đến ngày">
+        <select class="select xd" id="hSeller" aria-label="Dược sĩ"><option value="">Tất cả dược sĩ</option>${sellers.map(s => `<option value="${s.id}" ${f.seller === s.id ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>
+        <select class="select xd" id="hPay" aria-label="Thanh toán"><option value="">Mọi hình thức</option><option value="qr" ${f.pay === 'qr' ? 'selected' : ''}>QR</option><option value="cash" ${f.pay === 'cash' ? 'selected' : ''}>Tiền mặt</option></select>
+        <select class="select xd" id="hRecon" aria-label="Đối soát"><option value="">Mọi trạng thái đối soát</option><option value="pending" ${f.recon === 'pending' ? 'selected' : ''}>Chưa nhập OH/SAP</option><option value="done" ${f.recon === 'done' ? 'selected' : ''}>Đã nhập OH/SAP</option></select>
         <select class="select" id="hStatus" aria-label="Trạng thái đơn"><option value="paid" ${f.status === 'paid' ? 'selected' : ''}>Đơn hoàn tất</option><option value="cancelled" ${f.status === 'cancelled' ? 'selected' : ''}>Đơn đã hủy</option><option value="" ${f.status === '' ? 'selected' : ''}>Tất cả đơn</option></select>
         <div class="seg" id="hQuick"><button data-d="0">Hôm nay</button><button data-d="6">7 ngày</button><button data-d="29">30 ngày</button></div>
       </div>
@@ -48,24 +48,26 @@
   function draw() {
     const list = filtered();
     $('#hSum').innerHTML = `<span><b>${num(list.length)}</b> đơn · Tổng <b>${money(VM.sum(list, s => s.total))}</b></span>
-      <span class="muted small">QR ${money(VM.sum(list.filter(s => s.payment === 'qr'), s => s.total))} · Tiền mặt ${money(VM.sum(list.filter(s => s.payment === 'cash'), s => s.total))}</span>
+      <span class="muted small xd">QR ${money(VM.sum(list.filter(s => s.payment === 'qr'), s => s.total))} · Tiền mặt ${money(VM.sum(list.filter(s => s.payment === 'cash'), s => s.total))}</span>
       ${selected.size ? `<span class="pill pri" style="margin-left:auto">Đã chọn ${selected.size}</span>` : ''}`;
     $('#reconBtn').disabled = !selected.size;
     if (!list.length) { $('#hTable').innerHTML = VM.ui.empty('receipt', 'Không có đơn phù hợp', 'Thử thay đổi bộ lọc hoặc khoảng thời gian.'); return; }
     const rows = list.slice(0, limit);
-    $('#hTable').innerHTML = `<table class="t"><thead><tr>
-      <th style="width:40px"><input type="checkbox" id="hAll" aria-label="Chọn tất cả"></th><th>Mã đơn</th><th>Thời gian</th><th>Mặt hàng</th><th class="hide-m">Dược sĩ</th><th class="hide-m">Khách / PID</th><th>Thanh toán</th><th class="num">Tổng tiền</th><th>Đối soát</th><th></th></tr></thead><tbody>
+    const today = VM.ymd();
+    const when = d => VM.ymd(d) === today ? VM.fmtTime(d) : `${VM.fmtDate(d).slice(0, 5)} ${VM.fmtTime(d)}`;
+    const short = c => String(c).split('-').slice(-2).join('-');
+    $('#hTable').innerHTML = `<table class="t ht"><thead><tr>
+      <th class="h-c"><input type="checkbox" id="hAll" aria-label="Chọn tất cả"></th><th class="h-code">Mã đơn</th><th class="h-time">Thời gian</th><th class="h-items">Mặt hàng</th><th class="h-who hide-m">Dược sĩ</th><th class="h-cus xd">Khách / PID</th><th class="h-pay">Thanh toán</th><th class="h-tot num">Tổng tiền</th><th class="h-rec">Đối soát</th></tr></thead><tbody>
       ${rows.map(s => `<tr class="clickable ${s.status === 'cancelled' ? 'done' : ''}" data-id="${s.id}">
         <td onclick="event.stopPropagation()"><input type="checkbox" data-sel="${s.id}" ${selected.has(s.id) ? 'checked' : ''} ${s.status !== 'paid' ? 'disabled' : ''} aria-label="Chọn ${esc(s.code)}"></td>
-        <td><span class="mono strong strike">${esc(s.code)}</span>${s.status === 'cancelled' ? '<br>' + VM.ui.pill('bad', 'Đã hủy') : ''}</td>
-        <td>${VM.fmtTime(s.paidAt)}<div class="t-sub">${VM.fmtDate(s.paidAt)}</div></td>
-        <td style="max-width:280px"><div class="t-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.items.map(i => i.name).join(', '))}</div><div class="t-sub">${s.items.length} mặt hàng · ${num(VM.sum(s.items, i => i.qty))} đơn vị</div></td>
-        <td class="hide-m">${esc(s.sellerName)}</td>
-        <td class="hide-m">${esc(s.customer || '—')}${s.pid ? `<div class="t-sub mono">${esc(s.pid)}</div>` : ''}</td>
-        <td>${s.payment === 'qr' ? VM.ui.pill('info', 'QR', 'qr') : VM.ui.pill('', 'Tiền mặt', 'cash')}</td>
+        <td class="mono strike" title="${esc(s.code)}">${esc(short(s.code))}${s.status === 'cancelled' ? ' ' + VM.ui.pill('bad', 'Hủy') : ''}</td>
+        <td class="h-time" title="${esc(VM.fmtDT(s.paidAt))}">${when(s.paidAt)}</td>
+        <td class="h-items">${s.items.map(i => `<div title="${esc(i.name)}"><span class="h-nm">${esc(i.name)}</span><span class="h-q">× ${num(i.qty)} ${esc(String(i.unit || '').toLowerCase())}</span></div>`).join('')}</td>
+        <td class="hide-m" title="${esc(s.sellerName)}">${esc(s.sellerName)}</td>
+        <td class="xd" title="${esc([s.customer, s.pid].filter(Boolean).join(' · '))}">${esc(s.customer || '—')}${s.pid ? ` · <span class="mono">${esc(s.pid)}</span>` : ''}</td>
+        <td class="h-pay">${s.payment === 'qr' ? VM.ui.pill('info', 'QR', 'qr') : VM.ui.pill('', 'Tiền mặt', 'cash')}</td>
         <td class="num strong">${money(s.total)}</td>
-        <td>${s.status !== 'paid' ? '' : s.recon === 'done' ? VM.ui.pill('ok', 'Đã nhập', 'check') : VM.ui.pill('warn', 'Chờ nhập', 'clock')}</td>
-        <td><button class="btn ghost icon sm" aria-label="Xem chi tiết">${icon('chevr', 's')}</button></td></tr>`).join('')}
+        <td class="h-rec">${s.status !== 'paid' ? '' : s.recon === 'done' ? VM.ui.pill('ok', 'Đã nhập', 'check') : VM.ui.pill('warn', 'Chờ nhập', 'clock')}</td></tr>`).join('')}
       </tbody></table>
       ${list.length > limit ? `<div style="padding:14px;text-align:center"><button class="btn" id="hMore">Xem thêm ${Math.min(100, list.length - limit)} đơn</button></div>` : ''}`;
     $$('#hTable tr[data-id]').forEach(tr => tr.onclick = () => openDetail(tr.dataset.id));
@@ -132,7 +134,7 @@
     VM.store.log('Xuất Excel lịch sử bán', 'Bán lẻ', `${list.length} đơn`); VM.store.save('export');
   }
 
-  VM.ui.register({ id: 'history', title: 'Lịch sử bán', group: 'retail', icon: 'receipt', crumb: 'Bán lẻ · Tra cứu & đối soát', render,
+  VM.ui.register({ id: 'history', title: 'Lịch sử bán', group: 'retail', icon: 'receipt', render, detail: true,
     badge: () => { const n = S().sales.filter(s => s.status === 'paid' && s.recon !== 'done').length; return { n, soft: true, title: n + ' đơn chưa nhập OH/SAP' }; } });
   VM.history = { exportSales: exportXls };
 })(window.VM);

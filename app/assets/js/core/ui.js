@@ -4,7 +4,7 @@
   const { $, $$, esc, icon } = VM;
   const modules = [];
   let current = null, currentArg = '', cleanup = null;
-  const LS_CUR = 'vmhub.curtain';
+  const LS_CUR = 'vmhub.curtain', LS_DETAIL = 'vmhub.detail';
 
   // 3 nghiệp vụ chính = 3 biểu tượng trên rail; "Khác" gom Tổng quan / Sao lưu / Cài đặt
   const GROUPS = {
@@ -41,8 +41,9 @@
         <div class="main">
           <header class="topbar" id="topbar">
             <button class="btn ghost icon cur-toggle" id="curOpen" aria-label="Mở / thu gọn rèm chức năng" title="Mở / thu gọn rèm chức năng">${icon('menu')}</button>
-            <div style="min-width:0"><div class="crumb" id="crumb"></div><h1 id="pageTitle"></h1></div>
+            <span class="page-ic" id="pageIc" aria-hidden="true"></span><div style="min-width:0"><h1 id="pageTitle"></h1></div>
             <div class="topbar-actions" id="topActions"></div>
+            <button class="btn ghost sm detail-btn hidden" id="detailBtn" aria-pressed="false" title="Hiện / ẩn thông tin chi tiết trong danh sách">${icon('eye', 's')}<span class="label" id="detailLbl">Hiển thị tất cả</span></button>
             <button class="btn ghost icon tour-btn hidden" id="tourBtn" title="Hướng dẫn sử dụng màn này" aria-label="Xem hướng dẫn sử dụng màn này">${icon('help')}</button>
           </header>
           <main class="content" id="view" tabindex="-1"></main>
@@ -55,10 +56,21 @@
     $('#railMe').onclick = () => VM.app.logout();
     $('#railSys').onclick = () => railClick('system');
     $('#tourBtn').onclick = () => VM.tour && current && VM.tour.start(current, true);
+    $('#detailBtn').onclick = () => setDetail(!$('#app').classList.contains('show-all'));
+    setDetail(localStorage.getItem(LS_DETAIL) === '1', true);
     window.addEventListener('scroll', () => $('#topbar') && $('#topbar').classList.toggle('scrolled', window.scrollY > 4), { passive: true });
     renderMe();
     renderNav();
     renderBackupChip();
+  }
+  // Tối giản: mặc định chỉ hiện thông tin cần thiết; phần tử .xd (chi tiết) chỉ hiện khi bật "Hiển thị tất cả"
+  function setDetail(on, silent) {
+    $('#app').classList.toggle('show-all', on);
+    $('#detailBtn').setAttribute('aria-pressed', on);
+    $('#detailBtn').classList.toggle('on', on);
+    $('#detailLbl').textContent = on ? 'Thu gọn' : 'Hiển thị tất cả';
+    try { localStorage.setItem(LS_DETAIL, on ? '1' : '0'); } catch (e) { }
+    if (!silent) window.dispatchEvent(new Event('vm-detail'));
   }
   function setCur(open) {
     $('#app').classList.toggle('cur-open', open);
@@ -90,7 +102,7 @@
       const G = GROUPS[k];
       const bs = modules.filter(m => m.group === k && m.badge).map(m => m.badge()).filter(b => b && b.n);
       const n = VM.sum(bs, b => b.n), soft = bs.every(b => b.soft);
-      return `<button class="rail-btn ${g === k ? 'active' : ''}" data-g="${k}" title="${esc(G.full || G.label)}" ${g === k ? 'aria-current="page"' : ''}>${icon(G.icon, 'l')}<span>${G.label}</span>${badgeHtml({ n, soft })}</button>`;
+      return `<button class="rail-btn ${g === k ? 'active' : ''}" data-g="${k}" data-area="${k}" title="${esc(G.full || G.label)}" ${g === k ? 'aria-current="page"' : ''}>${icon(G.icon, 'l')}<span>${G.label}</span>${badgeHtml({ n, soft })}</button>`;
     }).join('');
     $$('#rail [data-g]').forEach(b => b.onclick = () => railClick(b.dataset.g));
     $('#railSys').classList.toggle('active', g === 'system');
@@ -129,8 +141,10 @@
     if (typeof cleanup === 'function') { try { cleanup(); } catch (e) { } }
     cleanup = null;
     current = m.id; currentArg = m.id === mm[1] ? (mm[2] || '') : '';
-    $('#pageTitle').textContent = m.title;
-    $('#crumb').textContent = m.crumb || '';
+    $('#pageTitle').textContent = m.head || m.title;
+    $('#pageIc').innerHTML = icon(m.icon);
+    $('#app').dataset.area = m.group || 'system';
+    $('#detailBtn').classList.toggle('hidden', !m.detail);
     document.title = m.title + ' · Vinmec Pharmacy Hub';
     $('#topActions').innerHTML = '';
     const view = $('#view');
@@ -191,6 +205,26 @@
       } else if (e.key === 'Escape' && isOpen()) { e.stopPropagation(); close(); }
     });
     return { refresh: draw, close, isOpen, el: dd };
+  }
+
+  // ---------- thanh phân loại: Tất cả / Thuốc / TPCN / Vật tư / Khác ----------
+  /**
+   * catBar(el, { cat, counts(): {'':n, otc:n, …}, onCat(cat) })
+   * Trả về { set(cat), refresh(), cat }. Dùng chung cho Bán hàng và Danh mục hàng.
+   */
+  function catBar(el, opt) {
+    const CAT = VM.store.CATEGORIES;
+    let cat = opt.cat || '';
+    el.classList.add('cat-bar');
+    const tabs = [['', 'Tất cả', 'layers'], ...Object.entries(CAT).map(([k, v]) => [k, v.tab, v.icon])];
+    function draw() {
+      const c = opt.counts();
+      el.innerHTML = `<div class="cat-tabs" role="tablist" aria-label="Phân loại hàng">${tabs.map(([k, label, ic]) => `<button type="button" role="tab" class="cat-tab ${k || 'all'} ${cat === k ? 'active' : ''}" data-cat="${k}" aria-selected="${cat === k}" title="${esc(k ? CAT[k].label : 'Mọi nhóm hàng')}">${icon(ic, 's')}<span>${esc(label)}</span><span class="cnt">${c[k] || 0}</span></button>`).join('')}</div>`;
+      $$('[data-cat]', el).forEach(b => b.onclick = () => { const k = b.dataset.cat; set(k && k === cat ? '' : k); opt.onCat && opt.onCat(cat); });
+    }
+    function set(k) { cat = k || ''; $$('[data-cat]', el).forEach(b => { const on = b.dataset.cat === cat; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); }); }
+    draw();
+    return { set, refresh: draw, get cat() { return cat; } };
   }
 
   // ---------- toast ----------
@@ -275,6 +309,9 @@
 
   function print(html) {
     $('#printArea').innerHTML = html;
+    // Gỡ ngay thông báo hoàn thành (không chờ hiệu ứng mờ) để không lẫn vào bản in
+    clearTimeout(doneT);
+    if (doneEl) { doneEl.remove(); doneEl = null; }
     setTimeout(() => { window.print(); }, 50);
   }
 
@@ -290,5 +327,5 @@
     return o;
   }
 
-  VM.ui = { register, shell, route, go, rerender, teardown, renderNav, renderMe, renderBackupChip, toast, done, modal, confirm, print, pill, empty, staffOptions, storeOptions, formData, suggest, get current() { return current; }, modules };
+  VM.ui = { register, shell, route, go, rerender, teardown, renderNav, renderMe, renderBackupChip, toast, done, modal, confirm, print, pill, empty, staffOptions, storeOptions, formData, suggest, catBar, get current() { return current; }, modules };
 })(window.VM);

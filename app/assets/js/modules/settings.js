@@ -158,5 +158,5 @@
     VM.ui.done('Đã lưu cài đặt');
   }
 
-  VM.ui.register({ id: 'settings', title: 'Cài đặt', group: 'system', icon: 'sliders', crumb: 'Hệ thống · Cấu hình nhà thuốc', render });
+  VM.ui.register({ id: 'settings', title: 'Cài đặt', group: 'system', icon: 'sliders', render });
 })(window.VM);

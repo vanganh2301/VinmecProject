@@ -172,5 +172,5 @@
     $$('#attn [data-go]').forEach(b => b.onclick = () => VM.ui.go(b.dataset.go));
   }
 
-  VM.ui.register({ id: 'dashboard', title: 'Tổng quan', group: 'system', icon: 'grid', crumb: 'Hoạt động nhà thuốc hôm nay', render });
+  VM.ui.register({ id: 'dashboard', title: 'Tổng quan', group: 'system', icon: 'grid', render });
 })(window.VM);

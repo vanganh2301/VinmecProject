@@ -5,7 +5,7 @@
   const S = () => VM.store.state;
   const CAT = VM.store.CATEGORIES;
 
-  let draft, busy = false, keyHandler = null, sug = null, voice = null, voicePending = null;
+  let draft, busy = false, keyHandler = null, voice = null, voicePending = null, bar = null, cat = '';
   const draftKey = () => 'vmhub.draft.' + ((VM.store.currentUser() || {}).id || 'x');
   function loadDraft() { try { draft = JSON.parse(localStorage.getItem(draftKey()) || 'null'); } catch { draft = null; } if (!draft) draft = { items: [], customer: '', pid: '' }; }
   const saveDraft = () => localStorage.setItem(draftKey(), JSON.stringify(draft));
@@ -25,42 +25,38 @@
   const defUnit = p => p.units.find(x => x.name === p.defaultUnit) || p.units[0];
 
   // ---------- rendering ----------
+  // Bố cục: trái = phân loại + ô tìm + danh sách hàng (luôn hiện) · phải = giỏ hàng + tổng tiền + thanh toán
   function render(view, top) {
-    loadDraft();
+    loadDraft(); hl = 0; moved = false;
     const ai = S().settings.ai, mode = VM.ai.MODES[ai.stt] || VM.ai.MODES.off;
     top.innerHTML = `
-      <button class="btn" id="addSpecial" title="Hàng ngoài danh mục">${icon('package')}<span class="label">Hàng ngoài DM</span></button>
-      <button class="btn" id="posXls" title="Xuất Excel các đơn bán hôm nay">${icon('download')}<span class="label">Excel hôm nay</span></button>
-      <button class="btn" id="newOrderBtn" title="Đơn mới (F9)">${icon('plus')}<span class="label">Đơn mới</span> <span class="kbd hide-m">F9</span></button>`;
+      <button class="btn" id="addSpecial" title="Thêm hàng chưa có trong danh mục vào đơn">${icon('plus')}<span class="label">Thêm hàng mới</span></button>
+      <button class="btn" id="posXls" title="Xuất Excel các đơn bán trong ngày">${icon('download')}<span class="label">Báo cáo trong ngày</span></button>
+      <button class="btn" id="newOrderBtn" title="Đơn mới (F9)">${icon('cart')}<span class="label">Đơn mới</span> <span class="kbd hide-m">F9</span></button>`;
     view.innerHTML = `
       <div class="pos">
-        <section class="pos-main" aria-label="Chọn hàng">
+        <section class="pos-left" aria-label="Chọn hàng">
+          <div id="catBar"></div>
           <div class="pos-search" id="posSearchBox">
             ${icon('search')}
-            <input id="posSearch" type="search" autocomplete="off" placeholder="Gõ 1–2 chữ tên thuốc, hoạt chất, mã… · quét mã vạch · hoặc bấm micro" aria-label="Tìm thuốc">
-            <div class="search-hint hide-m"><kbd>F2</kbd></div>
-            <button class="mic-btn" id="micBtn" title="Nhập bằng giọng nói (F3) – ${esc(mode.label)}" aria-label="Nhập bằng giọng nói" ${ai.stt === 'off' ? 'disabled' : ''}>${icon('mic')}${mode.short ? `<span class="mic-mode ${ai.stt === 'cloud' ? 'cloud' : ''}">${mode.short}</span>` : ''}</button>
+            <input id="posSearch" type="search" autocomplete="off" placeholder="Tìm kiếm" aria-label="Tìm kiếm" aria-controls="posRes">
+            <button class="mic-btn" id="micBtn" title="Nhập bằng giọng nói (F3) – ${esc(mode.label)}" aria-label="Nhập bằng giọng nói" ${ai.stt === 'off' ? 'disabled' : ''}>${icon('mic')}</button>
           </div>
           <div class="voice-live hidden" id="voiceLive"></div>
-          <div class="hot-strip" id="hotStrip"></div>
-          <div class="card cart" aria-label="Giỏ hàng">
-            <div class="cart-h"><h3>Giỏ hàng</h3><span class="pill pri" id="cartCount"></span><span class="order-code" id="orderCode" title="Mã đơn"></span>
-              <div class="right"><button class="btn ghost sm" id="clearCart">${icon('trash', 's')} Xóa giỏ</button></div></div>
-            <div class="chead"><span>#</span><span>Mặt hàng</span><span>ĐVT</span><span>Số lượng</span><span class="r c-price">Đơn giá</span><span class="r">Thành tiền</span><span></span></div>
-            <div class="cart-items" id="cartItems"></div>
-          </div>
+          <div class="card pos-res" id="posRes" role="listbox" aria-label="Danh sách hàng"></div>
         </section>
-        <aside class="card pay" aria-label="Thanh toán">
-          <div class="card-b">
-            <details class="cust" id="custBox" ${draft.customer || draft.pid ? 'open' : ''}><summary>${icon('user', 's')} Khách hàng <span class="muted">(không bắt buộc)</span></summary>
-              <div class="field"><input class="input" id="cusName" placeholder="Tên khách / SĐT" value="${esc(draft.customer)}" aria-label="Khách hàng"></div>
-              <div class="field"><input class="input mono" id="cusPid" placeholder="PID bệnh nhân" value="${esc(draft.pid)}" aria-label="PID"></div></details>
-            <div class="sum-row"><span>Số mặt hàng</span><span id="sumLines">0</span></div>
-            <div class="sum-row"><span>Tổng số lượng</span><span id="sumQty">0</span></div>
+        <aside class="card cart" aria-label="Giỏ hàng">
+          <div class="cart-h"><h3>Giỏ hàng</h3><span class="pill pri" id="cartCount"></span><span class="order-code xd" id="orderCode" title="Mã đơn"></span>
+            <button class="btn ghost icon sm cart-clear" id="clearCart" title="Xóa giỏ" aria-label="Xóa giỏ">${icon('trash', 's')}</button></div>
+          <div class="cart-items" id="cartItems"></div>
+          <div class="cart-foot">
+            <details class="cust" id="custBox" ${draft.customer || draft.pid ? 'open' : ''}><summary>${icon('user', 's')} Khách hàng / PID</summary>
+              <div class="cust-f"><input class="input" id="cusName" placeholder="Tên khách / SĐT" value="${esc(draft.customer)}" aria-label="Khách hàng">
+              <input class="input mono" id="cusPid" placeholder="PID" value="${esc(draft.pid)}" aria-label="PID"></div></details>
             <div class="sum-total"><span>Tổng tiền</span><strong id="sumTotal">0 đ</strong></div>
             <div id="cartIssue"></div>
             <div class="pay-btns">
-              <button class="btn primary xl" id="payQr"><span>${icon('qr')} Chuyển khoản QR</span><span class="kbd">F4</span></button>
+              <button class="btn primary xl" id="payQr"><span>${icon('qr')} QR</span><span class="kbd">F4</span></button>
               <button class="btn tonal xl" id="payCash"><span>${icon('cash')} Tiền mặt</span><span class="kbd">F8</span></button>
             </div>
           </div>
@@ -70,14 +66,20 @@
     $('#cusName').oninput = e => { draft.customer = e.target.value; saveDraft(); };
     $('#cusPid').oninput = e => { draft.pid = e.target.value; saveDraft(); };
     const si = $('#posSearch');
-    sug = VM.ui.suggest(si, { items: searchItems, head: searchHead, empty: q => `Không tìm thấy “${esc(q)}”. Thử gõ không dấu, tên hoạt chất hoặc mã SAP.`, beforeEnter: scanEnter });
-    si.addEventListener('input', () => { voicePending = null; $('#voiceLive').classList.add('hidden'); });
-    si.addEventListener('keydown', e => { if (e.key === 'Escape') { si.value = ''; sug.close(); } });
+    si.addEventListener('input', () => { voicePending = null; $('#voiceLive').classList.add('hidden'); hl = 0; moved = false; drawRes(); });
+    si.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!resList.length) return; hl = (hl + (e.key === 'ArrowDown' ? 1 : -1) + resList.length) % resList.length; moved = true; markHl(); }
+      else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (si.value.trim() && !voicePending && scanEnter(si.value)) return;
+        if ((si.value.trim() || moved || voicePending) && resList[hl]) pick(hl);
+      } else if (e.key === 'Escape' && (si.value || voicePending)) { e.preventDefault(); clearSearch(); }
+    });
     $('#newOrderBtn').onclick = newOrder;
     $('#posXls').onclick = () => {
       const today = VM.ymd(), list = S().sales.filter(s => VM.ymd(s.paidAt || s.createdAt) === today);
       if (!list.length) { VM.ui.toast('Hôm nay chưa có đơn bán nào', 'warn'); return; }
-      VM.history.exportSales(list, 'vinmec_ban_hang_hom_nay');
+      VM.history.exportSales(list, 'vinmec_bao_cao_ban_hang_trong_ngay');
     };
     $('#micBtn').onclick = toggleVoice;
     $('#addSpecial').onclick = openSpecial;
@@ -96,7 +98,7 @@
     };
     document.addEventListener('keydown', keyHandler);
 
-    renderHot(); renderCart();
+    renderBar(); drawRes(); renderCart();
     if (window.innerWidth > 1024) setTimeout(() => si.focus(), 50);
     return () => { document.removeEventListener('keydown', keyHandler); if (voice) voice.stop(); voice = null; };
   }
@@ -108,38 +110,46 @@
     else if ((m = q.match(/^(.+?)\s*[x*]\s*(\d{1,3})$/i))) { q = m[1]; qty = +m[2]; }
     return { qty: Math.max(1, qty), q };
   }
-  // Xếp hạng: độ khớp chữ + điểm "hay bán" (60 ngày) – thuốc hay dùng nổi lên đầu ngay khi gõ 1–2 ký tự
-  function ranked(q, n = 8) {
+  // Chưa gõ gì: cả nhóm đang chọn (hàng bán được trước, hàng bán nhiều trước). Có gõ: độ khớp chữ + điểm bán nhiều 60 ngày
+  function ranked(q, n = 8, c = '') {
     const f = VM.store.productFreq(), maxF = Math.max(1, ...Object.values(f));
-    const act = S().products.filter(p => p.active);
-    if (!q.trim()) return VM.store.topProducts(n);
+    const act = S().products.filter(p => p.active && (!c || p.category === c));
+    if (!q.trim()) return act.sort((a, b) => (VM.store.sellable(b) - VM.store.sellable(a)) || ((f[b.id] || 0) - (f[a.id] || 0)) || a.name.localeCompare(b.name, 'vi')).slice(0, n);
     return act.map(p => {
-      const s = Math.max(...['name', 'ingredient', 'code', 'sap'].map(k => VM.fuzzyScore(q, p[k])));
+      const s = Math.max(...['name', 'ingredient', 'code', 'sap', 'strength'].map(k => VM.fuzzyScore(q, p[k])));
       return { p, s: s + (f[p.id] ? 6 + 10 * f[p.id] / maxF : 0) - (VM.store.sellable(p) ? 0 : 25) };
     }).filter(x => x.s >= (q.trim().length <= 2 ? 80 : 60)).sort((a, b) => b.s - a.s).slice(0, n).map(x => x.p);
   }
-  function searchHead(raw) {
-    const { q } = splitQty(raw);
-    return q.trim() ? `${icon('search', 's')} Kết quả · ★ = hay bán · Enter thêm dòng đang chọn` : `${icon('trend', 's')} Hay bán 60 ngày qua`;
-  }
-  function searchItems(raw) {
-    const { qty, q } = voicePending || splitQty(raw);
-    const hot = new Set(VM.store.topProducts(10).map(p => p.id));
-    return ranked(q).map(p => {
-      const u = (voicePending && voicePending.unit && p.units.find(x => VM.normalize(x.name) === voicePending.unit)) || defUnit(p);
+
+  // Danh sách hàng bên trái: mỗi mặt hàng 1 dòng (nhóm · tên · giá); mã + tồn chỉ hiện khi "Hiển thị tất cả"
+  let resList = [], hl = 0, moved = false;
+  function drawRes() {
+    const el = $('#posRes'), si = $('#posSearch');
+    if (!el || !si) return;
+    const { qty, q } = voicePending || splitQty(si.value);
+    const list = ranked(q, q.trim() ? 40 : 200, voicePending ? '' : cat);
+    resList = list.map(p => ({ p, qty, u: (voicePending && voicePending.unit && p.units.find(x => VM.normalize(x.name) === voicePending.unit)) || defUnit(p) }));
+    if (hl >= resList.length) hl = 0;
+    el.innerHTML = resList.length ? resList.map(({ p, u }, i) => {
       const iss = VM.store.productIssue(p), ok = VM.store.sellable(p);
-      return {
-        cls: ok ? '' : 'off',
-        html: `${hot.has(p.id) ? `<span class="star" title="Hay bán">★</span>` : `<span class="tag ${p.category}">${CAT[p.category].short}</span>`}
-          ${qty > 1 ? `<span class="qtyb">×${qty} ${esc(u.name.toLowerCase())}</span>` : ''}
-          <span class="nm">${esc(p.name)}</span>
-          <span class="sub">${esc(p.code)} · tồn ${esc(VM.store.stockText(p))}${iss ? ' · ' + esc(iss.text) : ''}</span>
-          <span class="pr">${money(u.price)}<small class="muted">/${esc(u.name.toLowerCase())}</small></span>`,
-        pick: () => { if (voicePending) VM.ai.track('voice', ranked(q, 1)[0] === p); addProduct(p.id, u.name, qty); clearSearch(); },
-      };
-    });
+      return `<button type="button" class="pr-i ${i === hl ? 'hl' : ''} ${ok ? '' : 'off'}" data-i="${i}" role="option" aria-selected="${i === hl}">
+        <span class="tag ${p.category}">${esc(VM.store.catOf(p).short)}</span>
+        <span class="pr-nm"><b>${esc(p.name)}</b>${iss ? `<small class="pr-iss ${iss.level}">${esc(iss.text)}</small>` : ''}<small class="xd">${esc(p.code)} · tồn ${esc(VM.store.stockText(p))}</small></span>
+        ${qty > 1 ? `<span class="qtyb">×${qty}</span>` : ''}
+        <span class="pr-pr">${money(u.price)}<small>/${esc(u.name.toLowerCase())}</small></span></button>`;
+    }).join('') : `<div class="pr-empty">${icon('search', 'l')}<b>Không tìm thấy “${esc(q)}”</b>Thử gõ không dấu, tên hoạt chất hoặc mã SAP${cat ? ', hoặc chọn “Tất cả”' : ''}.</div>`;
+    $$('[data-i]', el).forEach(b => b.onclick = () => pick(+b.dataset.i));
   }
-  function clearSearch() { const si = $('#posSearch'); si.value = ''; voicePending = null; $('#voiceLive').classList.add('hidden'); si.focus(); }
+  function markHl() {
+    $$('#posRes [data-i]').forEach(b => { const on = +b.dataset.i === hl; b.classList.toggle('hl', on); b.setAttribute('aria-selected', on); if (on) b.scrollIntoView({ block: 'nearest' }); });
+  }
+  function pick(i) {
+    const r = resList[i]; if (!r) return;
+    if (voicePending) VM.ai.track('voice', i === 0);
+    addProduct(r.p.id, r.u.name, r.qty);
+    clearSearch();
+  }
+  function clearSearch() { const si = $('#posSearch'); if (!si) return; si.value = ''; voicePending = null; $('#voiceLive').classList.add('hidden'); hl = 0; moved = false; drawRes(); si.focus(); }
   // Máy quét mã vạch gõ mã + Enter: khớp chính xác mã hàng / SAP / GTIN / GS1 thì thêm ngay
   function scanEnter(raw) {
     const r = VM.store.matchScan(raw);
@@ -150,10 +160,10 @@
     return true;
   }
 
-  function renderHot() {
-    const list = VM.store.topProducts(8);
-    $('#hotStrip').innerHTML = list.length ? `<span class="hs-l">★ Hay bán</span>` + list.map(p => `<button class="hot-chip" data-hot="${p.id}" title="Thêm 1 ${esc(defUnit(p).name.toLowerCase())}">${esc(p.name)} <small>${money(defUnit(p).price)}</small></button>`).join('') : '';
-    $$('#hotStrip [data-hot]').forEach(b => b.onclick = () => addProduct(b.dataset.hot));
+  // Thanh phân loại: Tất cả / Thuốc / TPCN / Vật tư / Khác → lọc danh sách bên dưới
+  function renderBar() {
+    const counts = () => { const c = { '': 0 }; S().products.forEach(p => { if (!p.active) return; c[''] += 1; c[p.category] = (c[p.category] || 0) + 1; }); return c; };
+    bar = VM.ui.catBar($('#catBar'), { cat, counts, onCat: k => { cat = k; hl = 0; moved = false; drawRes(); $('#posSearch').focus(); } });
   }
 
   function addProduct(pid, unitName, qty = 1) {
@@ -169,27 +179,28 @@
     if (row) { row.scrollIntoView({ block: 'nearest' }); row.animate([{ background: 'var(--primary-100)' }, { background: 'transparent' }], { duration: 900 }); }
   }
 
-  // Mỗi mặt hàng đúng MỘT dòng: tên đậm + thông tin phụ chữ nhỏ; 6–10 dòng nhìn thấy cùng lúc
+  // Giỏ hàng (cột phải): mỗi mặt hàng 1 dòng gọn – tên + ĐVT/đơn giá chữ nhỏ · số lượng · thành tiền
   function renderCart() {
     $('#orderCode').textContent = VM.store.orderCode(true);
     const el = $('#cartItems');
-    $('#cartCount').textContent = draft.items.length + ' mặt hàng';
+    $('#cartCount').textContent = draft.items.length;
     if (!draft.items.length) {
-      el.innerHTML = `<div class="cart-empty">${icon('cart', 'l')}<b>Chưa có mặt hàng</b>Gõ 1–2 chữ vào ô tìm kiếm, quét mã vạch, bấm “Hay bán” hoặc dùng micro.</div>`;
+      el.innerHTML = `<div class="cart-empty">${icon('cart', 'l')}<b>Chưa có mặt hàng</b>Chọn hàng ở danh sách bên trái hoặc quét mã vạch.</div>`;
     } else {
-      el.innerHTML = draft.items.map((it, k) => {
+      el.innerHTML = draft.items.map(it => {
         const p = it.special ? null : VM.store.product(it.productId);
         const iss = lineIssue(it);
-        const meta = iss ? '⚠ ' + iss : it.special ? `Ngoài danh mục · người bán ${it.seller || '—'}` : `${it.code} · Lô ${it.lot || '—'}${p ? ' · HSD ' + VM.fmtDate(p.expiry) + ' · tồn ' + VM.store.stockText(p) : ''} · ${num(it.price)}đ/${it.unit.toLowerCase()}`;
-        const unitSel = p && p.units.length > 1 ? `<select class="select unit-sel" data-unit="${it.key}" aria-label="Đơn vị tính">${p.units.map(u => `<option ${u.name === it.unit ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select>` : `<span class="unit-txt">${esc(it.unit)}</span>`;
+        const more = it.special ? `Ngoài danh mục · người bán ${it.seller || '—'}` : `${it.code} · Lô ${it.lot || '—'}${p ? ' · HSD ' + VM.fmtDate(p.expiry) + ' · tồn ' + VM.store.stockText(p) : ''}`;
+        const unitSel = p && p.units.length > 1 ? `<select class="unit-sel" data-unit="${it.key}" aria-label="Đơn vị tính">${p.units.map(u => `<option ${u.name === it.unit ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select>` : `<span class="unit-txt">${esc(it.unit)}</span>`;
         const edited = it.price !== it.listPrice && !it.special;
         return `<div class="crow ${iss ? 'bad' : ''}" data-key="${it.key}">
-          <span class="cr-n">${k + 1}</span>
-          <div class="cr-name" title="${esc(it.name)} – ${esc(meta)}">${it.special ? '<span class="spc">NGOÀI DM</span>' : ''}<b>${esc(it.name)}</b><small>${esc(meta)}</small></div>
-          <div class="c-unit">${unitSel}</div>
-          <div class="c-step"><div class="stepper"><button data-dec="${it.key}" aria-label="Giảm">${icon('minus', 's')}</button><input inputmode="numeric" value="${it.qty}" data-qty="${it.key}" aria-label="Số lượng"><button data-inc="${it.key}" aria-label="Tăng">${icon('plus', 's')}</button></div></div>
-          <button class="cr-price c-price ${edited ? 'edited' : ''}" data-price="${it.key}" title="Sửa đơn giá">${num(it.price)}${edited ? ' ✎' : ''}</button>
-          <span class="cr-total" data-price="${it.key}" title="Bấm để sửa đơn giá">${money(it.qty * it.price)}</span>
+          <div class="cr-name" title="${esc(it.name)} – ${esc(more)}">
+            <b>${it.special ? '<span class="spc">MỚI</span>' : ''}${esc(it.name)}</b>
+            <small>${unitSel}<button class="cr-price ${edited ? 'edited' : ''}" data-price="${it.key}" title="Sửa đơn giá">${num(it.price)}đ${edited ? ' ✎' : ''}</button><span class="xd">· ${esc(more)}</span></small>
+            ${iss ? `<small class="cr-iss">⚠ ${esc(iss)}</small>` : ''}
+          </div>
+          <div class="stepper"><button data-dec="${it.key}" aria-label="Giảm">${icon('minus', 's')}</button><input inputmode="numeric" value="${it.qty}" data-qty="${it.key}" aria-label="Số lượng"><button data-inc="${it.key}" aria-label="Tăng">${icon('plus', 's')}</button></div>
+          <span class="cr-total">${money(it.qty * it.price)}</span>
           <button class="btn ghost icon sm c-del" data-del="${it.key}" aria-label="Xóa ${esc(it.name)}">${icon('x', 's')}</button>
         </div>`;
       }).join('');
@@ -208,8 +219,6 @@
       it.unit = u.name; it.factor = u.factor; it.price = u.price; it.listPrice = u.price; saveDraft(); renderCart();
     });
     $$('[data-price]', el).forEach(b => b.onclick = () => editPrice(find(b.dataset.price)));
-    $('#sumLines').textContent = draft.items.length;
-    $('#sumQty').textContent = num(VM.sum(draft.items, i => i.qty));
     $('#sumTotal').textContent = money(total());
     const issue = draft.items.length ? cartIssue() : null;
     $('#cartIssue').innerHTML = issue ? `<div class="alert bad">${icon('alert', 's')}<span>${esc(issue)}</span></div>` : '';
@@ -227,7 +236,7 @@
   function openSpecial() {
     const u = VM.store.currentUser();
     VM.ui.modal({
-      title: 'Thêm hàng hóa đặc biệt', sub: 'Hàng ngoài danh mục (theo nhu cầu khách). Ghi rõ người bán để đối soát.', ic: 'package',
+      title: 'Thêm hàng mới', sub: 'Hàng chưa có trong danh mục (theo nhu cầu khách). Ghi rõ người bán để đối soát.', ic: 'package',
       body: `<div class="form-grid">
         <div class="field c12"><label>Tên hàng <span class="req">*</span></label><input class="input" name="name" placeholder="VD: Băng thun cổ tay size M"></div>
         <div class="field c6 half"><label>Đơn vị tính</label><input class="input" name="unit" list="unitList" value="Cái"><datalist id="unitList"><option>Hộp</option><option>Chai</option><option>Lọ</option><option>Ống</option><option>Vỉ</option><option>Viên</option><option>Cái</option><option>Gói</option></datalist></div>
@@ -342,7 +351,7 @@
     VM.store.log('Bán hàng', 'Bán lẻ', `${items.length} mặt hàng · ${money(sale.total)} · ${payment === 'qr' ? 'QR' : 'Tiền mặt'}`, code);
     VM.store.save('sale');
     draft = { items: [], customer: '', pid: '' }; saveDraft();
-    if ($('#cusName')) { $('#cusName').value = ''; $('#cusPid').value = ''; renderCart(); renderHot(); }
+    if ($('#cusName')) { $('#cusName').value = ''; $('#cusPid').value = ''; renderCart(); drawRes(); }
     return sale;
   }
 
@@ -412,7 +421,7 @@
       // Một mặt hàng: đưa vào ô tìm kiếm, dược sĩ chọn đúng dòng rồi Enter
       const r = parseVoice(text), si = $('#posSearch');
       voicePending = { qty: r.qty, unit: r.unit, q: r.q };
-      si.value = r.q; si.focus(); sug.refresh();
+      si.value = r.q; si.focus(); hl = 0; moved = false; drawRes();
       return;
     }
     openVoiceConfirm(text, segs.map(parseVoice));
@@ -452,14 +461,16 @@
   }
 
   VM.pos = { printReceipt, receiptHtml };
-  VM.ui.register({ id: 'pos', title: 'Bán hàng', group: 'retail', icon: 'cart', crumb: 'Bán lẻ · OTC, TPCN, vật tư y tế', render, hot: true,
-    keys: [['F2', 'Tìm hàng'], ['F3', 'Giọng nói'], ['F4', 'Thanh toán QR'], ['F8', 'Tiền mặt'], ['F9', 'Đơn mới'], ['↑ ↓ Enter', 'Chọn gợi ý']],
+  VM.ui.register({ id: 'pos', title: 'Bán hàng', head: 'Vinmec Pharmacy', group: 'retail', icon: 'cart', render, hot: true, detail: true,
+    keys: [['F2', 'Tìm hàng'], ['↑ ↓ Enter', 'Chọn hàng'], ['F3', 'Giọng nói'], ['F4', 'Thanh toán QR'], ['F8', 'Tiền mặt'], ['F9', 'Đơn mới']],
     tour: () => [
-      { el: '#posSearchBox', title: 'Tìm hoặc quét thuốc', text: 'Gõ 1–2 chữ tên thuốc, hoạt chất hoặc mã (không dấu cũng được). Gõ <b>“2 para”</b> để thêm kèm số lượng. Máy quét mã vạch / DataMatrix: quét thẳng vào ô này. Phím tắt <kbd>F2</kbd>.' },
+      { el: '#posSearchBox', title: 'Tìm hoặc quét thuốc', text: 'Gõ 1–2 chữ tên thuốc, hoạt chất hoặc mã (không dấu cũng được), danh sách bên dưới lọc ngay. Gõ <b>“2 para”</b> để thêm kèm số lượng. Máy quét mã vạch / DataMatrix: quét thẳng vào ô này. Phím tắt <kbd>F2</kbd>.' },
+      { el: '#catBar .cat-tabs', title: 'Phân loại hàng', text: 'Bấm <b>Thuốc</b>, <b>TPCN</b>, <b>Vật tư</b> hoặc <b>Khác</b> để chỉ xem nhóm đó. Bấm lại (hoặc “Tất cả”) để bỏ lọc.' },
+      { el: '#posRes', title: 'Danh sách hàng', text: 'Bấm một dòng (hoặc <kbd>↑</kbd> <kbd>↓</kbd> rồi <kbd>Enter</kbd>) để thêm vào giỏ. Hàng bán nhiều đứng trước.' },
       { el: '#micBtn:not([disabled])', title: 'Nói tên thuốc', text: 'Bấm micro (hoặc <kbd>F3</kbd>) rồi đọc tên thuốc và số lượng. Nói nhiều mặt hàng thì app hỏi xác nhận từng dòng.' },
-      { el: '#hotStrip', title: 'Hàng hay bán', text: 'Dải <b class="tour-hot">vàng</b> là các mặt hàng bán nhiều nhất 60 ngày qua – bấm một lần để thêm vào giỏ.' },
-      { el: '.cart', title: 'Giỏ hàng', text: 'Mỗi mặt hàng một dòng: đổi ĐVT, tăng/giảm số lượng ngay trên dòng. Giỏ đang dở được giữ lại khi đổi ca.' },
-      { el: '.pay-btns', title: 'Thanh toán', text: '<kbd>F4</kbd> chuyển khoản QR · <kbd>F8</kbd> tiền mặt. Sau khi thanh toán có thể in hóa đơn.' },
-      { el: '#newOrderBtn', title: 'Đơn mới & hàng ngoài danh mục', text: '<kbd>F9</kbd> mở đơn mới. Nút “Hàng ngoài DM” để bán mặt hàng chưa có trong danh mục; “Excel hôm nay” xuất các đơn trong ngày.' },
+      { el: '.cart', title: 'Giỏ hàng', text: 'Mỗi mặt hàng một dòng: đổi ĐVT, sửa đơn giá, tăng/giảm số lượng ngay trên dòng. Giỏ đang dở được giữ lại khi đổi ca.' },
+      { el: '.pay-btns', title: 'Thanh toán', text: '<kbd>F4</kbd> chuyển khoản QR · <kbd>F8</kbd> tiền mặt. Sau khi thanh toán có thể in phiếu.' },
+      { el: '#detailBtn', title: 'Hiển thị tất cả', text: 'Mặc định chỉ hiện thông tin cần thiết. Bấm để xem thêm mã hàng, lô, HSD, tồn kho, mã đơn… bấm lại để thu gọn.' },
+      { el: '#newOrderBtn', title: 'Đơn mới, thêm hàng mới, báo cáo', text: '<kbd>F9</kbd> mở đơn mới. “Thêm hàng mới” để bán mặt hàng chưa có trong danh mục; “Báo cáo trong ngày” xuất Excel các đơn bán hôm nay.' },
     ] });
 })(window.VM);

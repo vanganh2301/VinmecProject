@@ -126,14 +126,14 @@
         const show = v.lines.slice(0, 3), more = v.lines.length - show.length;
         return `<tr class="clickable ${v.status === 'settled' || v.status === 'cancelled' ? 'done' : ''} ${justCreated === v.code ? 'flash' : ''}" data-code="${esc(v.code)}">
           <td onclick="event.stopPropagation()"><input type="checkbox" data-sel="${esc(v.code)}" ${selected.has(v.code) ? 'checked' : ''} ${vOpen(v) ? '' : 'disabled'} aria-label="Chọn ${esc(v.code)}"></td>
-          <td style="white-space:nowrap"><span class="mono strong">${esc(v.code)}</span><div class="t-sub">${VM.fmtDT(v.createdAt)}</div><div class="flow" style="margin-top:5px"><span class="store">${esc(v.from)}</span>${icon('arrowr', 's')}<span class="store">${esc(v.to)}</span></div></td>
-          <td><div class="v-cnt"><b>${v.lines.length}</b> thuốc</div>
+          <td style="white-space:nowrap"><span class="mono strong">${esc(v.code)}</span><div class="t-sub xd">${VM.fmtDT(v.createdAt)}</div><div class="flow" style="margin-top:5px"><span class="store">${esc(v.from)}</span>${icon('arrowr', 's')}<span class="store">${esc(v.to)}</span></div></td>
+          <td><div class="v-cnt xd"><b>${v.lines.length}</b> thuốc</div>
             <ul class="v-items">${show.map(l => `<li class="${['settled', 'cancelled'].includes(status(l)) ? 'off' : ''}"><span class="nm">${esc(l.name)}</span><span class="q">${num(l.qty)} ${esc(unitL(l.unit))}</span></li>`).join('')}</ul>
             ${more > 0 ? `<div class="t-sub">+ ${more} thuốc khác</div>` : ''}
             <div class="t-sub show-m">${icon('user', 's')} ${esc(v.borrower)} ← ${esc(v.lender)}</div></td>
           <td class="hide-m"><div class="t-title">${esc(v.borrower)}</div><div class="t-sub">← ${esc(v.lender)}</div></td>
           <td onclick="event.stopPropagation()"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${VM.ui.pill(st.cls, st.label, st.ic)}${v.overdue ? VM.ui.pill('bad', 'Quá hạn ' + VM.ago(v.createdAt).replace(' trước', ''), 'alert') : ''}</div>
-            ${v.status === 'partial' ? `<div class="t-sub" style="margin-top:4px">Đã gạch ${doneN}/${act.length} thuốc</div><div class="progress"><i style="width:${act.length ? doneN / act.length * 100 : 0}%"></i></div>` : ''}
+            ${v.status === 'partial' ? `<div class="xd"><div class="t-sub" style="margin-top:4px">Đã gạch ${doneN}/${act.length} thuốc</div><div class="progress"><i style="width:${act.length ? doneN / act.length * 100 : 0}%"></i></div></div>` : ''}
             ${vOpen(v) ? `<div class="actions" style="margin-top:8px;justify-content:flex-start;flex-wrap:wrap">
               ${v.status === 'pending' ? `<button class="btn sm" data-confirm="${esc(v.code)}">${icon('checkc', 's')} Xác nhận</button>` : ''}
               <button class="btn tonal sm" data-settle="${esc(v.code)}" title="Đã điều chuyển trên SAP">${icon('check', 's')} Gạch sổ</button></div>` : ''}</td></tr>`;
@@ -843,7 +843,7 @@
 
   VM.loans = { focusForm: () => VM.ui.go('loans/new'), openScanner };
   VM.ui.register({
-    id: 'loans', title: 'Sổ vay thuốc', group: 'loans', icon: 'swap', crumb: 'Sổ số hóa · Vay / cho vay giữa Nhà thuốc Y001 và Kho nội trú Y003', render,
+    id: 'loans', title: 'Sổ vay thuốc', group: 'loans', icon: 'swap', render, detail: true,
     keys: [['N', 'Tạo mã vay mới'], ['Enter', 'Thêm thuốc / sang ô kế tiếp'], ['Esc', 'Bỏ thuốc vừa quét'], ['Ctrl+Enter', 'Hoàn thành / Lưu mã vay']],
     tourKey: () => mode === 'list' ? 'loans' : 'loans:' + mode,
     tour: () => mode === 'new' ? [

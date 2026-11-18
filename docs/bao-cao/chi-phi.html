@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dự toán chi phí Pharmacy Hub</title>
+<!-- Nguồn của BaoCao_ChiPhi_VinmecPharmacyHub.pdf. In lại:
+     chrome --headless=new --no-pdf-header-footer --print-to-pdf=BaoCao_ChiPhi_VinmecPharmacyHub.pdf chi-phi.html
+     Mọi con số tổng đều tính từ khối DATA trong <script> cuối file: sửa số ở đó, không sửa trong lời văn. -->
+<style>
+:root{--ink:#111827;--ink2:#374151;--muted:#6b7280;--line:#e5e7eb;--line2:#f1f2f4;--brand:#0b7a75;--brand50:#e8f4f3;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--warn:#b45309;--warn50:#fef6e7;--ok:#15803d;--ok50:#ecf7ef;--bad:#c62828}
+@page{size:A4;margin:16mm 15mm 16mm 15mm;
+  @bottom-left{content:"Vinmec Pharmacy Hub · Dự toán chi phí · v1.0";font:8.5pt "Segoe UI",Arial,sans-serif;color:#6b7280}
+  @bottom-right{content:"Trang " counter(page) " / " counter(pages);font:8.5pt "Segoe UI",Arial,sans-serif;color:#6b7280}}
+*{box-sizing:border-box}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{margin:0;background:#fff;color:var(--ink);font:10pt/1.5 "Segoe UI",Arial,sans-serif}
+.page{max-width:180mm;margin:0 auto}
+h1{font-size:21pt;line-height:1.2;margin:4px 0 8px;letter-spacing:-.01em}
+h2{font-size:14pt;margin:22px 0 8px;padding-top:6px;border-top:2px solid var(--brand);color:var(--ink);break-after:avoid}
+h2 .n{color:var(--brand);margin-right:6px}
+h3{font-size:11pt;margin:14px 0 6px;break-after:avoid}
+p{margin:0 0 8px}
+ul,ol{margin:0 0 8px;padding-left:20px}li{margin:2px 0}
+.kicker{font-size:8.5pt;font-weight:700;letter-spacing:.12em;color:var(--brand);text-transform:uppercase}
+.meta{color:var(--muted);font-size:9pt;margin-bottom:14px}
+.lead{font-size:11pt;color:var(--ink2)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.kpi{border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:8px;padding:8px 10px;break-inside:avoid}
+.kpi small{display:block;font-size:8.5pt;color:var(--muted);line-height:1.3}
+.kpi b{display:block;font-size:16pt;line-height:1.25;margin-top:3px;font-variant-numeric:tabular-nums}
+.kpi span{display:block;font-size:8.5pt;color:var(--ink2);line-height:1.3}
+.kpi.a{border-left-color:var(--s2)}.kpi.b{border-left-color:var(--s1)}.kpi.g{border-left-color:var(--ok)}
+.rec{border:1px solid #bfe3cb;background:var(--ok50);border-radius:10px;padding:10px 14px;margin:10px 0;break-inside:avoid}
+.rec h3{margin:0 0 4px;color:#0f5a2b}
+.note{border:1px solid #f3d9a4;background:var(--warn50);border-radius:10px;padding:8px 12px;margin:10px 0;font-size:9.5pt;break-inside:avoid}
+.note b{color:var(--warn)}
+table{width:100%;border-collapse:collapse;margin:6px 0 10px;font-size:9.3pt}
+th,td{padding:4px 7px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+th{background:var(--line2);font-weight:600;font-size:8.8pt;color:var(--ink2)}
+tr{break-inside:avoid}
+td.r,th.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+td.c,th.c{text-align:center}
+tr.sub td{background:#fafafa;font-weight:600}
+tr.tot td{background:var(--brand50);font-weight:700;border-top:1.5px solid var(--brand)}
+td small,.sm{color:var(--muted);font-size:8.5pt}
+.yes{color:var(--ok);font-weight:600}.no{color:var(--bad);font-weight:600}.mid{color:var(--warn);font-weight:600}
+figure{margin:10px 0 14px;break-inside:avoid}
+figcaption{font-size:9.5pt;font-weight:600;margin-bottom:4px}
+figcaption small{display:block;font-weight:400;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:8.5pt;color:var(--ink2);margin:2px 0 4px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+svg text{font-family:"Segoe UI",Arial,sans-serif}
+.gantt{width:100%;border-collapse:separate;border-spacing:0;font-size:8.8pt}
+.gantt td,.gantt th{border-bottom:1px solid var(--line);padding:4px 5px}
+.gantt th.m{text-align:center;width:8.5%}
+.gantt td.on{background:var(--s1);border-left:2px solid #fff}
+.gantt td.opt{background:repeating-linear-gradient(135deg,#a9c7ee 0 4px,#d7e5f7 4px 8px);border-left:2px solid #fff}
+.gantt td.gate{background:var(--warn);border-left:2px solid #fff}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.box{border:1px solid var(--line);border-radius:8px;padding:8px 12px;break-inside:avoid}
+.box h3{margin-top:0}
+.src{font-size:8.5pt;color:var(--ink2)}.src li{margin:1px 0;overflow-wrap:anywhere}
+.pb{break-before:page}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="kicker">Báo cáo dự toán chi phí</div>
+<h1>Vinmec Pharmacy Hub: chi phí hoàn thiện hệ thống và một hướng làm tiết kiệm hơn</h1>
+<div class="meta">Nhà thuốc – Khoa Dược Vinmec · Dành cho Trưởng khoa Dược, Ban giám đốc và Phòng CNTT · Phiên bản 1.0 · 18/11/2026<br>
+Đơn vị: <b>triệu đồng</b>, chưa gồm VAT. Đây là số <b>ước tính</b> để ra quyết định hướng đi, chưa phải báo giá.</div>
+
+<h2><span class="n">1</span>Tóm tắt</h2>
+<p class="lead">Hoàn thiện hệ thống theo đúng lộ trình hiện tại (Phase 1–3 trong kế hoạch, cộng các nghiệp vụ Trưởng khoa đề xuất cho giai đoạn sau) cần khoảng <b data-v="A.once" data-f="ty"></b> đầu tư ban đầu và <b data-v="A.ops" data-f="ty"></b> mỗi năm vận hành. Tổng chi phí 3 năm vào khoảng <b data-v="A.tco" data-f="ty"></b>. Khoảng <b data-v="A.integPct" data-f="pct"></b> chi phí ban đầu rơi vào việc tích hợp trực tiếp với OH, SAP và ngân hàng. Đây cũng là phần rủi ro nhất, vì chưa ai xác nhận OH/SAP có API.</p>
+
+<div class="kpis">
+  <div class="kpi a"><small>Hướng A – làm đủ theo lộ trình hiện tại</small><b data-v="A.tco" data-f="ty"></b><span>tổng 3 năm</span></div>
+  <div class="kpi b"><small>Hướng B – đề xuất, đủ tính năng</small><b data-v="B.tcoFull" data-f="ty"></b><span>tổng 3 năm (bản lõi: <span data-v="B.tco" data-f="ty" style="display:inline"></span>)</span></div>
+  <div class="kpi g"><small>Tiết kiệm của Hướng B</small><b data-v="save" data-f="ty"></b><span><span data-v="savePct" data-f="pct" style="display:inline"></span> so với Hướng A</span></div>
+  <div class="kpi"><small>Thời gian tới khi khoa dùng thật</small><b>1 tháng</b><span>Hướng B (chạy thử) · Hướng A: 10–12 tháng</span></div>
+</div>
+
+<div class="rec">
+<h3>Đề xuất: chọn Hướng B – làm tinh gọn, theo giai đoạn, có cổng quyết định</h3>
+<ol>
+<li><b>Chạy thử ngay app đã có</b> tại Nhà thuốc và Kho nội trú. Chỉ tốn thiết bị quầy (<span data-v="dev" data-f="tr"></span>). Mục đích là đo lợi ích thật trước khi chi khoản lớn.</li>
+<li><b>Máy chủ nhẹ trên máy ảo sẵn có</b> của trung tâm dữ liệu bệnh viện, đăng nhập bằng tài khoản AD. Không mua máy chủ riêng.</li>
+<li><b>Tích hợp OH/SAP qua file chuẩn và đối soát cuối ngày</b>, thay cho API thời gian thực. Lệch kho được phát hiện <b>trong ngày</b> thay vì cuối tháng.</li>
+<li><b>Không mua máy chủ GPU.</b> Hóa đơn điện tử đọc từ file XML (đúng 100%, app đã làm được). Giọng nói nhận dạng ngay trên máy.</li>
+<li><b>Kiểm kê theo LOT, dự trù mua hàng, phiếu xuất Khoa Gây mê</b> chỉ làm khi đợt chạy thử đạt chỉ tiêu (mục 5.7).</li>
+</ol>
+</div>
+
+<figure>
+<figcaption>Tổng chi phí 3 năm theo phương án<small>Triệu đồng · gồm chi phí một lần và 3 năm vận hành sau khi đưa vào dùng</small></figcaption>
+<div class="legend"><span><i style="background:var(--s1)"></i>Phát triển phần mềm (gồm tư vấn, kiểm thử bảo mật)</span><span><i style="background:var(--s2)"></i>Hạ tầng &amp; thiết bị</span><span><i style="background:var(--s3)"></i>Vận hành 3 năm</span></div>
+<svg id="ch1" viewBox="0 0 700 190" width="100%" role="img" aria-label="Biểu đồ tổng chi phí 3 năm của các phương án"></svg>
+</figure>
+
+<h2><span class="n">2</span>"Hệ thống hoàn chỉnh" gồm những gì</h2>
+<p>Phase 1 (bản chạy trên trình duyệt, khoảng 6.400 dòng mã) đã xong. Chi phí đã bỏ ra cho phần này <b>không tính</b> vào dự toán. Phần còn lại tổng hợp từ <i>PLAN.md</i> (Phase 2, 3), <i>Khaosat.md</i> (đề xuất của Trưởng khoa ngày 16/11) và <i>AI-cuc-bo.md</i>.</p>
+<table>
+<thead><tr><th style="width:44%">Hạng mục</th><th style="width:22%">Trạng thái</th><th>Nguồn yêu cầu</th></tr></thead>
+<tbody>
+<tr><td>Bán lẻ (POS), lịch sử bán, danh mục, nhập/xuất Excel</td><td class="yes">Đã có</td><td>Phase 1</td></tr>
+<tr><td>Sổ vay theo mã vay, file điều chuyển SAP, thống kê &amp; dự báo vay</td><td class="yes">Đã có</td><td>Phase 1</td></tr>
+<tr><td>Sổ hóa đơn OPD/IPD, chuỗi bàn giao, copy quyết toán, đọc XML hóa đơn điện tử</td><td class="yes">Đã có</td><td>Phase 1</td></tr>
+<tr><td>Sao lưu 4 lớp, nhật ký thao tác</td><td class="yes">Đã có</td><td>Phase 1</td></tr>
+<tr><td>Phân quyền theo vai trò, PIN đổi ca; quét mã bằng camera tablet, ảnh hóa đơn</td><td class="mid">Chưa làm</td><td>Phase 2</td></tr>
+<tr><td>Máy chủ + CSDL tập trung, nhiều máy dùng chung, đăng nhập SSO</td><td class="mid">Chưa làm</td><td>Phase 3</td></tr>
+<tr><td>Đồng bộ danh mục/giá/tồn từ OH; đẩy giao dịch, điều chuyển sang SAP</td><td class="mid">Chưa làm</td><td>Phase 3</td></tr>
+<tr><td>Đối soát chuyển khoản QR tự động</td><td class="mid">Chưa làm</td><td>Phase 3</td></tr>
+<tr><td>Máy chủ AI nội bộ: OCR ảnh hóa đơn, nhận dạng giọng nói</td><td class="mid">Chưa làm</td><td>AI-cuc-bo.md</td></tr>
+<tr><td>Dự trù mua hàng; phiếu xuất kho Khoa Gây mê; hỗ trợ kiểm kê theo LOT</td><td class="mid">Chưa làm</td><td>Trưởng khoa (16/11), Phase 3</td></tr>
+</tbody></table>
+
+<h2><span class="n">3</span>Giả định tính giá</h2>
+<table>
+<thead><tr><th style="width:34%">Mục</th><th style="width:24%">Giá trị dùng</th><th>Căn cứ</th></tr></thead>
+<tbody>
+<tr><td>Đơn giá phát triển (lập trình, phân tích, kiểm thử – bình quân, thuê ngoài)</td><td class="r"><span data-v="R" data-f="tr"></span>/người-tháng</td><td>≈ 3.460 USD. Giá thuê ngoài tại Việt Nam năm 2026 cho lập trình viên mid-level khoảng 3.100–4.500 USD/tháng [1]</td></tr>
+<tr><td>Tư vấn SAP</td><td class="r"><span data-v="RS" data-f="tr"></span>/người-tháng</td><td>Giả định gấp 2 lần đơn giá phát triển. Cần báo giá thật</td></tr>
+<tr><td>Tỷ giá</td><td class="r">26.000 đ/USD</td><td>Giả định làm tròn</td></tr>
+<tr><td>Nhân sự CNTT vận hành</td><td class="r">25 triệu/tháng</td><td>Chi phí đầy đủ (lương + bảo hiểm), giả định</td></tr>
+<tr><td>Một ngày công dược sĩ</td><td class="r">1,0 triệu</td><td>≈ 22 triệu/tháng gồm bảo hiểm. Chỉ dùng để quy đổi thời gian tiết kiệm (mục 7)</td></tr>
+<tr><td>Bảo trì phần mềm mỗi năm</td><td class="r">18% (A) · 15% (B)</td><td>Mức thông dụng 15–20% chi phí phát triển. B ít thành phần hơn nên lấy mức thấp</td></tr>
+<tr><td>Card GPU RTX 5090 32 GB</td><td class="r">110–130 triệu</td><td>Giá niêm yết tại các nhà bán lẻ Việt Nam [2]</td></tr>
+<tr><td>Thời gian tính tổng chi phí</td><td class="r">3 năm</td><td>Tính từ lúc đưa vào dùng</td></tr>
+</tbody></table>
+<p class="sm"><b>Chưa gồm:</b> VAT; thời gian dược sĩ tham gia dự án; bản quyền OH/SAP hiện có; thiết bị mạng; phí đăng ký tên miền/chứng chỉ nội bộ (thường do Phòng CNTT cấp sẵn).</p>
+
+<h3>Thiết bị quầy (dùng chung cho cả hai hướng)</h3>
+<table id="tDev"></table>
+
+<h2 class="pb"><span class="n">4</span>Hướng A – hoàn thiện theo lộ trình hiện tại</h2>
+<p>Viết thêm máy chủ riêng, tích hợp API hai chiều với OH và SAP, đối soát ngân hàng tự động, máy chủ GPU cho OCR và giọng nói, cộng đủ các nghiệp vụ mở rộng. Ước tính đội 3–4 người làm trong 9–10 tháng, cộng thời gian chờ nhà cung cấp OH/SAP.</p>
+<h3>4.1. Phát triển phần mềm</h3>
+<table id="tAdev"></table>
+<h3>4.2. Hạ tầng &amp; thiết bị (chi một lần)</h3>
+<table id="tAinfra"></table>
+<h3>4.3. Vận hành mỗi năm</h3>
+<table id="tAops"></table>
+<h3>4.4. Tổng hợp Hướng A</h3>
+<table id="tAsum"></table>
+
+<figure>
+<figcaption>Chi phí một lần của Hướng A theo nhóm việc<small>Triệu đồng · gồm phát triển, tư vấn ngoài và phần cứng</small></figcaption>
+<svg id="ch2" viewBox="0 0 700 214" width="100%" role="img" aria-label="Biểu đồ chi phí một lần của Hướng A theo nhóm việc"></svg>
+</figure>
+
+<h3>4.5. Vì sao Hướng A tốn kém và rủi ro</h3>
+<ul>
+<li><b>Tích hợp là khoản lớn nhất</b> (<span data-v="A.integ" data-f="tr"></span>, chiếm <span data-v="A.integPct" data-f="pct"></span> chi phí ban đầu), và phụ thuộc lịch, báo giá của nhà cung cấp OH/SAP. Khảo sát chưa trả lời được OH/SAP có API hay không (câu hỏi mở số 5). Nếu không có API, khoản này có thể tăng mạnh hoặc không làm được.</li>
+<li><b>POS có tồn kho riêng chạy song song OH</b> sinh ra nguồn dữ liệu thứ hai. Muốn hai nguồn không lệch thì phải đồng bộ hai chiều liên tục, và đó chính là phần đắt nhất ở trên.</li>
+<li><b>Máy chủ GPU gần như rảnh.</b> Từ 01/7/2022, doanh nghiệp bắt buộc dùng hóa đơn điện tử (Nghị định 123/2020/NĐ-CP, Thông tư 78/2021/TT-BTC) [4]. App đã đọc file XML với độ chính xác 100%, nên OCR ảnh chỉ còn dùng cho vài chứng từ giấy hiếm gặp.</li>
+<li><b>Chi phí vận hành <span data-v="A.ops" data-f="tr"></span>/năm</b>, gấp khoảng <span data-v="A.opsX" data-f="x"></span> lần phần thời gian nhân sự ước tính tiết kiệm được (<span data-v="labor" data-f="tr"></span>/năm, mục 7).</li>
+<li><b>Khoa phải chờ 10–12 tháng</b> mới có bản dùng thật, trong khi sổ giấy vẫn tiếp tục gây lệch kho.</li>
+</ul>
+
+<h2 class="pb"><span class="n">5</span>Hướng B (đề xuất) – tinh gọn, theo giai đoạn</h2>
+<h3>5.1. Năm thay đổi so với Hướng A</h3>
+<table>
+<thead><tr><th style="width:30%">Thay đổi</th><th>Lý do</th><th style="width:22%">Ảnh hưởng chi phí</th></tr></thead>
+<tbody>
+<tr><td><b>1. Chạy thử ngay app hiện có</b> trên 2–3 máy, sao lưu vào thư mục mạng</td><td>Đo lợi ích thật (thời gian ghi sổ, số phiếu quên gạch, số hóa đơn thất lạc, trị giá lệch kiểm kê) trước khi chi khoản lớn</td><td>Chỉ thiết bị quầy<br><span data-v="dev" data-f="tr"></span></td></tr>
+<tr><td><b>2. Máy chủ nhẹ</b> (PostgreSQL + API mỏng) trên máy ảo sẵn có; đăng nhập bằng tài khoản AD</td><td>Dùng lại sao lưu, giám sát, bảo mật của Phòng CNTT. App đã có sẵn logic nghiệp vụ, máy chủ chỉ cần lưu và đồng bộ</td><td>Bỏ <span data-v="infraSave" data-f="tr"></span> phần cứng; ít hơn <span data-v="platMM" data-f="mm"></span> người-tháng</td></tr>
+<tr><td><b>3. Tích hợp qua file + đối soát cuối ngày</b></td><td>App đã xuất đúng file cho tool điều chuyển SAP. Nhập danh mục/giá/tồn từ báo cáo OH (Item movement). Mỗi ngày so số đã bán trên app với số OH đã trừ tồn để báo lệch ngay</td><td>Bỏ khoảng <span data-v="integSave" data-f="tr"></span> tích hợp API + tư vấn</td></tr>
+<tr><td><b>4. AI không cần GPU</b></td><td>Hóa đơn điện tử đọc XML. Giọng nói nhận dạng trên máy (Chrome/Edge) hoặc mô hình nhỏ Zipformer-30M chạy bằng CPU</td><td>Bỏ 180 triệu GPU + <span data-v="aiMM" data-f="mm"></span> người-tháng</td></tr>
+<tr><td><b>5. Nghiệp vụ mở rộng sau cổng quyết định</b></td><td>Kiểm kê LOT, dự trù, phiếu xuất Gây mê chỉ làm khi chạy thử đạt chỉ tiêu. Làm trên nền máy chủ đã có nên rẻ hơn A</td><td><span data-v="B.optCost" data-f="tr"></span>, có thể không phải chi</td></tr>
+</tbody></table>
+
+<h3>5.2. Phát triển phần mềm – bản lõi</h3>
+<table id="tBdev"></table>
+<h3>5.3. Phần mở rộng tùy chọn (sau cổng quyết định)</h3>
+<table id="tBopt"></table>
+<div class="two">
+<div><h3>5.4. Hạ tầng &amp; thiết bị</h3><table id="tBinfra"></table></div>
+<div><h3>5.5. Vận hành mỗi năm</h3><table id="tBops"></table></div>
+</div>
+<h3>5.6. Tổng hợp Hướng B</h3>
+<table id="tBsum"></table>
+
+<h3>5.7. Lộ trình và cổng quyết định</h3>
+<table class="gantt">
+<thead><tr><th>Giai đoạn</th><th class="m">T1</th><th class="m">T2</th><th class="m">T3</th><th class="m">T4</th><th class="m">T5</th><th class="m">T6</th><th class="m">T7</th></tr></thead>
+<tbody>
+<tr><td><b>GĐ0</b> Chạy thử app hiện có, song song sổ giấy, đo chỉ tiêu</td><td class="on"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td><b>GĐ1</b> Bản nhiều máy: máy chủ nhẹ, đăng nhập AD, tích hợp file, đối soát</td><td></td><td class="on"></td><td class="on"></td><td class="on"></td><td></td><td></td><td></td></tr>
+<tr><td><b>Cổng quyết định</b> theo số đo GĐ0–GĐ1</td><td></td><td></td><td></td><td class="gate"></td><td></td><td></td><td></td></tr>
+<tr><td><b>GĐ2</b> (tùy chọn) Kiểm kê LOT, dự trù, phiếu xuất Gây mê</td><td></td><td></td><td></td><td></td><td class="opt"></td><td class="opt"></td><td class="opt"></td></tr>
+<tr><td><b>GĐ3</b> API thời gian thực với OH/SAP</td><td colspan="7" class="sm">Chỉ làm khi Phòng CNTT đã có cổng tích hợp sẵn cho các hệ thống khác, để chia sẻ chi phí</td></tr>
+</tbody></table>
+<p class="sm">Chỉ tiêu gợi ý cho cổng quyết định: ≥ 90% lượt vay được ghi trên app; 0 hóa đơn thất lạc trong tháng; số mã lệch kiểm kê ở nhà thuốc giảm ≥ 50% so với mức 117/273 mã (09/11/2026).</p>
+
+<h3>5.8. Hướng B chấp nhận đánh đổi gì</h3>
+<ul>
+<li><b>Không đồng bộ tức thời với OH/SAP.</b> Độ trễ tối đa 1 ngày. Vẫn tốt hơn nhiều so với hiện nay (cuối tháng mới phát hiện, 7–8 ngày truy nguyên nhân).</li>
+<li><b>Không OCR ảnh hóa đơn giấy.</b> Chứng từ giấy hiếm gặp vẫn nhập tay; app đã có bước quét mã QR trên hóa đơn để điền nhanh số HĐ, ngày, tổng tiền.</li>
+<li><b>Đối soát QR bán tự động:</b> tải sao kê ngân hàng rồi để app đối chiếu, thay vì gọi API ngân hàng.</li>
+<li><b>Không khóa đường lên Hướng A:</b> máy chủ của Hướng B dùng lại được khi sau này có API, nên khoản đầu tư không bị bỏ phí.</li>
+</ul>
+
+<h2><span class="n">6</span>So sánh các phương án</h2>
+<p>Ngoài A và B, báo cáo xét thêm hai lựa chọn hay được nhắc tới: mua phần mềm nhà thuốc thương mại (C), và đặt nhà cung cấp OH/SAP làm thêm tính năng (D).</p>
+<table>
+<thead><tr><th style="width:17%">Tiêu chí</th><th style="width:19%">A. Làm đủ theo lộ trình</th><th style="width:21%">B. Tinh gọn (đề xuất)</th><th style="width:23%">C. Phần mềm thương mại (VD KiotViet)</th><th style="width:20%">D. Nhà cung cấp OH/SAP làm thêm</th></tr></thead>
+<tbody>
+<tr><td>Chi phí một lần</td><td data-v="A.once" data-f="tr"></td><td><span data-v="B.once" data-f="tr"></span><br><small>+<span data-v="B.optCost" data-f="tr"></span> tùy chọn</small></td><td><span data-v="dev" data-f="tr"></span><br><small>chỉ thiết bị</small></td><td>Cần báo giá</td></tr>
+<tr><td>Vận hành mỗi năm</td><td data-v="A.ops" data-f="tr"></td><td><span data-v="B.ops" data-f="tr"></span>–<span data-v="B.opsFull" data-f="tr"></span></td><td>≈ 10 triệu<br><small>270–490 nghìn/tháng/chi nhánh [3]</small></td><td>Cần báo giá</td></tr>
+<tr><td>Tổng 3 năm</td><td><b data-v="A.tco" data-f="tr"></b></td><td><b><span data-v="B.tco" data-f="tr"></span>–<span data-v="B.tcoFull" data-f="tr"></span></b></td><td>≈ 77 triệu<br><small>chưa tính công nhập liệu hai lần</small></td><td>—</td></tr>
+<tr><td>Sổ vay 2 kho, chuỗi bàn giao HĐ, file điều chuyển SAP</td><td class="yes">Đủ</td><td class="yes">Đủ</td><td class="no">Không có</td><td class="mid">Tùy nhà cung cấp</td></tr>
+<tr><td>Dữ liệu nằm trong bệnh viện</td><td class="yes">Có</td><td class="yes">Có</td><td class="no">Không (đám mây bên ngoài)</td><td class="yes">Có</td></tr>
+<tr><td>Thêm nguồn tồn kho phải đối soát</td><td class="mid">Có, đồng bộ API</td><td class="mid">Có, đối soát hằng ngày</td><td class="no">Có, đối soát thủ công</td><td class="yes">Không</td></tr>
+<tr><td>Thời gian tới khi dùng</td><td>10–12 tháng</td><td>1 tháng (chạy thử) · 4 tháng (nhiều máy)</td><td>2–4 tuần</td><td>Phụ thuộc lịch nhà cung cấp</td></tr>
+<tr><td>Rủi ro chính</td><td>Tích hợp OH/SAP vượt dự toán hoặc không làm được</td><td>Đối soát cuối ngày vẫn cần người xử lý lệch</td><td>Không giải quyết 2/3 điểm nghẽn P0; vi phạm yêu cầu bảo mật</td><td>Chi phí tư vấn hệ thống lõi cao, thời gian dài, khó ưu tiên cho 1 khoa</td></tr>
+</tbody></table>
+<p><b>Kết luận:</b> C rẻ nhất nhưng không giải quyết được Sổ vay và Sổ hóa đơn, lại đưa dữ liệu ra ngoài bệnh viện. D chỉ hợp lý nếu bệnh viện đã có kế hoạch nâng cấp OH/SAP chung toàn hệ thống. B đáp ứng đủ ba điểm nghẽn P0 với khoảng <span data-v="bShare" data-f="pct"></span> chi phí của A.</p>
+
+<h2><span class="n">7</span>Lợi ích ước tính và điểm hòa vốn</h2>
+<p>Bảng dưới chỉ tính <b>thời gian nhân sự tiết kiệm được</b>, dựa trên số đo trong khảo sát (29/10–16/11/2026). Đây là phần dễ đo nhưng nhỏ.</p>
+<table id="tLab"></table>
+<p>Phần lợi ích lớn hơn chưa đo được: giá trị thuốc thất thoát do bán không trừ tồn (lệch 117/273 mã), tiền phạt khi không giải trình được chênh lệch kiểm kê, và doanh thu mất khi khách bỏ về giờ cao điểm. Để hòa vốn trong 3 năm, ngoài phần tiết kiệm thời gian ở trên, hệ thống còn phải giảm thất thoát hoặc giữ lại doanh thu <b>mỗi tháng</b> ít nhất:</p>
+<div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+  <div class="kpi a"><small>Hướng A</small><b data-v="beA" data-f="tr"></b><span>mỗi tháng</span></div>
+  <div class="kpi b"><small>Hướng B – đủ tính năng</small><b data-v="beBF" data-f="tr"></b><span>mỗi tháng</span></div>
+  <div class="kpi b"><small>Hướng B – bản lõi</small><b data-v="beB" data-f="tr"></b><span>mỗi tháng</span></div>
+</div>
+<div class="note"><b>Việc cần làm trong đợt chạy thử:</b> lấy <b>trị giá</b> chênh lệch kiểm kê của 3 tháng gần nhất, rồi so với các ngưỡng trên. Nếu thất thoát mỗi tháng thấp hơn ngưỡng của Hướng B, nên dừng ở bản lõi hoặc chỉ dùng app hiện có.</div>
+
+<h2><span class="n">8</span>Độ nhạy theo đơn giá phát triển</h2>
+<p>Đơn giá phát triển là giả định ảnh hưởng nhiều nhất. Bảng dưới tính lại tổng 3 năm khi đổi đơn giá; các khoản khác giữ nguyên. Mức 50 triệu tương ứng một đội nội bộ của bệnh viện (chi phí lương đầy đủ).</p>
+<table id="tSens"></table>
+<p class="sm">Ngoài đơn giá, khoản bất định lớn nhất của Hướng A là phần thay đổi phía OH (150–500 triệu, đang tính 300) và tư vấn SAP. Hướng B gần như không phụ thuộc hai khoản này.</p>
+
+<h2><span class="n">9</span>Việc cần làm để có báo giá chính xác</h2>
+<ol>
+<li><b>Phòng CNTT xác nhận:</b> có cấp được máy ảo không; đăng nhập AD/SSO thế nào; OH và SAP có API hay chỉ trao đổi bằng file (câu hỏi mở số 5 của khảo sát).</li>
+<li><b>Khoa Dược cung cấp</b> trị giá chênh lệch kiểm kê 3 tháng gần nhất để tính lợi ích thật (mục 7).</li>
+<li><b>Chốt với DS kho</b> giá trị plans / Funds center và ĐVT mà tool điều chuyển SAP nhận.</li>
+<li><b>Xin 2–3 báo giá</b> cho phần phát triển của Hướng B (khoảng 12 người-tháng) và cho thiết bị quầy.</li>
+<li><b>Chọn chỉ tiêu cổng quyết định</b> (mục 5.7) và người chịu trách nhiệm đo trong đợt chạy thử.</li>
+</ol>
+
+<h3>Nguồn tham khảo</h3>
+<ol class="src">
+<li>Giá thuê ngoài phát triển phần mềm tại Việt Nam 2026: smartdev.com/what-are-common-cost-factors-for-offshore-software-development-projects-complete-budget-planning-guide-2026 · secondtalent.com/cost-to-hire/vietnam · omnivoo.com/blog/cost-to-hire-developers-vietnam-2026 (nguồn từ các công ty dịch vụ, chỉ dùng làm định hướng)</li>
+<li>Giá RTX 5090 32 GB tại Việt Nam: memoryzone.com.vn, phongvu.vn, phucanh.vn (giá niêm yết tại thời điểm tra cứu 18/11/2026)</li>
+<li>Bảng giá KiotViet: softwares.com/software/kiotviet/pricing (bên thứ ba, ghi nhận 11/10/2026)</li>
+<li>Nghị định 123/2020/NĐ-CP và Thông tư 78/2021/TT-BTC về hóa đơn điện tử; Quyết định 1450/QĐ-TCT về định dạng dữ liệu</li>
+<li>Tài liệu nội bộ dự án: docs/Khaosat.md, docs/PLAN.md, docs/AI-cuc-bo.md</li>
+</ol>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+/* ================= DATA – sửa số ở đây ================= */
+const R = 90, RS = 180;               // triệu/người-tháng: phát triển, tư vấn SAP
+const DEV = [ // thiết bị quầy: [tên, số lượng, đơn giá]
+  ['Máy quét mã vạch 2D (đọc DataMatrix GS1)', 4, 4.5],
+  ['Máy in hóa đơn nhiệt 80 mm', 2, 2.5],
+  ['Máy tính bảng cho kho (quét camera, chụp hóa đơn)', 2, 9],
+  ['Tai nghe có micro chống ồn (nhập bằng giọng nói)', 3, 1.2],
+  ['Phụ kiện, dự phòng', 1, 2.4]];
+const A = {
+  dev: [
+    ['Phân tích nghiệp vụ, thiết kế chi tiết, chốt câu hỏi mở', 1.5, 'plat'],
+    ['Máy chủ + CSDL tập trung (API, mã chứng từ cấp từ máy chủ, nhật ký)', 4, 'plat'],
+    ['Chuyển giao diện sang gọi API, đồng bộ nhiều máy, chạy khi mất mạng', 2.5, 'plat'],
+    ['Đăng nhập SSO, phân quyền theo vai trò, PIN đổi ca', 1, 'plat'],
+    ['Tích hợp OH qua API: danh mục, giá, tồn, đẩy giao dịch bán', 3, 'integ'],
+    ['Tích hợp SAP qua API: đẩy điều chuyển, nhận tồn kho', 2, 'integ'],
+    ['Đối soát chuyển khoản QR tự động với ngân hàng', 1, 'integ'],
+    ['Máy chủ OCR ảnh hóa đơn (Qwen2.5-VL): cài đặt, tinh chỉnh, nghiệm thu', 1.5, 'ai'],
+    ['Máy chủ giọng nói (PhoWhisper): cài đặt, nghiệm thu', 1, 'ai'],
+    ['Kiểm kê theo LOT', 2, 'ext'],
+    ['Dự trù mua hàng theo tốc độ tiêu thụ', 1.5, 'ext'],
+    ['Phiếu xuất kho Khoa Gây mê, trạng thái lấy thuốc', 1.5, 'ext'],
+    ['Quét mã bằng camera tablet, đính kèm ảnh hóa đơn', 0.5, 'ext'],
+    ['Kiểm thử thủ công + tự động (Playwright)', 2.5, 'qa'],
+    ['Triển khai, đào tạo, hỗ trợ tại chỗ khi chạy thử', 1.5, 'qa']],
+  pm: ['Quản lý dự án (≈ 15%)', 4],
+  ext: [
+    ['Tư vấn SAP (cấu hình, kiểm thử giao diện tích hợp)', 3 * RS, '3 người-tháng × ' + RS + ' triệu', 'integ'],
+    ['Thay đổi phía OH (yêu cầu thay đổi với nhà cung cấp)', 300, 'Khoảng 150–500 triệu, cần báo giá', 'integ'],
+    ['Kiểm thử bảo mật (pentest) độc lập', 80, 'Một lần trước khi chạy thật', 'qa']],
+  infra: [
+    ['Máy chủ ứng dụng + CSDL, 2 máy chạy dự phòng', '2 × 80', 160, 'hw'],
+    ['Máy trạm AI: GPU RTX 5090 32 GB, 64 GB RAM', '1 × 180', 180, 'ai'],
+    ['Thiết bị lưu trữ sao lưu (NAS)', '1 × 30', 30, 'hw'],
+    ['Bộ lưu điện (UPS) cho máy chủ', '1 × 15', 15, 'hw']],
+  maint: .18,
+  ops: [
+    ['Hỗ trợ CNTT vận hành (0,5 người)', 150, '0,5 × 25 triệu × 12 tháng'],
+    ['Hỗ trợ giao diện tích hợp OH/SAP từ nhà cung cấp', 150, 'Hợp đồng hỗ trợ hằng năm, ước tính'],
+    ['Điện, làm mát, bảo hành & thay thế phần cứng', 50, '≈ 10% giá trị phần cứng'],
+    ['Phí API ngân hàng cho đối soát QR', 36, '≈ 3 triệu/tháng, ước tính'],
+    ['Kiểm thử bảo mật định kỳ', 60, '1 lần/năm']]
+};
+const B = {
+  dev: [
+    ['Chốt nghiệp vụ với dược sĩ, thiết kế chi tiết', 0.75, 'plat'],
+    ['Máy chủ nhẹ (PostgreSQL + API mỏng) trên máy ảo sẵn có', 2, 'plat'],
+    ['Đồng bộ nhiều máy, vẫn chạy khi mất mạng', 1.5, 'plat'],
+    ['Đăng nhập bằng tài khoản AD của viện, phân quyền, PIN', 0.75, 'plat'],
+    ['Tích hợp qua file: nhập danh mục/giá/tồn từ OH, file điều chuyển SAP, đối soát cuối ngày với OH', 2, 'integ'],
+    ['AI không cần GPU: XML hóa đơn điện tử (đã có), giọng nói trên máy', 0.75, 'ai'],
+    ['Quét mã bằng camera tablet, đính kèm ảnh hóa đơn', 0.5, 'ext'],
+    ['Kiểm thử tự động (Playwright)', 1.5, 'qa'],
+    ['Triển khai, đào tạo, hỗ trợ chạy thử', 1, 'qa']],
+  pm: ['Quản lý dự án (≈ 12%)', 1.25],
+  ext: [
+    ['Tư vấn SAP: xác nhận định dạng file điều chuyển', 0.5 * RS, '0,5 người-tháng × ' + RS + ' triệu'],
+    ['Kiểm thử bảo mật độc lập', 60, 'Phạm vi nhỏ hơn Hướng A']],
+  infra: [['Máy ảo trong trung tâm dữ liệu của viện', '—', 0]],
+  opt: [['Kiểm kê theo LOT', 1.5], ['Dự trù mua hàng', 1], ['Phiếu xuất kho Khoa Gây mê', 1.5], ['Quản lý dự án', 0.5]],
+  maint: .15,
+  ops: [
+    ['Hỗ trợ CNTT vận hành (0,2 người)', 60, '0,2 × 25 triệu × 12'],
+    ['Phí máy ảo nội bộ (nếu viện tính)', 36, '≈ 3 triệu/tháng'],
+    ['Rà soát bảo mật hằng năm', 40, ''],
+    ['Thay thế thiết bị quầy', 10, '']]
+};
+const LAB = [ // thời gian tiết kiệm: [việc, căn cứ khảo sát, giả định, triệu/năm]
+  ['Truy nguyên nhân lệch kho', '7–8 ngày công/tháng', 'Giảm 50% → ≈ 45 ngày/năm', 45],
+  ['Giờ cao điểm bán lẻ', '50–70 khách/ngày', 'Nhanh hơn ≈ 1 phút/khách → ≈ 300 giờ/năm', 37],
+  ['Sổ vay (ghi 2 nơi, hỏi lại nhau)', '≈ 10 lượt vay/ngày', 'Bớt ≈ 3 phút/lượt → ≈ 150 giờ/năm', 19],
+  ['Sổ hóa đơn + quyết toán', '≈ 3 phút/hóa đơn', 'Bớt ≈ 1,5 phút, giả định 10 HĐ/ngày → ≈ 75 giờ/năm', 9],
+  ['Kiểm kê', '2–4 giờ × 2 người + truy vết', 'Giảm ≈ 30% → ≈ 40 giờ/năm', 5]];
+
+/* ================= TÍNH ================= */
+const sum = (a, f) => a.reduce((s, x) => s + f(x), 0);
+const devT = sum(DEV, d => d[1] * d[2]);
+function calc(P, withOpt) {
+  const mm = sum(P.dev, d => d[1]) + P.pm[1] + (withOpt ? sum(P.opt || [], d => d[1]) : 0);
+  const devCost = mm * R;
+  const ext = sum(P.ext, e => e[1]);
+  const infra = sum(P.infra, i => i[2]) + devT;
+  const maint = Math.round(P.maint * devCost);
+  const ops = maint + sum(P.ops, o => o[1]);
+  return { mm, devCost, ext, build: devCost + ext, infra, maint, ops };
+}
+const a = calc(A), b = calc(B), bf = calc(B, true);
+const optMM = sum(B.opt, d => d[1]);
+const V = { R, RS, dev: devT };
+V['A.once'] = a.build + a.infra; V['A.ops'] = a.ops; V['A.tco'] = V['A.once'] + 3 * a.ops;
+V['B.once'] = b.build + b.infra; V['B.ops'] = b.ops; V['B.tco'] = V['B.once'] + 3 * b.ops;
+V['B.optCost'] = optMM * R; V['B.opsFull'] = bf.ops; V['B.tcoFull'] = V['B.once'] + V['B.optCost'] + 3 * bf.ops;
+const grp = (P, g) => sum(P.dev.filter(d => d[2] === g), d => d[1]);
+V['A.integ'] = grp(A, 'integ') * R + sum(A.ext.filter(e => e[3] === 'integ'), e => e[1]);
+V['A.integPct'] = V['A.integ'] / V['A.once'];
+V.save = V['A.tco'] - V['B.tcoFull']; V.bShare = V['B.tcoFull'] / V['A.tco']; V.savePct = V.save / V['A.tco'];
+V.labor = sum(LAB, l => l[3]);
+V['A.opsX'] = a.ops / V.labor;
+V.infraSave = sum(A.infra.filter(i => i[3] === 'hw'), i => i[2]);
+V.platMM = grp(A, 'plat') - grp(B, 'plat');
+V.aiMM = grp(A, 'ai') - grp(B, 'ai');
+V.integSave = V['A.integ'] - grp(B, 'integ') * R - B.ext[0][1];
+V.beA = (V['A.tco'] - 3 * V.labor) / 36;
+V.beBF = (V['B.tcoFull'] - 3 * V.labor) / 36;
+V.beB = (V['B.tco'] - 3 * V.labor) / 36;
+
+/* ================= ĐỊNH DẠNG ================= */
+const nf = (x, d = 0) => x.toLocaleString('vi-VN', { minimumFractionDigits: d, maximumFractionDigits: d });
+const F = {
+  tr: x => nf(Math.round(x)) + ' triệu',
+  ty: x => nf(x / 1000, 2) + ' tỷ đồng',
+  pct: x => Math.round(x * 100) + '%',
+  mm: x => x.toLocaleString('vi-VN', { maximumFractionDigits: 2 }),
+  x: x => nf(x, 0)
+};
+const n0 = x => nf(Math.round(x));
+const mmf = F.mm;
+document.querySelectorAll('[data-v]').forEach(el => {
+  const v = V[el.dataset.v];
+  if (v === undefined) { el.textContent = '??'; el.style.color = 'red'; return; }
+  el.textContent = F[el.dataset.f || 'tr'](v);
+});
+
+/* ================= BẢNG ================= */
+const T = (id, html) => { document.getElementById(id).innerHTML = html; };
+const head = cols => '<thead><tr>' + cols.map(c => `<th${c[1] ? ` class="${c[1]}"` : ''}${c[2] ? ` style="width:${c[2]}"` : ''}>${c[0]}</th>`).join('') + '</tr></thead>';
+
+T('tDev', head([['Thiết bị'], ['SL', 'c', '8%'], ['Đơn giá', 'r', '14%'], ['Thành tiền', 'r', '16%']]) + '<tbody>' +
+  DEV.map(d => `<tr><td>${d[0]}</td><td class="c">${d[1]}</td><td class="r">${nf(d[2], 1)}</td><td class="r">${nf(d[1] * d[2], 1)}</td></tr>`).join('') +
+  `<tr class="tot"><td colspan="3">Tổng thiết bị quầy (2 quầy nhà thuốc, kho nội trú, bàn nhận hàng)</td><td class="r">${n0(devT)}</td></tr></tbody>`);
+
+function devTable(P, c) {
+  return head([['Hạng mục'], ['Người-tháng', 'r', '14%'], ['Thành tiền', 'r', '16%']]) + '<tbody>' +
+    P.dev.map(d => `<tr><td>${d[0]}</td><td class="r">${mmf(d[1])}</td><td class="r">${n0(d[1] * R)}</td></tr>`).join('') +
+    `<tr><td>${P.pm[0]}</td><td class="r">${mmf(P.pm[1])}</td><td class="r">${n0(P.pm[1] * R)}</td></tr>` +
+    `<tr class="sub"><td>Cộng phát triển (× ${R} triệu/người-tháng)</td><td class="r">${mmf(c.mm)}</td><td class="r">${n0(c.devCost)}</td></tr>` +
+    P.ext.map(e => `<tr><td>${e[0]}<br><small>${e[2]}</small></td><td class="r">—</td><td class="r">${n0(e[1])}</td></tr>`).join('') +
+    `<tr class="tot"><td>Tổng chi phí xây dựng phần mềm</td><td class="r"></td><td class="r">${n0(c.build)}</td></tr></tbody>`;
+}
+function infraTable(P, c) {
+  return head([['Hạng mục'], ['Cách tính', 'r', '18%'], ['Thành tiền', 'r', '18%']]) + '<tbody>' +
+    P.infra.map(i => `<tr><td>${i[0]}</td><td class="r">${i[1]}</td><td class="r">${n0(i[2])}</td></tr>`).join('') +
+    `<tr><td>Thiết bị quầy (mục 3)</td><td class="r"></td><td class="r">${n0(devT)}</td></tr>` +
+    `<tr class="tot"><td>Tổng hạ tầng &amp; thiết bị</td><td></td><td class="r">${n0(c.infra)}</td></tr></tbody>`;
+}
+function opsTable(P, c, label) {
+  return head([['Khoản'], ['Căn cứ'], ['Triệu/năm', 'r', '16%']]) + '<tbody>' +
+    `<tr><td>Bảo trì phần mềm</td><td>${Math.round(P.maint * 100)}% × ${n0(c.devCost)}${label || ''}</td><td class="r">${n0(c.maint)}</td></tr>` +
+    P.ops.map(o => `<tr><td>${o[0]}</td><td>${o[2]}</td><td class="r">${n0(o[1])}</td></tr>`).join('') +
+    `<tr class="tot"><td colspan="2">Tổng vận hành mỗi năm</td><td class="r">${n0(c.ops)}</td></tr></tbody>`;
+}
+T('tAdev', devTable(A, a));
+T('tAinfra', infraTable(A, a));
+T('tAops', opsTable(A, a));
+T('tAsum', head([['Khoản'], ['Triệu đồng', 'r', '18%'], ['Tỷ đồng', 'r', '14%']]) + '<tbody>' +
+  [['Xây dựng phần mềm', a.build], ['Hạ tầng & thiết bị', a.infra]].map(r => `<tr><td>${r[0]}</td><td class="r">${n0(r[1])}</td><td class="r">${nf(r[1] / 1000, 2)}</td></tr>`).join('') +
+  `<tr class="sub"><td>Chi phí một lần</td><td class="r">${n0(V['A.once'])}</td><td class="r">${nf(V['A.once'] / 1000, 2)}</td></tr>` +
+  `<tr><td>Vận hành 3 năm (3 × ${n0(a.ops)})</td><td class="r">${n0(3 * a.ops)}</td><td class="r">${nf(3 * a.ops / 1000, 2)}</td></tr>` +
+  `<tr class="tot"><td>Tổng chi phí 3 năm – Hướng A</td><td class="r">${n0(V['A.tco'])}</td><td class="r">${nf(V['A.tco'] / 1000, 2)}</td></tr></tbody>`);
+
+T('tBdev', devTable(B, b));
+T('tBopt', head([['Hạng mục'], ['Người-tháng', 'r', '14%'], ['Thành tiền', 'r', '16%']]) + '<tbody>' +
+  B.opt.map(d => `<tr><td>${d[0]}</td><td class="r">${mmf(d[1])}</td><td class="r">${n0(d[1] * R)}</td></tr>`).join('') +
+  `<tr class="tot"><td>Tổng phần mở rộng</td><td class="r">${mmf(optMM)}</td><td class="r">${n0(V['B.optCost'])}</td></tr></tbody>`);
+T('tBinfra', infraTable(B, b));
+T('tBops', opsTable(B, b, ' (bản lõi)') .replace('Tổng vận hành mỗi năm', 'Tổng/năm (bản lõi)')
+  .replace('</tbody>', `<tr><td colspan="2">Có phần mở rộng: bảo trì tăng lên ${n0(bf.maint)}</td><td class="r">${n0(bf.ops)}</td></tr></tbody>`));
+T('tBsum', head([['Khoản'], ['Bản lõi', 'r', '17%'], ['Đủ tính năng', 'r', '17%']]) + '<tbody>' +
+  `<tr><td>Xây dựng phần mềm</td><td class="r">${n0(b.build)}</td><td class="r">${n0(b.build + V['B.optCost'])}</td></tr>` +
+  `<tr><td>Hạ tầng &amp; thiết bị</td><td class="r">${n0(b.infra)}</td><td class="r">${n0(b.infra)}</td></tr>` +
+  `<tr class="sub"><td>Chi phí một lần</td><td class="r">${n0(V['B.once'])}</td><td class="r">${n0(V['B.once'] + V['B.optCost'])}</td></tr>` +
+  `<tr><td>Vận hành 3 năm</td><td class="r">${n0(3 * b.ops)}</td><td class="r">${n0(3 * bf.ops)}</td></tr>` +
+  `<tr class="tot"><td>Tổng chi phí 3 năm – Hướng B</td><td class="r">${n0(V['B.tco'])}</td><td class="r">${n0(V['B.tcoFull'])}</td></tr>` +
+  `<tr><td>Chênh lệch so với Hướng A (${n0(V['A.tco'])})</td><td class="r">−${n0(V['A.tco'] - V['B.tco'])}</td><td class="r">−${n0(V.save)}</td></tr></tbody>`);
+
+T('tLab', head([['Việc'], ['Số đo khảo sát', '', '22%'], ['Giả định'], ['Triệu/năm', 'r', '13%']]) + '<tbody>' +
+  LAB.map(l => `<tr><td>${l[0]}</td><td>${l[1]}</td><td>${l[2]}</td><td class="r">${n0(l[3])}</td></tr>`).join('') +
+  `<tr class="tot"><td colspan="3">Tổng thời gian tiết kiệm quy ra tiền (≈ 1,0 triệu/ngày công)</td><td class="r">${n0(V.labor)}</td></tr></tbody>`);
+
+// Độ nhạy: tính lại toàn bộ theo đơn giá r
+function tcoAt(r, P, withOpt) {
+  const mm = sum(P.dev, d => d[1]) + P.pm[1] + (withOpt ? sum(P.opt || [], d => d[1]) : 0);
+  const c = calc(P, withOpt);
+  const fixedOps = c.ops - c.maint;
+  return mm * r + c.ext + c.infra + 3 * (Math.round(P.maint * mm * r) + fixedOps);
+}
+const rates = [50, 70, 90, 110];
+T('tSens', head([['Đơn giá phát triển (triệu/người-tháng)']].concat(rates.map(r => [nf(r) + (r === R ? ' (dùng trong báo cáo)' : r === 50 ? ' (đội nội bộ)' : ''), 'r', '15%']))) + '<tbody>' +
+  [['Hướng A – tổng 3 năm', A, false], ['Hướng B đủ tính năng – tổng 3 năm', B, true], ['Hướng B bản lõi – tổng 3 năm', B, false]]
+    .map(row => `<tr><td>${row[0]}</td>${rates.map(r => `<td class="r">${n0(tcoAt(r, row[1], row[2]))}</td>`).join('')}</tr>`).join('') + '</tbody>');
+
+/* ================= BIỂU ĐỒ ================= */
+const NS = 'http://www.w3.org/2000/svg';
+function el(svg, tag, attrs, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text !== undefined) e.textContent = text;
+  svg.appendChild(e); return e;
+}
+// bar có đầu bo 4px ở phía dữ liệu (bên phải), gốc vuông
+function barPath(x, y, w, h, r) {
+  r = Math.min(r, w, h / 2);
+  return `M${x},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h - r}Q${x + w},${y + h} ${x + w - r},${y + h}H${x}Z`;
+}
+(function chart1() {
+  const svg = document.getElementById('ch1');
+  const rows = [
+    ['Hướng A', 'làm đủ theo lộ trình', [a.build, a.infra, 3 * a.ops], V['A.tco']],
+    ['Hướng B', 'đủ tính năng', [b.build + V['B.optCost'], b.infra, 3 * bf.ops], V['B.tcoFull']],
+    ['Hướng B', 'bản lõi', [b.build, b.infra, 3 * b.ops], V['B.tco']]];
+  const col = ['#2a78d6', '#eb6834', '#1baf7a'];
+  const L = 128, W = 700 - L - 70, max = 8000, sx = W / max, bh = 34, gap = 20, top = 8;
+  for (let t = 0; t <= max; t += 2000) {
+    const x = L + t * sx;
+    el(svg, 'line', { x1: x, x2: x, y1: top - 4, y2: top + 3 * (bh + gap) - gap + 4, stroke: '#eceef1', 'stroke-width': 1 });
+    el(svg, 'text', { x, y: top + 3 * (bh + gap) - gap + 18, 'text-anchor': 'middle', 'font-size': 10, fill: '#6b7280' }, t === 0 ? '0' : nf(t / 1000) + ' tỷ');
+  }
+  rows.forEach((r, i) => {
+    const y = top + i * (bh + gap);
+    el(svg, 'text', { x: 0, y: y + 15, 'font-size': 11.5, 'font-weight': 700, fill: '#111827' }, r[0]);
+    el(svg, 'text', { x: 0, y: y + 29, 'font-size': 10, fill: '#6b7280' }, r[1]);
+    let x = L;
+    r[2].forEach((v, k) => {
+      const w = v * sx, last = k === r[2].length - 1;
+      if (w > 0.5) {
+        const ww = last ? w : Math.max(w - 2, 0.5); // 2px khe giữa các đoạn
+        el(svg, last ? 'path' : 'rect', last ? { d: barPath(x, y, ww, bh, 4), fill: col[k] } : { x, y, width: ww, height: bh, fill: col[k] });
+        if (w > 46) el(svg, 'text', { x: x + w / 2, y: y + bh / 2 + 4, 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 600, fill: '#fff' }, n0(v));
+      }
+      x += w;
+    });
+    el(svg, 'text', { x: x + 6, y: y + bh / 2 + 4, 'font-size': 11.5, 'font-weight': 700, fill: '#111827' }, nf(r[3] / 1000, 2) + ' tỷ');
+  });
+})();
+(function chart2() {
+  const svg = document.getElementById('ch2');
+  const g = k => grp(A, k) * R;
+  const extBy = k => sum(A.ext.filter(e => e[3] === k), e => e[1]);
+  const infBy = k => sum(A.infra.filter(i => i[3] === k), i => i[2]);
+  const rows = [
+    ['Tích hợp OH, SAP, ngân hàng', V['A.integ']],
+    ['Nền tảng: máy chủ, đồng bộ, SSO, phân tích', g('plat')],
+    ['Kiểm thử, triển khai, quản lý dự án, bảo mật', g('qa') + A.pm[1] * R + extBy('qa')],
+    ['Nghiệp vụ mở rộng (kiểm kê, dự trù, phiếu xuất…)', g('ext')],
+    ['AI có GPU (máy chủ OCR, giọng nói + máy GPU)', g('ai') + infBy('ai')],
+    ['Phần cứng khác + thiết bị quầy', infBy('hw') + devT]].sort((p, q) => q[1] - p[1]);
+  const chk = sum(rows, r => r[1]);
+  if (Math.abs(chk - V['A.once']) > 0.5) { el(svg, 'text', { x: 10, y: 20, fill: 'red' }, 'LỖI: tổng nhóm ≠ chi phí một lần'); return; }
+  const L = 262, W = 700 - L - 60, max = 1500, sx = W / max, bh = 22, gap = 9, top = 4;
+  for (let t = 0; t <= max; t += 500) {
+    const x = L + t * sx;
+    el(svg, 'line', { x1: x, x2: x, y1: top - 2, y2: top + rows.length * (bh + gap) - gap + 2, stroke: '#eceef1', 'stroke-width': 1 });
+    el(svg, 'text', { x, y: top + rows.length * (bh + gap) - gap + 16, 'text-anchor': 'middle', 'font-size': 10, fill: '#6b7280' }, nf(t));
+  }
+  rows.forEach((r, i) => {
+    const y = top + i * (bh + gap);
+    el(svg, 'text', { x: L - 8, y: y + bh / 2 + 4, 'text-anchor': 'end', 'font-size': 10.5, fill: '#111827' }, r[0]);
+    el(svg, 'path', { d: barPath(L, y, r[1] * sx, bh, 4), fill: i === 0 ? '#2a78d6' : '#9fc0ea' });
+    el(svg, 'text', { x: L + r[1] * sx + 6, y: y + bh / 2 + 4, 'font-size': 10.5, 'font-weight': 600, fill: '#111827' }, n0(r[1]) + ' · ' + Math.round(r[1] / V['A.once'] * 100) + '%');
+  });
+})();
+})();
+</script>
+</body>
+</html>

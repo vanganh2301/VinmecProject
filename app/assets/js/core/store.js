@@ -5,11 +5,14 @@
   const SESSION = 'vmhub.session';
   const SCHEMA = 1;
 
+  // tab = nhãn ngắn trên thanh phân loại (Bán hàng, Danh mục); label = giá trị cột "Nhóm hàng" trong Excel
   const CATEGORIES = {
-    otc: { label: 'Thuốc OTC', short: 'OTC' },
-    supp: { label: 'Thực phẩm chức năng', short: 'TPCN' },
-    device: { label: 'Vật tư y tế', short: 'VTYT' },
+    otc: { label: 'Thuốc OTC', short: 'OTC', tab: 'Thuốc', icon: 'pill' },
+    supp: { label: 'Thực phẩm chức năng', short: 'TPCN', tab: 'TPCN', icon: 'leaf' },
+    device: { label: 'Vật tư y tế', short: 'VTYT', tab: 'Vật tư', icon: 'band' },
+    other: { label: 'Khác', short: 'Khác', tab: 'Khác', icon: 'package' },
   };
+  const catOf = p => CATEGORIES[p && p.category] || CATEGORIES.other;
 
   function seedProducts() {
     const P = (code, sap, name, ingredient, category, group, units, defaultUnit, stock, lot, expiry, minStock = 20) =>
@@ -79,7 +82,21 @@
       aiStats: blankStats(),
     };
     demoData(s);
+    demoCatalogExtra(s);
     return s;
+  }
+
+  // Hàm lượng cho hàng mẫu + 1 mặt hàng nhóm "Khác" (dữ liệu mẫu tạo trước khi có 2 thứ này được bổ sung một lần qua migrate)
+  const DEMO_STRENGTH = { OTC001: '500mg', OTC002: '500mg', OTC003: '10mg', OTC004: '20mg', OTC005: '3g', OTC006: '60ml', OTC007: '0,9% – 10ml', OTC008: 'Viên ngậm', TPCN01: '500mg', TPCN02: '1000mg', TPCN03: '10mg', VTYT01: '4 lớp', VTYT02: '10 x 10 cm', VTYT03: 'Đo ở nách / miệng' };
+  function demoCatalogExtra(s) {
+    if (s.seq.demoCat2) return;
+    s.seq.demoCat2 = 1;
+    s.products.forEach(p => { if (p.strength == null && DEMO_STRENGTH[p.code]) p.strength = DEMO_STRENGTH[p.code]; });
+    if (!s.products.some(p => p.code === 'KH001')) {
+      const d = new Date(); d.setDate(d.getDate() + 640);
+      const body = '20000000' + VM.pad(15, 4);
+      s.products.push({ id: VM.uid('p_'), code: 'KH001', sap: '40001001', gtin: body + VM.gtinCheck(body), name: 'Kem dưỡng ẩm da nhạy cảm', strength: 'Tuýp 50g', ingredient: '', category: 'other', group: 'Chăm sóc da', store: 'Y001', units: [{ name: 'Tuýp', factor: 1, price: 145000 }], defaultUnit: 'Tuýp', stock: 14, lot: 'KD2406N', expiry: VM.ymd(d), minStock: 3, active: true, image: '', updatedAt: VM.iso() });
+    }
   }
 
   const blankStats = () => ({ ocr: { docs: 0, fields: 0, kept: 0 }, voice: { n: 0, top1: 0 } });
@@ -253,6 +270,9 @@
     // Dữ liệu mẫu tạo trước khi có màn Thống kê vay: bổ sung lịch sử vay mẫu một lần (vẫn xóa được bằng "Xóa dữ liệu mẫu")
     if (s.meta.demo && !s.seq.demoLoanHist && s.products.length) { demoLoanHistory(s); s.__migrated = true; }
     if (s.meta.demo && !s.seq.demoQtDay) { demoTodayInvoices(s); s.__migrated = true; }
+    if (s.meta.demo && !s.seq.demoCat2 && s.products.length) { demoCatalogExtra(s); s.__migrated = true; }
+    // Nhóm hàng lạ (nhập từ file cũ) → "Khác" để thanh phân loại luôn đếm đủ
+    s.products.forEach(p => { if (!CATEGORIES[p.category]) p.category = 'other'; });
     return s;
   }
   function save(reason) {
@@ -408,6 +428,6 @@
     get state() { return state; }, save, replace, onChange, log, currentUser, setUser, isAdmin, seedState,
     orderCode, loanCode, storeName, product, baseUnit, stockText, productIssue, sellable, matchScan, productFreq, topProducts, peopleFreq,
     loanStatus, loanRemaining, loanOverdue, loanStores, LOAN_STORES, loanGroup, loanVouchers, voucherStatus, voucherOpen, calcInvoice, invoiceOverdue,
-    CATEGORIES, INVOICE_STATUS, KEY, SCHEMA, get saveErr() { return saveErr; },
+    CATEGORIES, catOf, INVOICE_STATUS, KEY, SCHEMA, get saveErr() { return saveErr; },
   };
 })(window.VM);

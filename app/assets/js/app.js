@@ -42,7 +42,7 @@
     $('#lgName').onkeydown = e => { if (e.key === 'Enter' && !$('#lgGo').disabled) login(); };
     $('#lgGo').onclick = login;
     sync();
-    setTimeout(() => ($('#lgPick .sel') || $('#lgPick button') || $('#lgName')).focus(), 30);
+    setTimeout(() => { const f = $('#lgPick .sel') || $('#lgPick button') || $('#lgName'); if (f) f.focus(); }, 30);
 
     function login() {
       let u;

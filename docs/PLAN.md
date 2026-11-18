@@ -131,9 +131,9 @@ VinmecProject/
 - **Cần chú ý:** sắp hết hàng, sắp hết hạn (≤ 90 ngày), vay quá hạn, hàng về chưa có HĐ, chưa sao lưu.
 
 ### 6.2. Bán hàng (POS)
-- Thanh trên: mã đơn (ORD-yyyymmdd-0001), khách/PID (không bắt buộc), nhập bằng giọng nói.
-- Trái: ô tìm **fuzzy** (không dấu, sai chính tả, mã SAP; máy quét mã vạch → Enter thêm ngay), lọc OTC / TPCN / Vật tư, thẻ sản phẩm (tên, mã, kho, ĐVT, giá, tồn, HSD, nhãn sắp hết/hết hạn).
-- Phải (cố định): giỏ hàng – đổi **ĐVT có hệ số quy đổi** (viên/vỉ/hộp), +/- số lượng, cảnh báo vượt tồn tại dòng, sửa giá (ghi nhật ký), hàng đặc biệt (tên người bán).
+- Tiêu đề "Vinmec Pharmacy". Nút trên cùng: Thêm hàng mới (ngoài danh mục), Báo cáo trong ngày (Excel), Đơn mới (F9). Thiết kế tối giản: mã đơn, mã hàng, tồn, lô/HSD chỉ hiện khi bấm "Hiển thị tất cả".
+- Trái: tab Thuốc / TPCN / Vật tư / Khác, ô "Tìm kiếm" **fuzzy** (không dấu, sai chính tả, mã SAP; máy quét mã vạch → Enter thêm ngay), nhập bằng giọng nói; danh sách hàng mỗi dòng: nhóm, tên, cảnh báo hết hàng/cận hạn, giá/ĐVT. Chọn bằng chuột hoặc ↑ ↓ Enter.
+- Phải (cố định): giỏ hàng thấy 6–7 mặt hàng không cần cuộn – đổi **ĐVT có hệ số quy đổi** (viên/vỉ/hộp), +/- số lượng, cảnh báo vượt tồn tại dòng, sửa giá (ghi nhật ký), hàng đặc biệt (tên người bán); khách/PID (không bắt buộc) trong mục gập; tổng tiền và 2 nút thanh toán ngay dưới giỏ.
 - Thanh toán: **QR (VietQR, có mã đơn trong nội dung)** hoặc **Tiền mặt** (nhập tiền khách đưa → tiền thối, nút mệnh giá nhanh). Xác nhận → lưu đơn, trừ tồn, in phiếu.
 - Quy tắc: không bán hàng hết hạn / hết tồn / ngừng bán; chống bấm xác nhận 2 lần; nháp giỏ hàng tự lưu.
 
@@ -143,9 +143,11 @@ VinmecProject/
 - Đánh dấu **đã nhập OH/SAP** (hàng loạt). Xuất Excel 3 sheet: Tổng hợp / Chi tiết / Chờ đối soát.
 
 ### 6.4. Danh mục hàng
-- Bảng: mã, mã SAP, tên, hoạt chất, nhóm, kho, ĐVT & quy đổi, giá, tồn, lô, HSD, trạng thái.
-- Thêm / sửa / ngừng bán (không xóa nếu đã phát sinh giao dịch), điều chỉnh tồn (lý do).
-- Nhập Excel/CSV (kiểm tra hợp lệ, xem trước, cập nhật theo mã), xuất Excel, tải file mẫu.
+- Phân loại 4 nhóm: Thuốc OTC, Thực phẩm chức năng, Vật tư y tế, Khác (tab trên đầu bảng). Thanh này dùng chung với màn Bán hàng. (Nút "Hay bán" đã bỏ ngày 18/11/2026 vì khoa thấy không cần.)
+- Mặc định bảng chỉ hiện cột cần thiết; Hàm lượng, Kho, Số lô hiện khi bấm "Hiển thị tất cả".
+- Bảng theo đúng 10 trường của file mẫu khoa: Mã hàng, Tên hàng, Nhóm hàng, Hàm lượng, Kho, Đơn vị tính, Giá bán, Số lượng tồn, Hạn sử dụng, Số lô. Mỗi mặt hàng một dòng, không cuộn ngang; bảng hẹp thì tự ẩn cột phụ.
+- Thêm / sửa / ngừng bán (không xóa nếu đã phát sinh giao dịch), điều chỉnh tồn (lý do). Form thêm chỉ 10 trường trên; mã SAP, mã vạch, hoạt chất, quy đổi Vỉ/Hộp, tồn tối thiểu để trong "Thông tin thêm".
+- Nhập Excel/CSV (kiểm tra hợp lệ, xem trước, cập nhật theo mã), xuất Excel, tải file mẫu `Vinmec_MauNhap_DanhMuc.xlsx` (10 cột).
 
 ### 6.5. ⭐ Sổ vay thuốc
 **Luồng TO-BE:**

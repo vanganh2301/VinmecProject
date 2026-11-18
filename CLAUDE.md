@@ -1,5 +1,44 @@
 # CLAUDE.md – Vinmec Pharmacy Hub
 
+## ▶ Lệnh chạy nhanh trên máy (local)
+
+Mở terminal ở thư mục gốc repo (`d:\55 Vinmec\VinmecProject`). Không cần build, không cần `npm install`.
+
+| Việc | PowerShell (Windows) | Git Bash / macOS / Linux |
+| --- | --- | --- |
+| **Chạy server** (khuyên dùng) | `python -m http.server 8090 --bind 127.0.0.1 -d app` | như bên trái |
+| Mở app | `Start-Process http://127.0.0.1:8090/` | `start http://127.0.0.1:8090/` (Git Bash) · `open …` (macOS) |
+| Chạy server bằng Node thay Python | `npx serve app -l 8090` | như bên trái |
+| Mở thẳng file, không server | `Start-Process app\index.html` | `start app/index.html` |
+| Dừng server | `Ctrl + C` trong cửa sổ đang chạy (hoặc lệnh ở khối dưới) | `Ctrl + C` |
+| Kiểm tra cú pháp JS | xem khối dưới | xem khối dưới |
+| Cổng 8090 bị chiếm | đổi số cổng, VD `python -m http.server 8091 --bind 127.0.0.1 -d app` rồi mở `http://127.0.0.1:8091/` | như bên trái |
+
+```powershell
+# PowerShell – chạy server rồi tự mở trình duyệt
+python -m http.server 8090 --bind 127.0.0.1 -d app
+Start-Process http://127.0.0.1:8090/          # chạy ở cửa sổ PowerShell thứ hai
+
+# Dừng server đang chiếm cổng 8090 (khi đã đóng mất cửa sổ chạy server)
+Get-NetTCPConnection -LocalPort 8090 -State Listen | ForEach-Object { Stop-Process -Id $_.OwningProcess }
+
+# Kiểm tra cú pháp mọi file JS
+Get-ChildItem app\assets\js -Recurse -Filter *.js | ForEach-Object { node --check $_.FullName }
+```
+
+```bash
+# Git Bash / macOS / Linux
+python -m http.server 8090 --bind 127.0.0.1 -d app
+for f in app/assets/js/core/*.js app/assets/js/modules/*.js app/assets/js/app.js; do node --check "$f"; done
+```
+
+- Địa chỉ app: **http://127.0.0.1:8090/**. Sau khi sửa code, bấm **Ctrl + F5** để trình duyệt nạp lại CSS/JS mới.
+- Dữ liệu nằm trong localStorage **theo địa chỉ**: `http://127.0.0.1:8090`, `http://localhost:8090` và `file://` là 3 bộ dữ liệu riêng. Muốn làm lại từ dữ liệu mẫu: Khác → Sao lưu & khôi phục → "Đặt lại ứng dụng" (gõ `XOA`), hoặc DevTools → Application → Local Storage → xóa các khóa `vmhub.*`.
+- Ảnh QR (VietQR) và font Google cần Internet. Phần còn lại chạy offline.
+- Dùng Chrome hoặc Edge (tự ghi thư mục sao lưu chỉ có trên 2 trình duyệt này).
+
+---
+
 Ghi chú dành cho Claude / lập trình viên khi tiếp tục làm việc trên repo này. Đọc file này trước, sau đó mới đến [docs/PLAN.md](docs/PLAN.md) (đặc tả) và [docs/Khaosat.md](docs/Khaosat.md) (khảo sát gốc).
 
 ## 1. Dự án là gì
@@ -16,8 +55,7 @@ Kèm theo: Tổng quan, Lịch sử bán (đối soát OH/SAP), Danh mục hàng
 
 ## 2. Chạy & kiểm tra
 
-- **Chạy:** mở `app/index.html` bằng Chrome hoặc Edge, kể cả qua `file://`. Không cần build hay `npm install`.
-  - Muốn có server: `npx serve app` hoặc `python -m http.server -d app 8080`.
+- **Chạy:** xem bảng "Lệnh chạy nhanh" ở đầu file. Mở `app/index.html` bằng Chrome hoặc Edge cũng được, kể cả qua `file://`.
 - **Kiểm tra cú pháp:**
   ```bash
   for f in app/assets/js/core/*.js app/assets/js/modules/*.js app/assets/js/app.js; do node --check "$f"; done
@@ -27,7 +65,9 @@ Kèm theo: Tổng quan, Lịch sử bán (đối soát OH/SAP), Danh mục hàng
     - `<base href="file:///d:/55%20Vinmec/VinmecProject/app/">`;
     - một script chạy trước `util.js`: xóa localStorage, gán sẵn session `vmhub.session`, gom lỗi qua `window.onerror`;
     - một script chạy sau `app.js`: lần lượt bấm qua từng màn và ghi kết quả vào `<pre>`.
-  - Lần chạy cuối (18/11/2026, sau khi thêm Thống kê vay thuốc + Copy quyết toán trong ngày): 47/47 bước đều OK, không có lỗi JS (2 lần liền). 12 bước mới: lịch sử vay mẫu + migrate, KPI khớp đếm tay theo ngày / tuần / tháng / chiều vay, biểu đồ riêng 1 thuốc, sắp xếp, tìm, xuất Excel, phím Q, copy 3 cột / 3 dòng, giữ số 0 đầu số HĐ, ô ngày là ngày thật. Trước đó: 35/35 sau khi làm lại Sổ vay theo mã vay. Gồm màn chọn nghiệp vụ + phím 1/2/3, tour, tạo mã vay nhiều thuốc (quét → số lượng → cộng dồn → máy quét bắn mã vào ô SL → hàng ngoài danh mục → giữ nháp → Hoàn thành → người vay/cho vay → lưu), trang chi tiết (sửa thông số, gạch sổ từng phần / cả mã vay, xác nhận, hủy), file điều chuyển, thông báo hoàn thành, quét mã hóa đơn, kết thúc ca → vào lại.
+  - Lần chạy cuối (18/11/2026, sau khi làm giao diện tối giản + chia đôi màn Bán hàng): **61/61** bước đều OK, 2 lần liền, không có lỗi JS. Bước mới / sửa: tab Thuốc lọc danh sách `#posRes` chỉ còn OTC; tiêu đề "Vinmec Pharmacy", ô "Tìm kiếm", không còn Hay bán, nút đổi tên, 5 tab trên 1 hàng, giỏ nằm bên phải; gõ tên + Enter / ↓ Enter / quét mã hàng thêm vào giỏ; 6 mặt hàng trong giỏ thấy hết không cuộn và nút thanh toán không khuất (1440×900); nút "Hiển thị tất cả" ẩn/hiện `.xd` và lưu `vmhub.detail`; Lịch sử bán mỗi mặt hàng 1 dòng, không cuộn ngang.
+  - Lần trước (sau khi làm lại Danh mục + màu theo nghiệp vụ): 57/57. Các bước: nhóm Khác + hàm lượng trong dữ liệu mẫu, Esc không bị nuốt sau khi đổi màn, bảng danh mục không cuộn ngang, tab Khác lọc bảng, file mẫu đúng 10 cột (đọc ngược .xlsx), nhập Excel theo mẫu (ĐVT Hộp quy đổi tồn, nhóm Khác, Kho Nhà thuốc → Y001, báo thiếu HSD), form thêm 10 trường, nút Điều chỉnh tồn trong form sửa. Nhập Excel cần chờ tới ~5 giây ảo (readTable chạy bất đồng bộ).
+  - Lần trước (sau khi thêm Thống kê vay thuốc + Copy quyết toán trong ngày): 47/47 bước đều OK, không có lỗi JS (2 lần liền). 12 bước mới: lịch sử vay mẫu + migrate, KPI khớp đếm tay theo ngày / tuần / tháng / chiều vay, biểu đồ riêng 1 thuốc, sắp xếp, tìm, xuất Excel, phím Q, copy 3 cột / 3 dòng, giữ số 0 đầu số HĐ, ô ngày là ngày thật. Trước đó: 35/35 sau khi làm lại Sổ vay theo mã vay. Gồm màn chọn nghiệp vụ + phím 1/2/3, tour, tạo mã vay nhiều thuốc (quét → số lượng → cộng dồn → máy quét bắn mã vào ô SL → hàng ngoài danh mục → giữ nháp → Hoàn thành → người vay/cho vay → lưu), trang chi tiết (sửa thông số, gạch sổ từng phần / cả mã vay, xác nhận, hủy), file điều chuyển, thông báo hoàn thành, quét mã hóa đơn, kết thúc ca → vào lại.
   - Trong trang test nhớ tắt tour (`vmhub.tour.<id>` = `{"off":true}`) ở các bước không kiểm tra tour, nếu không tour tự chạy sẽ che màn. Bước kết thúc ca cần chờ tới ~90 giây ảo và `--virtual-time-budget=200000` (IndexedDB chạy bằng thời gian thật nên dưới virtual time đồng hồ ảo bị phóng đại; ngoài đời chỉ vài chục ms).
   - Trong headless, `navigator.clipboard.write` có thể treo: khi test copy hãy thay `VM.copyCells` bằng hàm giả và đọc `copyCells.last` của hàm thật (được gán trước khi ghi clipboard).
   - Chụp màn hình bằng `--screenshot --window-size=1440,900` để soát giao diện.
@@ -46,11 +86,11 @@ Kèm theo: Tổng quan, Lịch sử bán (đối soát OH/SAP), Danh mục hàng
 | File               | Xuất ra                                                                                                                                                                                                          | Vai trò                                                                                                                                                                            |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `core/util.js`   | `VM.$, $$, esc, icon, money, num, fmtDate, fmtDT, ymd, iso, daysUntil, hoursSince, ago, parseDate, parseNum, normalize, search, uid, debounce, download, sum, fileStamp, gs1, gtinKey, gtinCheck, isLocalUrl…` | Tiện ích. `search()` là fuzzy, bỏ dấu tiếng Việt. `gs1()` đọc mã DataMatrix GS1 (AI 01/17/10/21). `isLocalUrl()` nhận diện địa chỉ trong mạng nội bộ        |
-| `core/store.js`  | `VM.store`                                                                                                                                                                                                      | State duy nhất, lưu vào localStorage, nhật ký (audit), dữ liệu mẫu, quy tắc nghiệp vụ. Thêm `matchScan(raw)`, `productFreq()`, `topProducts(n)`, `peopleFreq()`, `LOAN_STORES` / `loanStores()` (chỉ Y001, Y003), `loanGroup(l)`, `loanVouchers(list?)`, `voucherStatus(lines)`, `voucherOpen(v)`, `loanCode(peek)` |
+| `core/store.js`  | `VM.store`                                                                                                                                                                                                      | State duy nhất, lưu vào localStorage, nhật ký (audit), dữ liệu mẫu, quy tắc nghiệp vụ. Thêm `matchScan(raw)`, `productFreq()`, `topProducts(n)`, `peopleFreq()`, `LOAN_STORES` / `loanStores()` (chỉ Y001, Y003), `loanGroup(l)`, `loanVouchers(list?)`, `voucherStatus(lines)`, `voucherOpen(v)`, `loanCode(peek)`, `CATEGORIES` (otc / supp / device / other) + `catOf(p)` |
 | `core/xlsx.js`   | `VM.xlsx.exportXlsx(sheets, filename)`, `readTable(file)`                                                                                                                                                     | Tự ghi/đọc .xlsx (zip không nén) và CSV, không cần thư viện                                                                                                               |
 | `core/backup.js` | `VM.backup`                                                                                                                                                                                                     | Snapshot IndexedDB, file JSON có checksum FNV-1a, ghi thư mục bằng File System Access API                                                                                       |
 | `core/ai.js`     | `VM.ai = { MODES, listen, ocrInvoice, parseXmlInvoice, parseInvoiceCode, track, pct, ping, sttSupported }`                                                                                                                        | Giọng nói và OCR **chỉ gọi máy chủ nội bộ** (hàm `guard`). Đọc XML hóa đơn điện tử và mã QR / chuỗi tra cứu HĐĐT (`parseInvoiceCode`). Đo độ chính xác thực tế vào `state.aiStats`                 |
-| `core/ui.js`     | `VM.ui`                                                                                                                                                                                                         | Shell gồm thanh biểu tượng (rail) và rèm (curtain), hash router `#/<id>/<arg>`, modal, confirm, toast, `done` (thông báo hoàn thành), print, `register`, `suggest` (danh sách gợi ý thả nổi). Nút `#tourBtn` (?) trên thanh tiêu đề      |
+| `core/ui.js`     | `VM.ui`                                                                                                                                                                                                         | Shell gồm thanh biểu tượng (rail) và rèm (curtain), hash router `#/<id>/<arg>`, modal, confirm, toast, `done` (thông báo hoàn thành), print, `register`, `suggest` (danh sách gợi ý thả nổi), `catBar` (tab nhóm hàng, dùng chung cho Bán hàng và Danh mục). Nút `#detailBtn` (Hiển thị tất cả / Thu gọn) và `#tourBtn` (?) trên thanh tiêu đề      |
 | `core/tour.js`   | `VM.tour = { start, auto, has, reset, clearSession, prefs, active }`                                                                                                                                             | Hướng dẫn ban đầu dạng spotlight. Tự chạy lần đầu mở mỗi màn có `tour`; lần đầu tiên kèm các bước chung của khung (rail, rèm, sao lưu, kết thúc ca, nút ?) |
 | `modules/*.js`   | `VM.pos`, `VM.loans`, `VM.invoices`, `VM.catalog`                                                                                                                                                         | Mỗi màn là một module. `loan-stats.js` (id `loanstats`, nhóm `loans`) là màn Thống kê vay thuốc, nạp ngay sau `loans.js`                                                                                                                                                           |
 | `app.js`         | `VM.app = { logout, start }`                                                                                                                                                                                    | Màn vào ca, khởi động, kết thúc ca                                                                                                                                           |
@@ -65,7 +105,9 @@ Kèm theo: Tổng quan, Lịch sử bán (đối soát OH/SAP), Danh mục hàng
 **Mẫu một module:**
 
 ```js
-VM.ui.register({ id, title, group: 'retail'|'loans'|'invoices'|'system', icon, crumb,
+VM.ui.register({ id, title, group: 'retail'|'loans'|'invoices'|'system', icon,
+  head: 'Vinmec Pharmacy' /* tùy chọn: chữ trên thanh tiêu đề thay cho title (rèm vẫn dùng title) */,
+  detail: true /* tùy chọn: hiện nút "Hiển thị tất cả" cho màn có thông tin phụ .xd */,
   hot: true /* tùy chọn: tô nổi bật trên rèm */,
   render(view, topActions, arg) { ...; return cleanupFn /* tùy chọn */ },   // arg lấy từ #/<id>/<arg>
   badge: () => ({ n, soft, title }) /* tùy chọn, hiện số trên rail và rèm */,
@@ -123,6 +165,7 @@ VM.ui.register({ id, title, group: 'retail'|'loans'|'invoices'|'system', icon, c
 | `vmhub.tour.<userId>`  | Hướng dẫn ban đầu của từng người: `{off, seen:{<moduleId>:true, __shell:true}}`            |
 | `vmhub.loanDraft.<userId>` | Mã vay đang tạo dở: `{items[], step:'scan'|'who', from, to, borrower, lender, confirmed}`. Xóa khi lưu hoặc hủy |
 | `vmhub.loanStats`      | Lựa chọn ở màn Thống kê vay: `{g:'day'|'week'|'month', n, dir:''|'Y001'|'Y003', sort}` |
+| `vmhub.detail`         | Nút "Hiển thị tất cả": `1` hiện thông tin chi tiết (`.xd`), `0` / không có = tối giản (mặc định) |
 | `vmhub.qtDay`          | Lựa chọn ở hộp Copy quyết toán trong ngày: `{by:'recv'|'created', layout:'rows'|'cols', head, noInv}` |
 
 IndexedDB `vmhub-backup` (**version 2**) có 2 store: `snapshots` (giữ 30 bản, có chỉ mục `at`) và `kv` (handle của thư mục sao lưu).
@@ -140,14 +183,14 @@ settings{pharmacyName, counter, bank{bin,account,owner}, stores[{code,name,plant
          ai{stt:'off'|'local'|'server'|'cloud', sttUrl, ocrUrl, ocrModel, allowPublic=false}}
 aiStats{ocr{docs,fields,kept}, voice{n,top1}}   // độ chính xác đo tại khoa
 staff[{id,name,role,store,admin}]
-products[{id,code,sap,gtin,name,ingredient,category:'otc'|'supp'|'device',group,store,units[{name,factor,price}],defaultUnit,stock,lot,expiry,minStock,active,image}]
+products[{id,code,sap,gtin,name,strength,ingredient,category:'otc'|'supp'|'device'|'other',group,store,units[{name,factor,price}],defaultUnit,stock,lot,expiry,minStock,active,image}]
 sales[{id,code,createdAt,sellerId,sellerName,customer,pid,items[{productId,code,sap,name,lot,unit,factor,qty,price,listPrice,total,special,seller}],total,payment:'qr'|'cash',status,recon:'pending'|'done',demo}]
 loans[{id,group,line,code,createdAt,createdBy,from,to,productId,itemCode,sap,name,unit,qty,lot,expiry,borrower,lender,note,confirmedBy,confirmedAt,returns[{at,qty,ref,by,note}],edits[{at,by,what}],cancelled,cancelReason,sapExport{at,by,qty,how}}]
       // mỗi phần tử là MỘT THUỐC; các thuốc cùng mã vay có chung `group` (VAY-yyyymmdd-001), `line` = 1,2,3…, `code` = group/line.
       // Dữ liệu cũ không có group → loanGroup(l) = l.code (mỗi phiếu cũ là 1 mã vay 1 thuốc).
 invoices[{id,book:'OPD'|'IPD',receivedAt,supplier,sellerTax,invoiceSymbol,invoiceNo,invoiceDate,refNo,prNo,poNo,itemCount,receivedBy,pharmacyReceiver,nvdReceiver,nvdAt,grNo,
           subtotal,tax,total,totalQty,taxByRate,source:'xml'|'ocr',lines[{code,name,country,lot,expiry,unit,qty,price,discount,taxRate,amount}],status,history[{at,by,action}],note}]
-seq{ VAY<yyyymmdd>, ORD<yyyymmdd>, demoLoanHist, demoQtDay }   audit[{at,userId,user,action,entity,ref,detail}] (tối đa 3000 dòng)
+seq{ VAY<yyyymmdd>, ORD<yyyymmdd>, demoLoanHist, demoQtDay, demoCat2 }   audit[{at,userId,user,action,entity,ref,detail}] (tối đa 3000 dòng)
 ```
 
 **Quy tắc quan trọng:**
@@ -229,6 +272,21 @@ seq{ VAY<yyyymmdd>, ORD<yyyymmdd>, demoLoanHist, demoQtDay }   audit[{at,userId,
   - dữ liệu mẫu cũ (còn `meta.demo`) được `migrate()` bổ sung 2 phần trên **một lần** (cờ `seq.demoLoanHist`, `seq.demoQtDay`) rồi lưu lại ngay;
   - xóa ở màn Sao lưu → "Xóa dữ liệu mẫu" (danh mục hàng được giữ lại).
 - Danh sách **ngân hàng** cho VietQR nằm trong `settings.js`. Ảnh QR lấy từ `img.vietqr.io`, nên cần Internet.
+- **Nhóm hàng** (`VM.store.CATEGORIES`): `otc` Thuốc OTC, `supp` Thực phẩm chức năng, `device` Vật tư y tế, `other` Khác. Mỗi nhóm có `label`, `short` (tag), `tab` (chữ trên tab), `icon`. `catOf(p)` trả nhóm của mặt hàng, nhóm lạ coi là `other`; `migrate()` cũng đổi nhóm không hợp lệ thành `other`.
+- **Thanh phân loại** `VM.ui.catBar(el, { cat, counts(), onCat(k) })` → `{ set, refresh, cat }`: tab Tất cả / Thuốc / TPCN / Vật tư / Khác kèm số mặt hàng; bấm lại tab đang chọn thì về Tất cả. Ở Bán hàng: lọc danh sách hàng bên trái; ở Danh mục: lọc bảng. (Nút "Hay bán" đã bỏ theo yêu cầu khoa ngày 18/11/2026; `topProducts` vẫn còn trong store, dùng cho Tổng quan.)
+- **Chế độ tối giản / "Hiển thị tất cả":** mặc định chỉ hiện thông tin cần để làm việc. Phần tử có lớp `.xd` bị ẩn bằng `.app:not(.show-all) .xd{display:none!important}`; nút `#detailBtn` trên thanh tiêu đề (chỉ hiện ở màn khai báo `detail: true`: Bán hàng, Lịch sử bán, Danh mục, Sổ vay, Sổ hóa đơn) bật lớp `show-all` trên `#app`, lưu `vmhub.detail` và phát sự kiện `window` `vm-detail`. Khi viết màn mới: thông tin phụ (mã hàng, lô, HSD, PID, ngày tương đối, bộ lọc ít dùng…) gắn `.xd`, không gắn cho thứ cần để thao tác. Đã bỏ dòng chữ nhỏ (`crumb`) dưới tiêu đề ở mọi màn.
+- **Màn Bán hàng** (`modules/pos.js`), tiêu đề "Vinmec Pharmacy", chia đôi màn:
+  - **trái** (`.pos-left`): thanh phân loại `#catBar`, ô `#posSearch` (chỉ ghi "Tìm kiếm") + nút micro, danh sách hàng `#posRes` (`.pr-i`: tag nhóm, tên, cảnh báo hết hàng / cận hạn, giá / ĐVT; mã hàng · tồn là `.xd`). Ô trống thì liệt kê cả nhóm (hàng còn bán trước, rồi theo `productFreq`). ↑ ↓ chọn dòng, Enter: thử `matchScan` trước (máy quét), không khớp thì thêm dòng đang tô; Esc xóa ô tìm;
+  - **phải** (`aside.cart`, sticky): giỏ hàng `.crow` (tên + dòng nhỏ ĐVT / đơn giá, bước số lượng, thành tiền, xóa), mục gập "Khách hàng / PID", tổng tiền, 2 nút QR (F4) / Tiền mặt (F8). Màn 1440×900 thấy ≥ 6–7 mặt hàng cùng tổng và nút thanh toán;
+  - nút trên cùng: **Thêm hàng mới** (hàng ngoài danh mục), **Báo cáo trong ngày** (Excel đơn hôm nay), **Đơn mới** (F9). ≤1024px giỏ xuống dưới danh sách.
+- **Lịch sử bán:** bảng `.ht` chữ 12,5px, `table-layout:fixed`, mỗi ô 1 dòng; đơn nhiều mặt hàng thì mỗi mặt hàng 1 dòng trong ô "Mặt hàng" (`tên × SL đvt`). Đơn hôm nay chỉ hiện giờ, đơn cũ hiện `dd/mm giờ`; mã đơn rút gọn (`Q1-0006`, tooltip đủ mã). Cột Khách / PID, bộ lọc ngày / dược sĩ / hình thức / đối soát, tổng QR – tiền mặt là `.xd`. Mobile còn Mã đơn / Mặt hàng / Tổng tiền.
+- **Sổ hóa đơn (tối giản):** cột Hàng về chỉ ngày; cột NCC · Số HĐ 1 dòng tên NCC + "HĐ số"; số mặt hàng, VAT, người bàn giao, thanh tiến trình, ngày HĐ / PO, ghi chú, lọc NCC / khoảng ngày là `.xd`.
+- **Danh mục hàng** (`modules/catalog.js`):
+  - **File mẫu** `Vinmec_MauNhap_DanhMuc.xlsx` đúng 10 cột, theo thứ tự: `Mã hàng / Tên hàng / Nhóm hàng / Hàm lượng / Kho / Đơn vị tính / Giá bán / Số lượng tồn / Hạn sử dụng / Số lô` (hằng `HEAD`, 3 dòng mẫu `SAMPLE`). Xuất Excel dùng 10 cột đó rồi nối thêm các cột phụ (`EXTRA`: Mã SAP, GTIN, Hoạt chất, Tồn tối thiểu, ĐVT 2/3 + hệ số + giá, ĐVT bán mặc định, Trạng thái) để nhập lại không mất dữ liệu.
+  - Nhập Excel: "Nhóm hàng" nhận chữ (Thuốc OTC / Thực phẩm chức năng / Vật tư y tế / Khác, hoặc OTC / TPCN / VTYT); "Kho" nhận "Kho Nhà thuốc" → Y001, "Kho nội trú" → Y003 hoặc mã kho. "Số lượng tồn" tính theo **ĐVT của dòng**: mặt hàng đã có và ĐVT là Hộp (hệ số 100) thì 3 → tồn 300 viên. HSD trống thì giữ HSD cũ nếu mặt hàng đã có, mặt hàng mới thì báo lỗi.
+  - Form thêm / sửa chỉ hiện 10 trường như file mẫu; mã SAP, GTIN, hoạt chất, ĐVT lớn hơn (Vỉ/Hộp), ĐVT bán mặc định, tồn tối thiểu, ngừng bán nằm trong mục gập "Thông tin thêm". Khi sửa, số tồn chỉ đọc; nút "Điều chỉnh tồn" ngay dưới ô mở hộp điều chỉnh (bắt buộc lý do).
+  - Bảng danh mục **không cuộn ngang**: `table-layout:fixed`, mỗi ô 1 dòng + `…` (tooltip có đủ chữ). Cột phụ tự ẩn theo **container query** `@container ct` (bề rộng thật của bảng, không phải màn hình), nên thu rèm là hiện lại đủ cột: ≤1068px ẩn Kho, ≤984px ẩn Số lô, ≤894px ẩn Hàm lượng + Nhóm, ≤700px chỉ còn Tên / Giá / Tồn / Sửa. Dòng sắp hết / cận hạn tô vàng, hết hàng / hết hạn tô đỏ, kèm chip có icon. Nhấp đúp một dòng để sửa.
+  - Dữ liệu mẫu có hàm lượng cho mọi mặt hàng và 1 mặt hàng nhóm Khác (KH001). Dữ liệu mẫu cũ được `migrate()` bổ sung một lần (cờ `seq.demoCat2`).
 - **Mã vạch:** `matchScan(raw)` khớp lần lượt GTIN (từ mã DataMatrix GS1 hoặc EAN), mã hàng, mã SAP.
   - Lô/HSD đọc từ DataMatrix được ưu tiên hơn lô/HSD trong danh mục.
   - GTIN mẫu dùng tiền tố `20` (dải dùng nội bộ của GS1), không trùng sản phẩm thật.
@@ -250,21 +308,25 @@ seq{ VAY<yyyymmdd>, ORD<yyyymmdd>, demoLoanHist, demoQtDay }   audit[{at,userId,
   - trạng thái: info `#1d6fd8`, success `#15803d`, warning `#b45309`, danger `#c62828`;
   - nhóm hàng: OTC xanh lá `--otc`, TPCN cam `--supp`, VTYT tím `--device`.
 - **Font và khoảng chạm:** Be Vietnam Pro (Google Fonts). Vùng bấm tối thiểu `--tap: 44px`, nút lớn 48px.
+- **Màu theo nghiệp vụ:** `route()` gán `#app[data-area=retail|loans|invoices|system]`, CSS đặt `--ac` / `--ac50` / `--ac100`: Bán lẻ teal `#0b7a75`, Sổ vay xanh dương `#2160c4`, Hóa đơn tím `#6d3fc0`, Khác xám `#475569`. Dùng cho viền trên thanh tiêu đề, icon trang `.page-ic`, mục đang chọn trên rail / rèm. Màu trạng thái (info / success / warning / danger) giữ nguyên ở mọi nghiệp vụ.
+- **KPI:** màu theo icon (`.kpi-ic.info/warn/danger`, dùng `:has`), dải màu 4px bên trái, icon nền đặc, số đậm 800. Cỡ số tự co theo bề rộng thẻ (`container-type:inline-size`, `clamp(18px, 10.5cqi, 28px)`) để số tiền dài không tràn.
 - **Rail + rèm:** rail rộng 76px (`--rail`), rèm rộng 232px (`--cur`). Mỗi mục có badge số lượng việc cần xử lý. Chip trạng thái sao lưu nằm cuối rèm, chấm màu tương ứng nằm trên rail.
-- **Nổi bật mục hay dùng:** tông vàng `--hot #d97706`, nền `--hot-50` / `--hot-100`. Dùng cho mục `hot` trên rèm, dải "Hay bán" ở POS, chip tên người quen ở Sổ vay, ô do OCR điền (`.ai-fill`).
-- **Giỏ hàng POS:** mỗi mặt hàng một dòng cao 50px (`.crow`), thông tin phụ in nhỏ cùng dòng. Màn 1440×900 thấy đủ 6 dòng không cần cuộn.
+- **Nổi bật mục hay dùng:** tông vàng `--hot #d97706`, nền `--hot-50` / `--hot-100`. Dùng cho mục `hot` trên rèm, chip tên người quen ở Sổ vay, ô do OCR điền (`.ai-fill`).
+- **Giỏ hàng POS:** cột phải (`minmax(380px, 41%)`), mỗi mặt hàng cao ~57px (`.crow`: tên trên, ĐVT + giá nhỏ dưới). Màn 1440×900 thấy đủ 7 dòng không cần cuộn.
+- **Hộp phím tắt dưới rèm** (`.cur-keys`): lưới 2 cột `max-content / 1fr`, phím không xuống dòng, chú thích tự xuống dòng, không tràn.
+- **Biểu đồ Thống kê vay:** lề phải 58px cho nhãn "TB", nhãn trục X chỉ vẽ khi cách cột Dự báo ≥ 46px, tooltip bị kẹp trong khung.
 - **Breakpoint:** 1380 / 1199 / 1024 / 767px.
   - Bảng rộng dùng `.table-wrap`.
   - Cột phụ ẩn trên mobile bằng `.hide-m`.
 - **Trạng thái không chỉ dựa vào màu:** pill luôn có icon + chữ.
-- **Biểu đồ** (trang Tổng quan) làm theo skill dataviz: chỉ dùng một màu, đầu cột bo 4px, lưới nhạt, có tooltip khi rê chuột, vùng giờ cao điểm 11–13h.
+- **Biểu đồ** (Tổng quan, Thống kê vay) làm theo skill dataviz: chỉ dùng một màu, đầu cột bo 4px, lưới nhạt, có tooltip khi rê chuột, vùng giờ cao điểm 11–13h.
 - **Lớp CSS hay dùng:**
   - nút: `.btn` (`primary|tonal|ghost|danger|sm|lg|xl|icon|block`);
   - form: `.field`, `.input`, `.select`, `.form-grid` + `.c3/.c4/.c5/.c6/.c8/.c12`;
   - bố cục và hiển thị: `.card`, `.kpis` / `.kpis.compact`, `.seg`, `.pill`, `.tag`, `table.t`, `.alert`, `.timeline`, `.kv`;
   - khối in: `#printArea .sign`.
 - **Phím tắt:**
-  - POS: F2 hoặc `/` tìm hàng, F3 nói (giọng nói), F4 thanh toán QR, F8 tiền mặt, F9 đơn mới;
+  - POS: F2 hoặc `/` tìm hàng, ↑ ↓ Enter chọn hàng trong danh sách, F3 nói (giọng nói), F4 thanh toán QR, F8 tiền mặt, F9 đơn mới;
   - Màn chọn nghiệp vụ (ngay sau khi vào ca): `1` Bán lẻ, `2` Sổ vay, `3` Sổ hóa đơn;
   - Hướng dẫn: → / Enter tiếp, ← quay lại, Esc bỏ qua;
   - Sổ vay: `N` tạo mã vay mới; khi tạo: F2 hoặc `/` về ô quét, Enter thêm thuốc, Esc bỏ thuốc vừa quét, Ctrl+Enter hoàn thành / lưu mã vay, Enter ở ô người cho vay thì lưu;
@@ -301,6 +363,26 @@ Mức cảnh báo của `backup.status()`:
 - Chưa có mật khẩu hay PIN: chọn tên là vào ca. Phase 2 cần bổ sung.
 
 ## 8. Nhật ký thay đổi
+
+### 18/11/2026 – Giao diện tối giản, Bán hàng chia đôi màn (nhánh `Duy`)
+
+- **Bán hàng chia đôi:** trái là tab nhóm + ô "Tìm kiếm" + danh sách hàng (chọn bằng chuột hoặc ↑ ↓ Enter, máy quét vẫn thêm thẳng), phải là giỏ hàng + tổng + nút thanh toán, thấy 6–7 mặt hàng đã chọn không cần cuộn. Tiêu đề "Vinmec Pharmacy". Nút đổi tên: "Hàng ngoài DM" → **Thêm hàng mới**, "Excel hôm nay" → **Báo cáo trong ngày**.
+- **Bỏ "Hay bán"** ở Bán hàng và Danh mục (cả CSS `.hot-btn/.hot-dd/.hot-i`). 5 tab nhóm hàng nằm trên 1 hàng, không bị che khi mở rèm.
+- **Tối giản toàn app:** bỏ dòng chữ nhỏ dưới tiêu đề mọi màn; thông tin chi tiết (`.xd`) chỉ hiện khi bấm **Hiển thị tất cả** (lưu `vmhub.detail`). Áp dụng cho Bán hàng, Lịch sử bán, Danh mục, Sổ vay, Sổ hóa đơn. Ô tìm kiếm chỉ ghi "Tìm kiếm".
+- **Lịch sử bán:** chữ nhỏ hơn, mỗi ô 1 dòng, đơn nhiều mặt hàng thì mỗi mặt hàng xuống 1 dòng; không còn ngày lặp hai lần trên một dòng (hôm nay chỉ hiện giờ).
+- **Sổ hóa đơn:** mỗi dòng chỉ còn ngày về, NCC + số HĐ, sổ, tổng tiền, trạng thái, nút thao tác.
+- **Sửa hiển thị:** hộp phím tắt dưới rèm bị tràn; biểu đồ Thống kê vay bị chèn nhãn (nhãn ngày đè "Dự báo", "TB" đè cột, tooltip ra ngoài khung); bảng Lịch sử bán trên mobile lệch tiêu đề cột; thanh nút trên cùng mobile xếp dọc.
+- **Sửa lỗi:** màn vào ca gọi `focus()` lên phần tử đã bị gỡ nếu chuyển màn trong 30 ms (`app.js`).
+- Kiểm tra: 61/61 bước OK, 2 lần liền, không lỗi JS; chụp màn 1440×900 và 390px.
+
+### 18/11/2026 – Danh mục theo file mẫu, thanh phân loại + Hay bán, màu theo nghiệp vụ (nhánh `Duy`)
+
+- **Thanh phân loại** dùng chung (`VM.ui.catBar`) ở Bán hàng và Danh mục: tab Thuốc / TPCN / Vật tư / Khác bên trái, nút **Hay bán** bên phải thả xuống danh sách xếp hạng. Bỏ dải chip "Hay bán" cũ ở POS (`#hotStrip`).
+- **Nhóm hàng mới `other` (Khác)** và trường **`strength` (Hàm lượng)** cho mặt hàng.
+- **Danh mục:** file mẫu Excel đúng 10 cột theo mẫu của khoa; form thêm mặt hàng chỉ 10 trường đó (phần còn lại gập trong "Thông tin thêm"); nhập Excel quy đổi tồn theo ĐVT của dòng; bảng hiện đủ thông tin trên một dòng, không cuộn ngang (container query ẩn bớt cột khi bảng hẹp); nút Điều chỉnh tồn trong form sửa.
+- **Giao diện** (tham khảo các mẫu dashboard y tế, POS, bảng dữ liệu hiện đại): mỗi nghiệp vụ một màu nhấn; KPI nổi màu, số to hơn và tự co khi dài; chữ bảng 13,5px; pill có viền; nút chính dạng gradient; icon trang cạnh tiêu đề (ẩn ≤1380px); thanh nút trên cùng không xuống dòng ở 1280px.
+- **Sửa lỗi:** đổi màn khi danh sách Hay bán đang mở thì listener Esc trên `document` còn lại và nuốt lần bấm Esc kế tiếp (VD không đóng được modal) → listener tự gỡ khi thanh đã bị gỡ khỏi trang.
+- Kiểm tra: 57/57 bước OK, không lỗi JS; chụp màn 1440×900, 1280×800 và 390–420px.
 
 ### 18/11/2026 – Thống kê vay thuốc + Copy quyết toán trong ngày (nhánh `Duy`)
 

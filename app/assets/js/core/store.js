@@ -122,6 +122,7 @@
       return items.map(([p, qty, returns = [], note = ''], i) => ({ id: VM.uid('l_'), group, line: i + 1, code: `${group}/${i + 1}`, createdAt: VM.iso(t), createdBy: borrower, from, to, productId: p.id, itemCode: p.code, sap: p.sap, name: p.name, unit: baseUnit(p).name, qty, lot: p.lot, expiry: p.expiry, borrower, lender, note, confirmedBy: confirmed ? lender : '', confirmedAt: confirmed ? VM.iso(new Date(t.getTime() + 6e5)) : '', returns, cancelled: false, demo: true }));
     };
     const R = (h, qty, ref, note = '') => ({ id: VM.uid('r_'), at: hAgo(h), qty, ref, by: 'DS. Lê Quốc Bảo', note });
+    demoLoanHistory(s);
     s.loans.push(
       ...V(52, 'Y003', 'Y001', 'DS. Nguyễn Minh An', 'DS. Lê Quốc Bảo', true, [[P('TPCN03'), 30, [R(26, 30, '4900012299')]]]),
       ...V(30, 'Y003', 'Y001', 'DS. Nguyễn Minh An', 'DS. Lê Quốc Bảo', true, [[P('OTC004'), 14, [], 'Khách cần gấp, nhà thuốc hết'], [P('OTC003'), 20], [P('OTC005'), 10]]),
@@ -144,6 +145,63 @@
       I(4, 'OPD', s.settings.suppliers[1], '', 'no_invoice', { itemCount: 3, note: 'Hàng về, NCC hẹn gửi HĐ sau' }),
       I(3, 'IPD', s.settings.suppliers[1], '0008812', 'handed', { itemCount: 5, subtotal: 12400000, tax: 620000, total: 13020000, nvdReceiver: 'Đỗ Quỳnh Anh', nvdAt: VM.iso(new Date(Date.now() - 2 * 864e5)) }),
       I(9, 'IPD', s.settings.suppliers[2], '0000731', 'entered', { itemCount: 2, subtotal: 3500000, tax: 350000, total: 3850000, nvdReceiver: 'Đỗ Quỳnh Anh' }),
+    );
+    demoTodayInvoices(s);
+  }
+
+  // Lịch sử vay mẫu ~10 tháng (đã gạch sổ hết) để màn Thống kê vay thuốc có số liệu. Cố định (deterministic), gắn cờ demo.
+  function demoLoanHistory(s) {
+    if (s.seq.demoLoanHist) return;
+    s.seq.demoLoanHist = 1;
+    let r = 11;
+    const rnd = () => (r = (r * 9301 + 49297) % 233280) / 233280;
+    const P = c => s.products.find(p => p.code === c);
+    // [mã hàng, trọng số, SL tối thiểu, bước, số bước, tỉ lệ Nhà thuốc vay]
+    const POOL = [['OTC001', 9, 20, 10, 8, .7], ['OTC004', 7, 14, 14, 3, .9], ['VTYT01', 6, 50, 50, 3, .2], ['OTC005', 5, 10, 10, 3, .6], ['TPCN01', 4, 50, 50, 2, .8],
+      ['OTC003', 4, 10, 10, 3, .7], ['OTC007', 3, 5, 5, 3, .5], ['TPCN03', 2, 30, 30, 2, .9], ['VTYT02', 2, 5, 5, 2, .3], ['OTC002', 1, 8, 8, 2, .8], ['OTC006', 1, 2, 1, 4, .8]]
+      .filter(x => P(x[0]));
+    if (!POOL.length) return;
+    const ph = ['DS. Nguyễn Minh An', 'DS. Trần Thu Hà'], ks = 'DS. Lê Quốc Bảo';
+    const out = [];
+    for (let day = 300; day >= 4; day--) {
+      const t0 = new Date(); t0.setDate(t0.getDate() - day);
+      const wk = t0.getDay() === 0 || t0.getDay() === 6;
+      // Mùa ho (≈ 6 tuần gần đây) – siro ho được vay nhiều hơn để thấy xu hướng tăng
+      const pool = POOL.map(x => x[0] === 'OTC006' && day <= 45 ? Object.assign([...x], { 1: 8 }) : x);
+      const tot = pool.reduce((a, x) => a + x[1], 0);
+      const nv = rnd() < (wk ? .15 : .45) ? (rnd() < .2 ? 2 : 1) : 0;
+      for (let v = 0; v < nv; v++) {
+        const t = new Date(t0); t.setHours(8 + Math.floor(rnd() * 10), Math.floor(rnd() * 60), 0, 0);
+        const key = VM.ymd(t).replace(/-/g, '');
+        s.seq['VAY' + key] = (s.seq['VAY' + key] || 0) + 1;
+        const group = `VAY-${key}-${VM.pad(s.seq['VAY' + key], 3)}`;
+        const picks = [];
+        const k = 1 + (rnd() < .45 ? 1 : 0) + (rnd() < .2 ? 1 : 0);
+        for (let j = 0; j < k; j++) { let x = rnd() * tot; const it = pool.find(p => (x -= p[1]) <= 0) || pool[0]; if (!picks.includes(it)) picks.push(it); }
+        const toY001 = rnd() < picks[0][5];
+        const from = toY001 ? 'Y003' : 'Y001', to = toY001 ? 'Y001' : 'Y003';
+        const borrower = toY001 ? ph[Math.floor(rnd() * 2)] : ks, lender = toY001 ? ks : ph[Math.floor(rnd() * 2)];
+        const back = new Date(t.getTime() + (20 + Math.floor(rnd() * 30)) * 36e5);
+        picks.forEach(([code, , min, step, steps], i) => {
+          const p = P(code), qty = min + step * Math.floor(rnd() * steps);
+          out.push({ id: VM.uid('l_'), group, line: i + 1, code: `${group}/${i + 1}`, createdAt: VM.iso(t), createdBy: borrower, from, to, productId: p.id, itemCode: p.code, sap: p.sap, name: p.name, unit: baseUnit(p).name, qty, lot: p.lot, expiry: p.expiry, borrower, lender, note: '', confirmedBy: lender, confirmedAt: VM.iso(new Date(t.getTime() + 6e5)), returns: [{ id: VM.uid('r_'), at: VM.iso(back), qty, ref: '49' + VM.pad(Math.floor(rnd() * 1e8), 8), by: ks, note: '' }], cancelled: false, demo: true });
+        });
+      }
+    }
+    s.loans.push(...out);
+  }
+
+  // 3 hóa đơn mẫu hàng về hôm nay (để thử "Copy quyết toán trong ngày"); số HĐ có số 0 đầu để kiểm tra giữ dạng chữ
+  function demoTodayInvoices(s) {
+    if (s.seq.demoQtDay) return;
+    s.seq.demoQtDay = 1;
+    const sup = s.settings.suppliers || [], at = h => { const t = new Date(); t.setHours(h, 15, 0, 0); return VM.iso(t); };
+    const I = (h, book, supplier, invoiceNo, totalQty, itemCount, total, status) => ({ id: VM.uid('i_'), book, receivedAt: VM.ymd(), supplier: supplier || 'NCC mẫu', invoiceNo, invoiceDate: invoiceNo ? VM.ymd() : '', refNo: '', prNo: '', poNo: '', itemCount, totalQty, receivedBy: 'DS. Lê Quốc Bảo', pharmacyReceiver: book === 'OPD' ? 'DS. Nguyễn Minh An' : '', nvdReceiver: '', subtotal: Math.round(total / 1.05), tax: total - Math.round(total / 1.05), total, lines: [], status, history: [{ at: at(h), by: 'DS. Lê Quốc Bảo', action: invoiceNo ? 'Ghi sổ' : 'Hàng về – chưa có hóa đơn' }], note: '', createdAt: at(h), createdBy: 'DS. Lê Quốc Bảo', demo: true });
+    s.invoices.push(
+      I(8, 'OPD', sup[0], '0001688', 240, 4, 6720000, 'received'),
+      I(9, 'IPD', sup[2], '0000802', 35, 2, 3150000, 'received'),
+      I(10, 'OPD', sup[1], '0009417', 120, 3, 2940000, 'received'),
+      I(11, 'OPD', sup[1], '', 0, 1, 0, 'no_invoice'),
     );
   }
 
@@ -174,7 +232,7 @@
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) { state = migrate(JSON.parse(raw)); return; }
+      if (raw) { state = migrate(JSON.parse(raw)); if (state.__migrated) { delete state.__migrated; save('migrate'); } return; }
     } catch (e) { console.error('Load failed', e); }
     state = seedState();
     save('init');
@@ -192,9 +250,13 @@
     ['staff', 'products', 'sales', 'loans', 'invoices', 'audit'].forEach(k => { if (!Array.isArray(s[k])) s[k] = k === 'staff' ? base.staff : []; });
     s.seq = s.seq || {};
     s.meta = Object.assign({ rev: 0 }, s.meta || {});
+    // Dữ liệu mẫu tạo trước khi có màn Thống kê vay: bổ sung lịch sử vay mẫu một lần (vẫn xóa được bằng "Xóa dữ liệu mẫu")
+    if (s.meta.demo && !s.seq.demoLoanHist && s.products.length) { demoLoanHistory(s); s.__migrated = true; }
+    if (s.meta.demo && !s.seq.demoQtDay) { demoTodayInvoices(s); s.__migrated = true; }
     return s;
   }
   function save(reason) {
+    delete state.__migrated;
     state.meta.updatedAt = VM.iso();
     state.meta.rev = (state.meta.rev || 0) + 1;
     try {

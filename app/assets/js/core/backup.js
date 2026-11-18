@@ -10,13 +10,17 @@
   function open() {
     return new Promise((res, rej) => {
       if (!window.indexedDB) return rej(new Error('IndexedDB không khả dụng'));
-      const rq = indexedDB.open(DB, 1);
+      const rq = indexedDB.open(DB, 2);
       rq.onupgradeneeded = () => {
         const d = rq.result;
-        if (!d.objectStoreNames.contains('snapshots')) d.createObjectStore('snapshots', { keyPath: 'id' });
+        const sn = d.objectStoreNames.contains('snapshots') ? rq.transaction.objectStore('snapshots') : d.createObjectStore('snapshots', { keyPath: 'id' });
+        // v2: chỉ mục theo thời gian để dọn bản cũ mà không phải đọc cả dữ liệu snapshot
+        if (!sn.indexNames.contains('at')) sn.createIndex('at', 'at');
         if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv');
       };
-      rq.onsuccess = () => res(rq.result);
+      // Tab khác còn mở bản cũ (IndexedDB v1) thì việc nâng cấp phải chờ tab đó đóng
+      rq.onblocked = () => { if (VM.ui && VM.ui.toast) VM.ui.toast('Đóng các tab Pharmacy Hub khác để hoàn tất nâng cấp kho sao lưu', 'warn', 8000); };
+      rq.onsuccess = () => { const d = rq.result; d.onversionchange = () => { d.close(); db = null; }; res(d); };
       rq.onerror = () => rej(rq.error);
     });
   }
@@ -38,8 +42,7 @@
     const snap = { id: VM.uid('snap_'), at: VM.iso(), reason, rev: s.meta.rev, by: (VM.store.currentUser() || {}).name || '', counts: counts(s), size: data.length, data };
     try {
       await tx('snapshots', 'readwrite', st => st.put(snap));
-      const all = await list();
-      for (const old of all.slice(KEEP)) await tx('snapshots', 'readwrite', st => st.delete(old.id));
+      await prune();
     } catch (e) { console.warn('Snapshot failed', e); return null; }
     lastSnapRev = s.meta.rev; lastSnapAt = snap.at;
     writeFolder().catch(() => { });
@@ -50,6 +53,19 @@
     const all = (await tx('snapshots', 'readonly', st => st.getAll())) || [];
     return all.sort((a, b) => b.at.localeCompare(a.at));
   }
+  // Giữ KEEP bản mới nhất: đếm rồi xóa bản cũ nhất qua key cursor của chỉ mục `at` (không nạp dữ liệu snapshot)
+  const prune = () => new Promise((res, rej) => {
+    if (!db) return rej(new Error('Chưa mở được kho sao lưu'));
+    const t = db.transaction('snapshots', 'readwrite'), st = t.objectStore('snapshots');
+    const c = st.count();
+    c.onsuccess = () => {
+      let extra = c.result - KEEP;
+      if (extra <= 0) return;
+      const cur = st.index('at').openKeyCursor();
+      cur.onsuccess = () => { const k = cur.result; if (!k || extra <= 0) return; st.delete(k.primaryKey); extra--; k.continue(); };
+    };
+    t.oncomplete = () => res(); t.onerror = () => rej(t.error);
+  });
   const getSnap = id => tx('snapshots', 'readonly', st => st.get(id));
   const removeSnap = async id => { await tx('snapshots', 'readwrite', st => st.delete(id)); emit(); };
 
@@ -128,8 +144,12 @@
   async function init() {
     try {
       db = await open();
-      const snaps = await list();
-      if (snaps[0]) { lastSnapAt = snaps[0].at; lastSnapRev = snaps[0].rev; }
+      const last = await new Promise((res, rej) => { // chỉ đọc bản mới nhất
+        const t = db.transaction('snapshots', 'readonly'), c = t.objectStore('snapshots').index('at').openCursor(null, 'prev');
+        let v = null; c.onsuccess = () => { v = c.result ? c.result.value : null; };
+        t.oncomplete = () => res(v); t.onerror = () => rej(t.error);
+      });
+      if (last) { lastSnapAt = last.at; lastSnapRev = last.rev; }
       try {
         const h = await tx('kv', 'readonly', st => st.get('folder'));
         if (h) { folder.handle = h; folder.name = h.name; folder.lastWrite = localStorage.getItem('vmhub.folderWrite'); folder.state = (await h.queryPermission({ mode: 'readwrite' })) === 'granted' ? 'granted' : 'prompt'; }

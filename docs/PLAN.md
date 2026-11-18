@@ -161,6 +161,7 @@ Tạo mã vay: quét mã thuốc → nhập SL → quét thuốc tiếp… (nhi�
 ```
 **Trường:** Mã vay (gồm nhiều thuốc) · Thời gian · Bên cho vay → Bên vay (chỉ 2 kho của Khoa Dược: Y001 ↔ Y003; HO2 là kho của toàn bệnh viện nên không dùng) · Thuốc (mã, mã SAP, tên) · ĐVT (tự lấy ĐVT nhỏ nhất theo danh mục, dược sĩ không phải chọn) · SL · Lô · HSD · Người vay · Người cho vay · Ghi chú · Xác nhận (người, giờ) · Lịch sử gạch sổ (SL, số CT SAP, người, giờ) · Trạng thái: *Chờ xác nhận / Đang mở / Gạch một phần / Đã gạch / Đã hủy*.
 **Tiện ích:** thuốc ngoài danh mục bán lẻ vẫn ghi được (nhập tay), gợi ý tên người, in sổ A4 có cột ký, xuất Excel.
+**Thống kê vay thuốc (dự báo nhu cầu):** thuốc vay thường xuyên theo ngày / tuần / tháng, lọc chiều vay (Nhà thuốc vay / Kho nội trú vay) · lượt vay, tổng SL (ĐVT nhỏ nhất), số kỳ có vay, xu hướng · **dự báo kỳ tới** = 60% TB 1/3 số kỳ gần nhất + 40% TB cả khoảng (kỳ hiện tại không tính), so với tồn nhà thuốc · biểu đồ theo kỳ (tổng hoặc từng thuốc) · xuất Excel để gửi dự trù.
 
 ### 6.6. ⭐ Sổ hóa đơn
 **Luồng TO-BE:**
@@ -170,6 +171,7 @@ Quét mã QR trên HĐ / gõ số HĐ (bước 1, kiểm tra trùng ngay) → m�
 ```
 **Trường sổ:** Sổ (Ngoại trú / Nội trú) · Ngày nhận hàng · NCC · Số HĐ · Ngày HĐ · Số tham chiếu · Số PR/PO · Số khoản · Người nhận hàng · Nhà thuốc nhận HĐ · NVD nhận HĐ · Tổng tiền trước thuế / Thuế / Thanh toán · Ghi chú.
 **Chi tiết dòng (tùy chọn):** Mã hàng · Tên hàng (quy cách) · Nước SX · Lô · HSD · ĐVT · SL · Đơn giá · CK % · Thuế suất (0/5/8/10%) · Thành tiền → tự tính số khoản, tổng, **bảng tổng hợp thuế theo mức**.
+**Copy quyết toán trong ngày:** một lần copy 3 trường (Ngày hàng về · SL hàng tổng đã về · Số hóa đơn) của mọi hóa đơn trong ngày, dán theo dòng hoặc theo cột vào file quyết toán; xem trước trước khi copy.
 **Kiểm tra:** trùng (NCC + Số HĐ) · đơn giá lệch danh mục > 5% → nhãn "Hỏi QLD" · HSD < 6 tháng → cảnh báo · hàng về chưa có HĐ > 2 ngày → cảnh báo.
 
 ### 6.7. Sao lưu & khôi phục (Backup)

@@ -7,7 +7,7 @@ Ghi chú dành cho Claude / lập trình viên khi tiếp tục làm việc trê
 Web app nội bộ cho **Nhà thuốc – Khoa Dược Vinmec**, thay sổ giấy và các file Excel rời rạc. App có 3 nghiệp vụ chính, điều hướng bằng **sidebar bên trái**:
 
 1. **Bán lẻ**: thuốc không kê đơn (OTC), thực phẩm chức năng (TPCN), vật tư y tế (VTYT).
-2. **Sổ vay thuốc** giữa Nhà thuốc (Y001) và Kho nội trú (Y003), 2 kho của Khoa Dược. Kho HO2 là kho chung toàn viện nên **không** dùng trong sổ vay. Mỗi **mã vay** gồm nhiều thuốc. Xuất file cho tool điều chuyển SAP.
+2. **Sổ vay thuốc** giữa Nhà thuốc (Y001) và Kho nội trú (Y003), 2 kho của Khoa Dược. Kho HO2 là kho chung toàn viện nên **không** dùng trong sổ vay. Mỗi **mã vay** gồm nhiều thuốc. Xuất file cho tool điều chuyển SAP. Có màn **Thống kê vay thuốc** (thuốc vay thường xuyên theo ngày / tuần / tháng, dự báo nhu cầu).
 3. **Sổ hóa đơn** ngoại trú (OPD) / nội trú (IPD), theo luồng: hàng về → nhận HĐ → bàn giao Nghiệp vụ dược (NVD) → nhập hệ thống.
 
 Kèm theo: Tổng quan, Lịch sử bán (đối soát OH/SAP), Danh mục hàng, Sao lưu & khôi phục, Cài đặt.
@@ -27,8 +27,9 @@ Kèm theo: Tổng quan, Lịch sử bán (đối soát OH/SAP), Danh mục hàng
     - `<base href="file:///d:/55%20Vinmec/VinmecProject/app/">`;
     - một script chạy trước `util.js`: xóa localStorage, gán sẵn session `vmhub.session`, gom lỗi qua `window.onerror`;
     - một script chạy sau `app.js`: lần lượt bấm qua từng màn và ghi kết quả vào `<pre>`.
-  - Lần chạy cuối (18/11/2026, sau khi làm lại Sổ vay theo mã vay): 35/35 bước đều OK, không có lỗi JS. Gồm màn chọn nghiệp vụ + phím 1/2/3, tour, tạo mã vay nhiều thuốc (quét → số lượng → cộng dồn → máy quét bắn mã vào ô SL → hàng ngoài danh mục → giữ nháp → Hoàn thành → người vay/cho vay → lưu), trang chi tiết (sửa thông số, gạch sổ từng phần / cả mã vay, xác nhận, hủy), file điều chuyển, thông báo hoàn thành, quét mã hóa đơn, kết thúc ca → vào lại.
-  - Trong trang test nhớ tắt tour (`vmhub.tour.<id>` = `{"off":true}`) ở các bước không kiểm tra tour, nếu không tour tự chạy sẽ che màn. Bước kết thúc ca cần chờ tới ~10 giây (snapshot IndexedDB chạy chậm dưới virtual time).
+  - Lần chạy cuối (18/11/2026, sau khi thêm Thống kê vay thuốc + Copy quyết toán trong ngày): 47/47 bước đều OK, không có lỗi JS (2 lần liền). 12 bước mới: lịch sử vay mẫu + migrate, KPI khớp đếm tay theo ngày / tuần / tháng / chiều vay, biểu đồ riêng 1 thuốc, sắp xếp, tìm, xuất Excel, phím Q, copy 3 cột / 3 dòng, giữ số 0 đầu số HĐ, ô ngày là ngày thật. Trước đó: 35/35 sau khi làm lại Sổ vay theo mã vay. Gồm màn chọn nghiệp vụ + phím 1/2/3, tour, tạo mã vay nhiều thuốc (quét → số lượng → cộng dồn → máy quét bắn mã vào ô SL → hàng ngoài danh mục → giữ nháp → Hoàn thành → người vay/cho vay → lưu), trang chi tiết (sửa thông số, gạch sổ từng phần / cả mã vay, xác nhận, hủy), file điều chuyển, thông báo hoàn thành, quét mã hóa đơn, kết thúc ca → vào lại.
+  - Trong trang test nhớ tắt tour (`vmhub.tour.<id>` = `{"off":true}`) ở các bước không kiểm tra tour, nếu không tour tự chạy sẽ che màn. Bước kết thúc ca cần chờ tới ~90 giây ảo và `--virtual-time-budget=200000` (IndexedDB chạy bằng thời gian thật nên dưới virtual time đồng hồ ảo bị phóng đại; ngoài đời chỉ vài chục ms).
+  - Trong headless, `navigator.clipboard.write` có thể treo: khi test copy hãy thay `VM.copyCells` bằng hàm giả và đọc `copyCells.last` của hàm thật (được gán trước khi ghi clipboard).
   - Chụp màn hình bằng `--screenshot --window-size=1440,900` để soát giao diện.
   - Trên Windows, cửa sổ headless rộng **tối thiểu 500px**. Muốn xem bố cục mobile thì nhúng trang test vào `<iframe style="width:390px">`.
   - Ảnh chụp không theo vị trí cuộn. Phần nằm dưới màn hình thì đưa lên đầu `#view` trước khi chụp.
@@ -51,7 +52,7 @@ Kèm theo: Tổng quan, Lịch sử bán (đối soát OH/SAP), Danh mục hàng
 | `core/ai.js`     | `VM.ai = { MODES, listen, ocrInvoice, parseXmlInvoice, parseInvoiceCode, track, pct, ping, sttSupported }`                                                                                                                        | Giọng nói và OCR **chỉ gọi máy chủ nội bộ** (hàm `guard`). Đọc XML hóa đơn điện tử và mã QR / chuỗi tra cứu HĐĐT (`parseInvoiceCode`). Đo độ chính xác thực tế vào `state.aiStats`                 |
 | `core/ui.js`     | `VM.ui`                                                                                                                                                                                                         | Shell gồm thanh biểu tượng (rail) và rèm (curtain), hash router `#/<id>/<arg>`, modal, confirm, toast, `done` (thông báo hoàn thành), print, `register`, `suggest` (danh sách gợi ý thả nổi). Nút `#tourBtn` (?) trên thanh tiêu đề      |
 | `core/tour.js`   | `VM.tour = { start, auto, has, reset, clearSession, prefs, active }`                                                                                                                                             | Hướng dẫn ban đầu dạng spotlight. Tự chạy lần đầu mở mỗi màn có `tour`; lần đầu tiên kèm các bước chung của khung (rail, rèm, sao lưu, kết thúc ca, nút ?) |
-| `modules/*.js`   | `VM.pos`, `VM.loans`, `VM.invoices`, `VM.catalog`                                                                                                                                                         | Mỗi màn là một module                                                                                                                                                           |
+| `modules/*.js`   | `VM.pos`, `VM.loans`, `VM.invoices`, `VM.catalog`                                                                                                                                                         | Mỗi màn là một module. `loan-stats.js` (id `loanstats`, nhóm `loans`) là màn Thống kê vay thuốc, nạp ngay sau `loans.js`                                                                                                                                                           |
 | `app.js`         | `VM.app = { logout, start }`                                                                                                                                                                                    | Màn vào ca, khởi động, kết thúc ca                                                                                                                                           |
 
 **Điều hướng:** rail bên trái có 3 biểu tượng nghiệp vụ là `retail` (Bán lẻ), `loans` (Sổ vay), `invoices` (Hóa đơn), cộng nút "Khác" (`system`: Tổng quan, Sao lưu, Cài đặt).
@@ -121,8 +122,13 @@ VM.ui.register({ id, title, group: 'retail'|'loans'|'invoices'|'system', icon, c
 | `vmhub.lastHome`       | Nghiệp vụ chọn lần trước ở màn chọn nghiệp vụ (`pos` / `loans` / `invoices`), được đánh dấu "Lần trước" |
 | `vmhub.tour.<userId>`  | Hướng dẫn ban đầu của từng người: `{off, seen:{<moduleId>:true, __shell:true}}`            |
 | `vmhub.loanDraft.<userId>` | Mã vay đang tạo dở: `{items[], step:'scan'|'who', from, to, borrower, lender, confirmed}`. Xóa khi lưu hoặc hủy |
+| `vmhub.loanStats`      | Lựa chọn ở màn Thống kê vay: `{g:'day'|'week'|'month', n, dir:''|'Y001'|'Y003', sort}` |
+| `vmhub.qtDay`          | Lựa chọn ở hộp Copy quyết toán trong ngày: `{by:'recv'|'created', layout:'rows'|'cols', head, noInv}` |
 
-IndexedDB `vmhub-backup` có 2 store: `snapshots` (giữ 30 bản) và `kv` (handle của thư mục sao lưu).
+IndexedDB `vmhub-backup` (**version 2**) có 2 store: `snapshots` (giữ 30 bản, có chỉ mục `at`) và `kv` (handle của thư mục sao lưu).
+
+- Dọn bản cũ (`prune`) và lấy bản mới nhất khi khởi động đều đi qua chỉ mục `at`, không nạp dữ liệu snapshot. Chỉ màn Sao lưu mới gọi `list()` (đọc hết).
+- Nâng từ v1 lên v2 tự tạo chỉ mục. Kết nối có `onversionchange` → tự đóng để lần nâng cấp sau không bị tab cũ chặn; nếu bị chặn thì hiện toast nhắc đóng tab khác.
 
 **Cấu trúc state** (`schema: 1`):
 
@@ -141,7 +147,7 @@ loans[{id,group,line,code,createdAt,createdBy,from,to,productId,itemCode,sap,nam
       // Dữ liệu cũ không có group → loanGroup(l) = l.code (mỗi phiếu cũ là 1 mã vay 1 thuốc).
 invoices[{id,book:'OPD'|'IPD',receivedAt,supplier,sellerTax,invoiceSymbol,invoiceNo,invoiceDate,refNo,prNo,poNo,itemCount,receivedBy,pharmacyReceiver,nvdReceiver,nvdAt,grNo,
           subtotal,tax,total,totalQty,taxByRate,source:'xml'|'ocr',lines[{code,name,country,lot,expiry,unit,qty,price,discount,taxRate,amount}],status,history[{at,by,action}],note}]
-seq{}   audit[{at,userId,user,action,entity,ref,detail}] (tối đa 3000 dòng)
+seq{ VAY<yyyymmdd>, ORD<yyyymmdd>, demoLoanHist, demoQtDay }   audit[{at,userId,user,action,entity,ref,detail}] (tối đa 3000 dòng)
 ```
 
 **Quy tắc quan trọng:**
@@ -162,6 +168,14 @@ seq{}   audit[{at,userId,user,action,entity,ref,detail}] (tối đa 3000 dòng)
   - Trạng thái mã vay (`voucherStatus`): `cancelled` nếu mọi thuốc bị hủy; `settled` nếu mọi thuốc còn hiệu lực đã gạch; `partial` nếu có thuốc đã gạch (một phần hoặc đủ); `pending` nếu còn thuốc chưa xác nhận; còn lại `open`. Mã vay quá hạn khi có thuốc quá hạn.
   - Badge, rèm, Tổng quan, màn chọn nghiệp vụ đều đếm theo **mã vay**. File điều chuyển SAP vẫn mỗi thuốc 1 dòng.
 - **Sổ hóa đơn – quét mã trước:** form ghi tay mở ra với ô "Quét mã hóa đơn" (QR trên HĐĐT, chuỗi tra cứu, hoặc gõ số HĐ), chọn file XML, hoặc "Hàng về chưa có HĐ". Các trường khác khóa cho tới khi có một trong ba. Mã quét được điền số HĐ / ký hiệu / ngày / tổng (tô vàng); NCC đoán qua `sellerTax` của hóa đơn cũ. Sửa hóa đơn đã có thì không qua bước này.
+- **Thống kê vay thuốc** (`modules/loan-stats.js`, `#/loanstats[/day|week|month]`, nút "Thống kê" ở màn đầu Sổ vay):
+  - Gom theo **ngày** (14/30/60/90), **tuần** bắt đầu thứ Hai (8/12/26/52) hoặc **tháng** (6/12/24); lọc chiều vay theo kho nhận (`to`): Nhà thuốc vay = Y001, Kho nội trú vay = Y003.
+  - Không tính dòng vay đã hủy. Số lượng quy về **ĐVT nhỏ nhất** (`qty × factor`); hàng ngoài danh mục gom theo tên.
+  - Mỗi thuốc: **lượt vay** (số mã vay có thuốc đó), tổng SL, số kỳ có vay, sparkline, xu hướng (TB 1/3 số kỳ gần nhất so với TB cả khoảng, ±10% coi là ổn định), **dự báo kỳ tới**, tồn nhà thuốc.
+  - **Dự báo** = `ceil(0,6 × TB 1/3 số kỳ gần nhất + 0,4 × TB các kỳ đã qua)`. Kỳ hiện tại chưa kết thúc nên chỉ hiển thị (cột nhạt), không đưa vào dự báo. Có quy đổi sang ĐVT lớn nhất (≈ N Hộp); tồn < dự báo → pill "Thiếu so với dự báo".
+  - "Thường xuyên": có vay ở ≥ max(2, ⌈số kỳ / 3⌉) kỳ.
+  - Biểu đồ cột 1 màu: số mã vay mỗi kỳ, bấm 1 thuốc trong bảng thì đổi sang SL của thuốc đó. Có đường trung bình và cột dự báo viền đứt.
+  - Xuất Excel 3 sheet: `Thuốc vay thường xuyên`, `Theo kỳ` (ma trận thuốc × kỳ), `Tổng theo kỳ`.
 - **Trạng thái phiếu vay** (hàm `loanStatus`, suy ra từ dữ liệu, không lưu thẳng):
   - `cancelled` nếu phiếu bị hủy;
   - `settled` nếu đã hoàn ≥ số lượng vay;
@@ -196,17 +210,23 @@ seq{}   audit[{at,userId,user,action,entity,ref,detail}] (tối đa 3000 dòng)
     - hộp chi tiết hóa đơn;
     - nút copy trên mỗi dòng và "Copy quyết toán" khi chọn nhiều dòng.
   - "Copy cả 3 ô" cho ra 3 ô liền nhau theo thứ tự trên.
+  - **Copy quyết toán trong ngày** (nút "Quyết toán ngày", phím `Q`, mục rèm `#/invoices/qt`): copy 3 trường của **mọi hóa đơn trong 1 ngày** một lần.
+    - Lọc theo Ngày hàng về (mặc định) hoặc Ngày ghi sổ; cả 2 sổ / OPD / IPD; đổi ngày bằng ‹ › hoặc ô ngày. Bỏ hóa đơn đã hủy; hàng về chưa có số HĐ chỉ copy khi tick "Kèm hàng về chưa có HĐ".
+    - Cách dán: **Mỗi HĐ một dòng** (3 cột) hoặc **Mỗi HĐ một cột** (3 dòng); tùy chọn kèm tiêu đề. Thứ tự hóa đơn theo giờ ghi sổ.
+    - Có bảng xem trước đúng như sẽ dán; cột / dòng NCC tô mờ chỉ để đối chiếu, không được copy. HĐ thiếu SL tổng được báo.
+    - Nút Copy được focus sẵn: `Q` rồi `Enter` là xong. Dùng `VM.copyCells` nên số HĐ giữ số 0 đầu, ô ngày là ngày thật.
   - Excel sổ hóa đơn có sheet đầu tiên là `Quyết toán`.
 - **Xuất Excel ở mọi màn:**
   - Bán hàng: đơn hôm nay, dùng chung `VM.history.exportSales`;
   - Lịch sử bán; Danh mục;
-  - Sổ vay: sổ + file điều chuyển;
+  - Sổ vay: sổ + file điều chuyển; Thống kê vay thuốc (3 sheet);
   - Sổ hóa đơn;
   - Tổng quan: chỉ số, doanh thu 30 ngày, bán chạy, tồn cần chú ý;
   - Sao lưu: toàn bộ dữ liệu + nhật ký;
   - Cài đặt: kho, nhân viên, NCC, thông số.
 - **Dữ liệu mẫu:**
-  - sinh cố định (deterministic): 30 ngày bán hàng (kể cả hôm nay, chỉ lấy các giờ đã qua), 4 phiếu vay, 4 hóa đơn, đều gắn cờ `demo: true`;
+  - sinh cố định (deterministic): 30 ngày bán hàng (kể cả hôm nay, chỉ lấy các giờ đã qua), 4 mã vay đang dùng + **lịch sử vay ~10 tháng** đã gạch sổ (`demoLoanHistory`, có mùa ho để thấy xu hướng tăng), 4 hóa đơn cũ + 4 hóa đơn **hàng về hôm nay** (`demoTodayInvoices`), đều gắn cờ `demo: true`;
+  - dữ liệu mẫu cũ (còn `meta.demo`) được `migrate()` bổ sung 2 phần trên **một lần** (cờ `seq.demoLoanHist`, `seq.demoQtDay`) rồi lưu lại ngay;
   - xóa ở màn Sao lưu → "Xóa dữ liệu mẫu" (danh mục hàng được giữ lại).
 - Danh sách **ngân hàng** cho VietQR nằm trong `settings.js`. Ảnh QR lấy từ `img.vietqr.io`, nên cần Internet.
 - **Mã vạch:** `matchScan(raw)` khớp lần lượt GTIN (từ mã DataMatrix GS1 hoặc EAN), mã hàng, mã SAP.
@@ -248,7 +268,7 @@ seq{}   audit[{at,userId,user,action,entity,ref,detail}] (tối đa 3000 dòng)
   - Màn chọn nghiệp vụ (ngay sau khi vào ca): `1` Bán lẻ, `2` Sổ vay, `3` Sổ hóa đơn;
   - Hướng dẫn: → / Enter tiếp, ← quay lại, Esc bỏ qua;
   - Sổ vay: `N` tạo mã vay mới; khi tạo: F2 hoặc `/` về ô quét, Enter thêm thuốc, Esc bỏ thuốc vừa quét, Ctrl+Enter hoàn thành / lưu mã vay, Enter ở ô người cho vay thì lưu;
-  - Sổ hóa đơn: `S` quét hóa đơn (XML / ảnh), `N` ghi tay;
+  - Sổ hóa đơn: `S` quét hóa đơn (XML / ảnh), `N` ghi tay, `Q` copy quyết toán trong ngày;
   - Esc đóng modal.
 
 ## 6. Sao lưu (4 lớp)
@@ -281,6 +301,14 @@ Mức cảnh báo của `backup.status()`:
 - Chưa có mật khẩu hay PIN: chọn tên là vào ca. Phase 2 cần bổ sung.
 
 ## 8. Nhật ký thay đổi
+
+### 18/11/2026 – Thống kê vay thuốc + Copy quyết toán trong ngày (nhánh `Duy`)
+
+- **Thống kê vay thuốc** (màn mới `loanstats`): thuốc vay thường xuyên theo ngày / tuần / tháng, lọc chiều vay, biểu đồ theo kỳ (tổng hoặc từng thuốc), dự báo kỳ tới so với tồn nhà thuốc, xuất Excel. Nút "Thống kê" ở Sổ vay, mục con trên rèm.
+- **Copy quyết toán trong ngày** ở Sổ hóa đơn (phím `Q`): copy Ngày hàng về / SL tổng / Số HĐ của mọi hóa đơn trong ngày, dán theo dòng hoặc theo cột, có xem trước. Nút In sổ / Xuất Excel ở thanh trên chuyển sang dạng chỉ icon cho vừa một hàng.
+- Dữ liệu mẫu: thêm lịch sử vay ~10 tháng và 4 hóa đơn hàng về hôm nay; migrate bổ sung một lần cho dữ liệu mẫu cũ.
+- **Sao lưu:** IndexedDB lên v2 với chỉ mục `at`; dọn snapshot cũ và đọc bản mới nhất không còn nạp cả 30 bản (trước đây mỗi lần snapshot đọc lại toàn bộ). Thêm `onversionchange` / `onblocked`.
+- Kiểm tra: 47/47 bước OK, 2 lần liền, không lỗi JS; thử nâng cấp IndexedDB v1 có 32 bản → v2; chụp màn 1440×900 và 390px.
 
 ### 18/11/2026 – Sổ vay theo mã vay (nhiều thuốc một lần) + thông báo hoàn thành (nhánh `Duy`)
 

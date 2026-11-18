@@ -45,7 +45,8 @@
   function renderList(view, top, arg) {
     selected = new Set();
     if (TABS.includes(arg)) f.tab = arg;
-    top.innerHTML = `<button class="btn" id="lPrint">${icon('printer')}<span class="label">In sổ</span></button>
+    top.innerHTML = `<button class="btn" id="lStats" title="Thuốc vay thường xuyên theo ngày / tuần / tháng, dự báo nhu cầu">${icon('trend')}<span class="label">Thống kê</span></button>
+      <button class="btn" id="lPrint">${icon('printer')}<span class="label">In sổ</span></button>
       <button class="btn" id="lXls">${icon('download')}<span class="label">Xuất Excel</span></button>
       <button class="btn primary" id="lSap" title="Xuất danh sách cần điều chuyển theo cột của tool điều chuyển nội viện">${icon('sheet')}<span class="label">File điều chuyển SAP</span></button>`;
     const d = draftLoad();
@@ -73,6 +74,7 @@
     $('#lSap').onclick = () => exportTransfer();
     $('#lXls').onclick = exportXls;
     $('#lPrint').onclick = printBook;
+    $('#lStats').onclick = () => VM.ui.go('loanstats');
     draw();
     const key = e => { if ((e.key === 'n' || e.key === 'N') && !e.ctrlKey && !e.metaKey && !e.altKey && !typing()) { e.preventDefault(); VM.ui.go('loans/new'); } };
     document.addEventListener('keydown', key);

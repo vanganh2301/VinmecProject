@@ -39,6 +39,88 @@
     };
   }
 
+  // ---------- Copy quyết toán cả ngày: 3 trường của mọi hóa đơn nhập trong 1 ngày ----------
+  const LS_QT = 'vmhub.qtDay';
+  function openDayCopy(day) {
+    const pref = Object.assign({ by: 'recv', layout: 'rows', head: false, noInv: false }, (() => { try { return JSON.parse(localStorage.getItem(LS_QT) || '{}'); } catch (_) { return {}; } })());
+    const o = Object.assign(pref, { day: day || VM.ymd(), book: f.book });
+    const keepPref = () => { try { localStorage.setItem(LS_QT, JSON.stringify({ by: o.by, layout: o.layout, head: o.head, noInv: o.noInv })); } catch (_) { } };
+    const shift = (d, k) => { const x = new Date(d + 'T00:00:00'); x.setDate(x.getDate() + k); return VM.ymd(x); };
+    const pick = () => S().invoices.filter(i => i.status !== 'cancelled'
+      && (o.by === 'recv' ? i.receivedAt === o.day : VM.ymd(new Date(i.createdAt)) === o.day)
+      && (!o.book || i.book === o.book)).sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+    const cellsOf = list => {
+      const rows = list.map(qtCells);
+      if (o.layout === 'rows') return o.head ? [QT_LABELS, ...rows] : rows;
+      return QT_LABELS.map((l, k) => [...(o.head ? [l] : []), ...rows.map(r => r[k])]);
+    };
+    const show = c => c && typeof c === 'object' ? c.text : (typeof c === 'number' ? num(c) : String(c ?? ''));
+    let cur = [];
+    VM.ui.modal({
+      title: 'Copy quyết toán trong ngày', ic: 'copy', size: 'lg',
+      sub: 'Ngày hàng về · SL hàng tổng đã về · Số hóa đơn của mọi hóa đơn trong ngày – dán một lần vào file quyết toán',
+      body: `<div class="qd-bar">
+          <div class="qd-day"><button type="button" class="btn icon" id="qdPrev" aria-label="Ngày trước">${icon('chevl')}</button>
+            <input class="input" type="date" id="qdDay" aria-label="Ngày">
+            <button type="button" class="btn icon" id="qdNext" aria-label="Ngày sau">${icon('chevr')}</button>
+            <button type="button" class="btn sm ghost" id="qdToday">Hôm nay</button></div>
+          <div class="seg" id="qdBy" role="group" aria-label="Lọc theo"><button data-v="recv">Ngày hàng về</button><button data-v="created">Ngày ghi sổ</button></div>
+          <div class="seg" id="qdBook" role="group" aria-label="Sổ"><button data-v="">Cả 2 sổ</button><button data-v="OPD">Ngoại trú</button><button data-v="IPD">Nội trú</button></div>
+        </div>
+        <div class="qd-bar">
+          <div class="seg" id="qdLayout" role="group" aria-label="Cách dán"><button data-v="rows" title="Mỗi hóa đơn một dòng, 3 cột liền nhau">Mỗi HĐ một dòng</button><button data-v="cols" title="Mỗi hóa đơn một cột, 3 dòng liền nhau">Mỗi HĐ một cột</button></div>
+          <label class="check"><input type="checkbox" id="qdHead"> Kèm tiêu đề</label>
+          <label class="check"><input type="checkbox" id="qdNoInv"> Kèm hàng về chưa có HĐ</label>
+        </div>
+        <div id="qdSum" class="qd-sum"></div>
+        <div class="table-wrap qd-prev" id="qdPrevT"></div>`,
+      foot: `<button class="btn" data-x>Đóng</button><button class="btn primary" id="qdCopy" autofocus>${icon('copy', 's')} <span id="qdCopyL">Copy</span></button>`,
+      onMount(el, close) {
+        const q = s => el.querySelector(s);
+        const segs = [['#qdBy', 'by'], ['#qdBook', 'book'], ['#qdLayout', 'layout']];
+        const paint = () => {
+          q('#qdDay').value = o.day; q('#qdHead').checked = o.head; q('#qdNoInv').checked = o.noInv;
+          segs.forEach(([s, k]) => el.querySelectorAll(s + ' [data-v]').forEach(b => b.classList.toggle('active', b.dataset.v === o[k])));
+          const all = pick(), noInv = all.filter(i => i.status === 'no_invoice' || !i.invoiceNo);
+          cur = o.noInv ? all : all.filter(i => !noInv.includes(i));
+          const missQty = cur.filter(i => !invQty(i));
+          q('#qdSum').innerHTML = `<span><b>${cur.length}</b> hóa đơn · SL tổng <b>${num(VM.sum(cur, invQty))}</b>${VM.ymd() === o.day ? ' · hôm nay' : ''}</span>
+            ${noInv.length && !o.noInv ? `<span class="pill">${icon('info')}${noInv.length} hàng về chưa có HĐ – không copy</span>` : ''}
+            ${missQty.length ? `<span class="pill warn">${icon('alert')}${missQty.length} HĐ chưa có SL tổng</span>` : ''}`;
+          q('#qdCopyL').textContent = cur.length ? `Copy ${cur.length} hóa đơn` : 'Copy';
+          q('#qdCopy').disabled = !cur.length;
+          if (!cur.length) {
+            q('#qdPrevT').innerHTML = VM.ui.empty('file', `Không có hóa đơn ${o.by === 'recv' ? 'hàng về' : 'ghi sổ'} ngày ${VM.fmtDate(o.day)}`, all.length ? 'Chỉ có hàng về chưa có số hóa đơn. Tick “Kèm hàng về chưa có HĐ” nếu vẫn muốn copy.' : 'Chọn ngày khác bằng nút ‹ ›.');
+            return;
+          }
+          const grid = cellsOf(cur);
+          // Xem trước đúng như sẽ dán; cột / dòng NCC tô mờ để đối chiếu, không được copy
+          const ncc = cur.map(i => `${i.supplier || ''}${i.book ? ' · ' + (BOOK[i.book] || i.book) : ''}`);
+          const td = (c, r, k) => { const v = show(c), miss = v === ''; return `<td class="${miss ? 'qd-miss' : ''} ${o.head && (o.layout === 'rows' ? r === 0 : k === 0) ? 'qd-h' : ''} ${typeof c === 'number' ? 'num' : 'mono'}">${miss ? '—' : esc(v)}</td>`; };
+          q('#qdPrevT').innerHTML = `<div class="muted small qd-cap">${icon('eye', 's')} Sẽ dán ra như sau (ô tô mờ chỉ để đối chiếu, không copy)</div><table class="t qd-grid"><tbody>${o.layout === 'rows'
+            ? grid.map((r, ri) => `<tr>${r.map((c, k) => td(c, ri, k)).join('')}<td class="qd-ref">${o.head && ri === 0 ? 'NCC' : esc(ncc[ri - (o.head ? 1 : 0)])}</td></tr>`).join('')
+            : `<tr class="qd-ref-r">${o.head ? '<td class="qd-ref"></td>' : ''}${ncc.map(n => `<td class="qd-ref">${esc(n)}</td>`).join('')}</tr>` + grid.map((r, ri) => `<tr>${r.map((c, k) => td(c, ri, k)).join('')}</tr>`).join('')}</tbody></table>`;
+        };
+        segs.forEach(([s, k]) => el.querySelectorAll(s + ' [data-v]').forEach(b => b.onclick = () => { o[k] = b.dataset.v; if (k !== 'book') keepPref(); paint(); }));
+        q('#qdDay').onchange = e => { if (e.target.value) { o.day = e.target.value; paint(); } };
+        q('#qdPrev').onclick = () => { o.day = shift(o.day, -1); paint(); };
+        q('#qdNext').onclick = () => { o.day = shift(o.day, 1); paint(); };
+        q('#qdToday').onclick = () => { o.day = VM.ymd(); paint(); };
+        q('#qdHead').onchange = e => { o.head = e.target.checked; keepPref(); paint(); };
+        q('#qdNoInv').onchange = e => { o.noInv = e.target.checked; keepPref(); paint(); };
+        q('[data-x]').onclick = () => close();
+        q('#qdCopy').onclick = async () => {
+          if (!cur.length) return;
+          const ok = await VM.copyCells(cellsOf(cur));
+          if (!ok) { VM.ui.toast('Trình duyệt chặn sao chép', 'bad'); return; }
+          close();
+          VM.ui.done(`Đã copy quyết toán ${cur.length} hóa đơn`, `${o.by === 'recv' ? 'Hàng về' : 'Ghi sổ'} ngày ${VM.fmtDate(o.day)} · dán vào ô “Ngày hàng về” đầu tiên của file quyết toán`);
+        };
+        paint();
+      },
+    });
+  }
+
   function filtered() {
     let l = S().invoices.filter(i => {
       if (f.tab === 'pending' && !isPending(i)) return false;
@@ -57,8 +139,9 @@
   function render(view, top, arg) {
     selected = new Set();
     if (['pending', 'overdue', 'no_invoice', 'received', 'handed', 'entered', 'all'].includes(arg)) f.tab = arg;
-    top.innerHTML = `<button class="btn" id="iPrint">${icon('printer')}<span class="label">In sổ</span></button>
-      <button class="btn" id="iXls">${icon('download')}<span class="label">Xuất Excel</span></button>
+    top.innerHTML = `<button class="btn" id="iDay" title="Copy 3 trường quyết toán của mọi hóa đơn trong ngày (phím Q)">${icon('copy')}<span class="label">Quyết toán ngày</span></button>
+      <button class="btn icon" id="iPrint" title="In sổ hóa đơn" aria-label="In sổ">${icon('printer')}</button>
+      <button class="btn icon" id="iXls" title="Xuất Excel sổ hóa đơn (sheet đầu: Quyết toán)" aria-label="Xuất Excel">${icon('download')}</button>
       <button class="btn" id="iNew">${icon('edit')}<span class="label">Ghi tay</span> <span class="kbd hide-m">N</span></button>
       <button class="btn primary" id="iScan">${icon('scan')}<span class="label">Quét hóa đơn</span> <span class="kbd hide-m">S</span></button>`;
     const sups = [...new Set([...S().settings.suppliers, ...S().invoices.map(i => i.supplier)].filter(Boolean))].sort();
@@ -82,11 +165,13 @@
     $('#iScan').onclick = openScan;
     $('#iXls').onclick = exportXls;
     $('#iPrint').onclick = () => printBook(filtered());
-    const key = e => { if (e.key === 's' && !e.ctrlKey && !e.metaKey && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && !$('#modalRoot').children.length) { e.preventDefault(); openScan(); return; } if (e.key === 'n' && !e.ctrlKey && !e.metaKey && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && !$('#modalRoot').children.length) { e.preventDefault(); openEditor(); } };
+    $('#iDay').onclick = () => openDayCopy();
+    const key = e => { if ((e.key === 'q' || e.key === 'Q') && !e.ctrlKey && !e.metaKey && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && !$('#modalRoot').children.length) { e.preventDefault(); openDayCopy(); return; } if (e.key === 's' && !e.ctrlKey && !e.metaKey && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && !$('#modalRoot').children.length) { e.preventDefault(); openScan(); return; } if (e.key === 'n' && !e.ctrlKey && !e.metaKey && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && !$('#modalRoot').children.length) { e.preventDefault(); openEditor(); } };
     document.addEventListener('keydown', key);
     draw();
     if (arg === 'scan') setTimeout(openScan, 30);
     if (arg === 'new') setTimeout(() => openEditor(), 30);
+    if (arg === 'qt') setTimeout(() => openDayCopy(), 30);
     return () => document.removeEventListener('keydown', key);
   }
 
@@ -587,13 +672,14 @@
 
   VM.invoices = { openEditor, openScan };
   VM.ui.register({ id: 'invoices', title: 'Sổ hóa đơn', group: 'invoices', icon: 'file', crumb: 'Sổ số hóa · Hóa đơn ngoại trú & nội trú', render,
-    keys: [['S', 'Quét hóa đơn'], ['N', 'Ghi tay'], ['Enter', 'Thêm dòng hàng']],
+    keys: [['S', 'Quét hóa đơn'], ['N', 'Ghi tay'], ['Q', 'Copy quyết toán trong ngày'], ['Enter', 'Thêm dòng hàng']],
     tour: () => [
       { el: '#iScan', title: 'Quét hóa đơn', text: 'Phím <kbd>S</kbd>. Chọn file XML hóa đơn điện tử (chính xác 100%) hoặc chụp ảnh hóa đơn giấy để OCR nội bộ đọc. Ô do máy đọc được tô <b class="tour-hot">vàng</b>.' },
       { el: '#iNew', title: 'Ghi tay', text: 'Phím <kbd>N</kbd>. Bước đầu luôn là <b>quét mã QR trên hóa đơn hoặc gõ số hóa đơn</b> – app kiểm tra trùng ngay, sau đó mới mở các ô khác.' },
       { el: '#iKpis', title: 'Việc cần làm', text: 'Hàng về chưa có HĐ · chờ bàn giao NVD · chờ nhập hệ thống. Bấm vào ô để lọc nhanh.' },
       { el: '#iTabs', title: 'Trạng thái hóa đơn', text: 'Hàng về → nhận HĐ → bàn giao NVD → nhập hệ thống. Tab “Quá … ngày” là hóa đơn tồn đọng.' },
       { el: '#iTable [data-next], #iTable', title: 'Chuyển bước tiếp theo', text: 'Nút trên mỗi dòng đưa hóa đơn sang bước kế tiếp. Nút copy bên cạnh copy 3 ô cho file quyết toán: ngày hàng về · SL tổng · số HĐ.' },
+      { el: '#iDay', title: 'Copy quyết toán cả ngày', text: 'Phím <kbd>Q</kbd>. Copy một lần 3 trường <b>Ngày hàng về · SL tổng · Số HĐ</b> của mọi hóa đơn trong ngày, rồi dán vào file quyết toán. Có xem trước, đổi ngày bằng ‹ ›.' },
       { el: '#iXls', title: 'In & xuất Excel', text: 'In sổ, phiếu bàn giao hoặc xuất Excel (sheet đầu là “Quyết toán”).' },
     ],
     subs: () => {
@@ -601,6 +687,7 @@
       return [
         { arg: 'scan', label: 'Quét hóa đơn (XML / OCR)', icon: 'scan', hot: true },
         { arg: 'new', label: 'Ghi tay / hàng về', icon: 'edit' },
+        { arg: 'qt', label: 'Copy quyết toán trong ngày', icon: 'copy', hot: true },
         { arg: 'pending', label: 'Chưa xong', n: all.filter(isPending).length },
         { arg: 'no_invoice', label: 'Hàng về chưa có HĐ', n: c('no_invoice'), tone: 'bad' },
         { arg: 'received', label: 'Chờ bàn giao NVD', n: c('received'), tone: 'warn' },

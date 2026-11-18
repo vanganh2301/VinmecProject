@@ -1,0 +1,12 @@
+{
+  "_note": "Giá USD dùng cho npm run eval: in/out = USD cho 1 triệu token vào/ra, perMin = USD cho 1 phút âm thanh. null = chưa điền (báo cáo ghi 'chưa có giá'). Giá đổi theo thời điểm: kiểm tra trang giá của từng hãng rồi sửa file này.",
+  "gpt-4.1-mini": { "in": 0.4, "out": 1.6 },
+  "gpt-4o-mini-transcribe": { "perMin": 0.003 },
+  "gemini-3.8-flash": { "in": null, "out": null },
+  "gemini-3.5-flash-lite": { "in": null, "out": null },
+  "gemini-3.5-transcribe": { "in": null, "out": null },
+  "qwen3-vl-plus": { "in": null, "out": null },
+  "qwen-vl-ocr-2025-11-20": { "in": null, "out": null },
+  "qwen3-asr-flash": { "perMin": null },
+  "qwen2.5vl:7b": { "in": 0, "out": 0 }
+}

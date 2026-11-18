@@ -23,6 +23,36 @@ Cập nhật: 17/11/2026.
 
 **Điểm quan trọng nhất:** hiện **chưa có bộ đo công khai nào cho hóa đơn dược phẩm tiếng Việt**. Các điểm số công bố chỉ cho biết mô hình nào đáng thử. Quyết định cuối cùng phải dựa trên phép đo bằng hóa đơn và giọng nói thật tại khoa (mục 4). App đã tự ghi số đo này.
 
+### Ngoại lệ đã được quyết định: bản Vercel dùng OpenAI (18/11/2026)
+
+Để dùng app ngay trên điện thoại (ngoài mạng bệnh viện), người phụ trách dự án quyết định **bản triển khai trên Vercel** dùng OpenAI cho cả giọng nói và OCR ảnh hóa đơn. Điều này **khác** khuyến nghị ở bảng trên, nên áp dụng có giới hạn:
+
+| | Bản Vercel (điện thoại) | Bản chạy trong mạng bệnh viện |
+|---|---|---|
+| Giọng nói | `gpt-4o-mini-transcribe`, gửi kèm tên thuốc trong danh mục để nhận đúng tên biệt dược | on-device / máy chủ nội bộ (như cũ) |
+| OCR ảnh hóa đơn | `gpt-4.1-mini`, JSON mode | Qwen2.5-VL / PaddleOCR-VL nội bộ (như cũ) |
+| XML hóa đơn điện tử | đọc ngay trên máy, không gửi đi | như nhau |
+| Dữ liệu gửi ra ngoài | đoạn ghi âm ≤ 10 giây; ảnh hóa đơn | không |
+
+- Khóa OpenAI nằm ở máy chủ Vercel (biến môi trường), trình duyệt không thấy. Máy chủ chỉ nhận ảnh / âm thanh và tự dựng prompt, nên không thể bị dùng ké làm chatbot.
+- Theo chính sách hiện hành của OpenAI, dữ liệu gửi qua API không được dùng để huấn luyện mô hình (trừ khi chủ tài khoản tự bật chia sẻ). Cần kiểm tra lại chính sách này khi đưa vào dùng chính thức, và xin ý kiến bộ phận CNTT / pháp chế bệnh viện.
+- Không chụp ảnh có thông tin bệnh nhân lên bản Vercel. Hóa đơn GTGT nhà cung cấp là dữ liệu kinh doanh, không phải hồ sơ bệnh nhân.
+- Đổi mô hình mà không sửa code: biến `OPENAI_OCR_MODEL`, `OPENAI_STT_MODEL` trên Vercel. Cách nghiệm thu ở mục 4 áp dụng y nguyên: số đo thực tế vẫn hiện ở Cài đặt → thẻ AI.
+
+### Mở rộng: so sánh OpenAI, Gemini, Qwen (19/11/2026)
+
+Để chọn nhà cung cấp bằng số đo thay vì bằng điểm công bố, máy chủ `api/` hỗ trợ thêm **Google Gemini** và **Qwen trên Alibaba Cloud** (DashScope), cộng với Qwen tự cài như thiết kế ban đầu. Khóa đặt trong `.env` (không lên git); dược sĩ chọn nhà cung cấp ở Cài đặt → thẻ AI.
+
+| Nhà cung cấp | OCR ảnh hóa đơn | Giọng nói | Dữ liệu có rời bệnh viện? | Lưu ý quyền riêng tư |
+|---|---|---|---|---|
+| OpenAI | `gpt-4.1-mini` | `gpt-4o-mini-transcribe` | Có | API không dùng dữ liệu để huấn luyện theo mặc định |
+| Google Gemini | `gemini-3.8-flash`, `gemini-3.5-flash-lite` | `gemini-3.5-flash-lite`, `gemini-3.5-transcribe` | Có | **Gói miễn phí cho phép Google dùng dữ liệu để cải tiến sản phẩm**; chỉ dùng gói trả phí cho hóa đơn thật |
+| Qwen (Alibaba Cloud, vùng Singapore) | `qwen3-vl-plus`, `qwen-vl-ocr-2025-11-20` | `qwen3-asr-flash` | Có (máy chủ ở nước ngoài) | Cần CNTT / pháp chế xem điều khoản lưu trữ dữ liệu |
+| Qwen tự cài (Ollama / vLLM) | `qwen2.5vl:7b` | máy chủ whisper nội bộ (nếu có) | **Không** | Phương án khuyến nghị cho dùng chính thức; chỉ chạy trong mạng nội bộ |
+
+- `npm run eval` chấm mọi nhà cung cấp × mô hình trên cùng bộ mẫu: độ đúng từng trường, tỉ lệ đúng cả 4 trường quyết toán, tỉ lệ đúng tên thuốc, WER / CER, thời gian, chi phí / 1.000 hóa đơn. Bộ mẫu mô phỏng (`npm run eval:samples`) dùng NCC hư cấu; để ra quyết định cần thêm ≥ 30 hóa đơn thật đã che thông tin và ≥ 50 câu nói của dược sĩ (mục 4).
+- Tên mô hình và giá thay đổi nhanh: sửa trong `.env` và `tools/prices.json`, không cần sửa code.
+
 ---
 
 ## 2. Bằng chứng đo lường công khai

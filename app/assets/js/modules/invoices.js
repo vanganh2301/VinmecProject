@@ -307,6 +307,7 @@
       const pf = opts.prefill;
       ['supplier', 'invoiceNo', 'invoiceDate', 'refNo', 'poNo'].forEach(k => { if (pf[k]) { d[k] = pf[k]; hdrOrig[k] = pf[k]; } });
       if (pf.sellerTax) d.sellerTax = pf.sellerTax;
+      if (pf.invoiceSymbol) d.invoiceSymbol = pf.invoiceSymbol;
       if (pf.lines && pf.lines.length) d.lines = pf.lines.map(l => Object.assign({}, l, { _o: Object.assign({}, l) }));
       d._printed = { subtotal: pf.printedSubtotal, tax: pf.printedTax, total: pf.printedTotal };
       if (!d.lines.length) Object.assign(d, { subtotal: pf.printedSubtotal || '', tax: pf.printedTax || '', total: pf.printedTotal || '' });
@@ -633,17 +634,21 @@
 
   // ---------- Quét hóa đơn: ưu tiên XML hóa đơn điện tử (chính xác 100%), sau đó mới OCR ảnh ----------
   function openScan(forId) {
-    const ai = S().settings.ai, local = VM.isLocalUrl(ai.ocrUrl);
+    const ai = S().settings.ai, app = ai.ocr === 'app', local = VM.isLocalUrl(ai.ocrUrl);
     const target = typeof forId === 'string' ? forId : null;
+    const prov = ai.ocrProvider && ai.ocrProvider !== 'auto' ? VM.ai.PROVIDERS[ai.ocrProvider] : '';
+    const tag = app ? ['ok', `AI đọc ảnh${prov ? ` (${prov})` : ''}`] : local ? ['ok', 'OCR nội bộ'] : ['bad', 'Chưa cấu hình máy chủ nội bộ'];
+    const where = app ? `Ảnh được gửi qua máy chủ của app tới <b>${esc(prov || 'nhà cung cấp AI đã cấu hình')}</b> để đọc, không lưu lại trong app.`
+      : `Ảnh được gửi tới mô hình OCR chạy trong bệnh viện: <span class="mono">${esc(ai.ocrUrl || '—')}</span> · mô hình <span class="mono">${esc(ai.ocrModel || '—')}</span>.`;
     VM.ui.modal({
-      title: 'Quét / nhập hóa đơn', sub: 'Chọn cách nhanh và chính xác nhất. Dữ liệu không rời khỏi mạng nội bộ bệnh viện.', ic: 'scan', size: 'lg',
+      title: 'Quét / nhập hóa đơn', sub: app ? 'Chọn cách nhanh và chính xác nhất. File XML đọc ngay trên máy; ảnh chụp được gửi cho AI đọc.' : 'Chọn cách nhanh và chính xác nhất. Dữ liệu không rời khỏi mạng nội bộ bệnh viện.', ic: 'scan', size: 'lg',
       body: `<div class="scan-opts">
           <label class="scan-opt best"><input type="file" accept=".xml,text/xml,application/xml" id="scXml" hidden>
             <span class="so-ic">${icon('file', 'l')}</span><b>File XML hóa đơn điện tử</b><span class="so-tag">Khuyến nghị · chính xác 100%</span>
             <small>Hóa đơn điện tử (TT78) luôn có file .xml gửi kèm email / cổng tra cứu của NCC. Đọc thẳng dữ liệu gốc – không cần OCR, không cần mạng.</small></label>
           <label class="scan-opt"><input type="file" accept="image/*" capture="environment" id="scImg" hidden>
-            <span class="so-ic">${icon('scan', 'l')}</span><b>Chụp / ảnh scan hóa đơn giấy</b><span class="so-tag ${local ? 'ok' : 'bad'}">${local ? 'OCR nội bộ' : 'Chưa cấu hình máy chủ nội bộ'}</span>
-            <small>Ảnh được gửi tới mô hình OCR chạy trong bệnh viện: <span class="mono">${esc(ai.ocrUrl || '—')}</span> · mô hình <span class="mono">${esc(ai.ocrModel || '—')}</span>. Kết quả luôn phải đối chiếu trước khi lưu.</small></label>
+            <span class="so-ic">${icon('scan', 'l')}</span><b>Chụp / ảnh scan hóa đơn giấy</b><span class="so-tag ${tag[0]}">${tag[1]}</span>
+            <small>${where} Kết quả luôn phải đối chiếu trước khi lưu.</small></label>
         </div>
         <div id="scState" style="margin-top:14px"></div>`,
       foot: `<button class="btn" data-x>Đóng</button><button class="btn ghost" data-manual>${icon('edit', 's')} Nhập tay</button>`,
@@ -660,7 +665,7 @@
         };
         el.querySelector('#scImg').onchange = async e => {
           const file = e.target.files[0]; if (!file) return;
-          st.innerHTML = `<div class="alert info">${icon('hourglass', 's')}<span>Đang đọc hóa đơn bằng mô hình nội bộ… (thường 10–60 giây tùy máy chủ)</span></div>`;
+          st.innerHTML = `<div class="alert info">${icon('hourglass', 's')}<span>${app ? 'Đang gửi ảnh cho AI đọc… (thường 10–30 giây)' : 'Đang đọc hóa đơn bằng mô hình nội bộ… (thường 10–60 giây tùy máy chủ)'}</span></div>`;
           el.querySelectorAll('.scan-opt').forEach(x => x.classList.add('busy'));
           try { const r = await VM.ai.ocrInvoice(file); VM.store.log('OCR hóa đơn', 'Sổ hóa đơn', `${r.data.supplier} · ${r.data.invoiceNo} · ${r.data.lines.length} dòng`); done(r.data, 'ocr', r.image); }
           catch (err) { el.querySelectorAll('.scan-opt').forEach(x => x.classList.remove('busy')); fail(err.message); }
@@ -674,7 +679,7 @@
   VM.ui.register({ id: 'invoices', title: 'Sổ hóa đơn', group: 'invoices', icon: 'file', render, detail: true,
     keys: [['S', 'Quét hóa đơn'], ['N', 'Ghi tay'], ['Q', 'Copy quyết toán trong ngày'], ['Enter', 'Thêm dòng hàng']],
     tour: () => [
-      { el: '#iScan', title: 'Quét hóa đơn', text: 'Phím <kbd>S</kbd>. Chọn file XML hóa đơn điện tử (chính xác 100%) hoặc chụp ảnh hóa đơn giấy để OCR nội bộ đọc. Ô do máy đọc được tô <b class="tour-hot">vàng</b>.' },
+      { el: '#iScan', title: 'Quét hóa đơn', text: 'Phím <kbd>S</kbd>. Chọn file XML hóa đơn điện tử (chính xác 100%) hoặc chụp ảnh hóa đơn giấy để AI đọc. Ô do máy đọc được tô <b class="tour-hot">vàng</b>.' },
       { el: '#iNew', title: 'Ghi tay', text: 'Phím <kbd>N</kbd>. Bước đầu luôn là <b>quét mã QR trên hóa đơn hoặc gõ số hóa đơn</b> – app kiểm tra trùng ngay, sau đó mới mở các ô khác.' },
       { el: '#iKpis', title: 'Việc cần làm', text: 'Hàng về chưa có HĐ · chờ bàn giao NVD · chờ nhập hệ thống. Bấm vào ô để lọc nhanh.' },
       { el: '#iTabs', title: 'Trạng thái hóa đơn', text: 'Hàng về → nhận HĐ → bàn giao NVD → nhập hệ thống. Tab “Quá … ngày” là hóa đơn tồn đọng.' },

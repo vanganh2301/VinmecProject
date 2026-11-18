@@ -1,0 +1,15 @@
+{
+  "name": "vinmec-pharmacy-hub",
+  "private": true,
+  "description": "Vinmec Pharmacy Hub – app tĩnh trong app/, Vercel Functions trong api/ (OCR + giọng nói qua OpenAI / Gemini / Qwen). Không có bước build, không có thư viện.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "python serve.py",
+    "dev": "node tools/dev.mjs",
+    "eval": "node tools/eval.mjs",
+    "eval:samples": "node tools/make-samples.mjs",
+    "env:push": "node tools/env-push.mjs",
+    "deploy": "npx --yes vercel deploy --prod"
+  }
+}

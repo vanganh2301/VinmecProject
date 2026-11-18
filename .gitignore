@@ -16,3 +16,13 @@ node_modules/
 vinmec-pharmacy-backup_*.json
 vinmec-pharmacy-snapshot_*.json
 *.xlsx
+
+# Vercel: thư mục liên kết project + file biến môi trường (có thể chứa khóa OpenAI) – không bao giờ commit
+.vercel/
+.env
+.env.*
+!.env.example
+
+# Bộ mẫu đánh giá AI (ảnh hóa đơn thật, ghi âm thật) và kết quả – có thể chứa dữ liệu kinh doanh
+eval/samples/
+eval/results/

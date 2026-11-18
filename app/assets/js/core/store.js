@@ -69,8 +69,9 @@
         snapshotMinutes: 15,
         // File điều chuyển SAP: plans / Funds center là giá trị cố định; số lượng quy đổi về ĐVT nhỏ nhất; LOT/DATE mặc định để trống (lấy từ file khác)
         transfer: { plant: '1000', fundsCenter: '1000', unit: 'base', fillLot: false },
-        // AI chạy cục bộ – mặc định KHÔNG gửi dữ liệu ra ngoài
-        ai: { stt: 'local', sttUrl: 'http://localhost:8080/inference', ocrUrl: 'http://localhost:11434/v1/chat/completions', ocrModel: 'qwen2.5vl:7b', allowPublic: false },
+        // AI: chạy trên máy / máy chủ nội bộ thì mặc định KHÔNG gửi dữ liệu ra ngoài.
+        // Bản Vercel (isHosted) không gọi được máy chủ nội bộ → mặc định dùng AI của app (OpenAI qua /api/stt, /api/ocr).
+        ai: { stt: VM.isHosted() ? 'app' : 'local', ocr: VM.isHosted() ? 'app' : 'lan', ocrProvider: 'auto', sttProvider: 'auto', sttUrl: 'http://localhost:8080/inference', ocrUrl: 'http://localhost:11434/v1/chat/completions', ocrModel: 'qwen2.5vl:7b', allowPublic: false },
       },
       staff,
       products: seedProducts(),
@@ -146,7 +147,7 @@
     });
   }
 
-  const blankStats = () => ({ ocr: { docs: 0, fields: 0, kept: 0 }, voice: { n: 0, top1: 0 } });
+  const blankStats = () => ({ ocr: { docs: 0, fields: 0, kept: 0 }, voice: { n: 0, top1: 0 }, by: {} });
 
   // Deterministic demo history so dashboard / books are not empty on first run.
   function demoData(s) {
@@ -306,6 +307,9 @@
     const base = seedState();
     s.schema = s.schema || 1;
     s.settings = Object.assign({}, base.settings, s.settings || {});
+    // Dữ liệu tạo trước khi có AI của app (chưa có ai.ocr), mở / khôi phục trên bản Vercel: điện thoại không có
+    // nhận giọng nói on-device / máy chủ nội bộ → chuyển giọng nói sang AI của app một lần.
+    if (s.settings && s.settings.ai && !s.settings.ai.ocr && VM.isHosted() && ['local', 'server'].includes(s.settings.ai.stt)) s.settings.ai.stt = 'app';
     s.settings.ai = Object.assign({}, base.settings.ai, s.settings.ai || {});
     s.settings.transfer = Object.assign({}, base.settings.transfer, s.settings.transfer || {});
     // Kho HO2 là kho của toàn bệnh viện, không thuộc Khoa Dược → bỏ khỏi danh sách kho (bản cũ có sẵn trong dữ liệu mẫu)

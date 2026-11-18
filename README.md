@@ -17,7 +17,19 @@ Không cần cài đặt hay build. Mở **`app/index.html`** bằng **Chrome** 
 - Lần đầu, ứng dụng tạo **dữ liệu mẫu** (khoảng 30 ngày bán hàng, 4 phiếu vay, 4 hóa đơn) để xem thử. Xóa chúng ở *Sao lưu & khôi phục → Vùng nguy hiểm → Xóa dữ liệu mẫu*.
 - Chọn nhân viên để vào ca. Tài khoản **DS. Phạm Thanh Mai** có quyền quản lý: sửa cài đặt, hủy đơn bất kỳ, đặt lại dữ liệu.
 - Ứng dụng chạy offline. Chỉ ảnh QR (VietQR) và font chữ cần có mạng.
-- Muốn chạy qua server nội bộ: `npx serve app` hoặc `python -m http.server -d app 8080`.
+- Chạy qua server: nhấp đúp `chay.bat`, hoặc gõ `python serve.py` ở thư mục repo (tự mở trình duyệt, tự chọn cổng trống). Chi tiết ở đầu [CLAUDE.md](CLAUDE.md).
+
+## Dùng trên điện thoại (bản Vercel)
+
+App được triển khai lên Vercel, kèm máy chủ AI nhỏ trong `api/` cho **nhập bằng giọng nói** (Bán hàng) và **đọc ảnh hóa đơn** (Sổ hóa đơn). Máy chủ dùng được OpenAI, Google Gemini, Qwen (Alibaba Cloud) hoặc Qwen tự cài (Ollama / vLLM); chọn trong Cài đặt → thẻ AI.
+
+Khóa AI điền vào file `.env` trên máy (mẫu: `.env.example`; file này không lên git, không lên Vercel), rồi dùng:
+
+- `npm run dev`: chạy app + AI trên máy;
+- `npm run eval:samples` rồi `npm run eval`: so sánh các nhà cung cấp trên cùng bộ mẫu;
+- `npm run env:push` rồi `npm run deploy`: đưa khóa lên Vercel và triển khai.
+
+Chi tiết ở đầu [CLAUDE.md](CLAUDE.md). Về quyền riêng tư: xem [docs/AI-cuc-bo.md](docs/AI-cuc-bo.md).
 
 ## Sao lưu – dữ liệu nằm ở đâu?
 
@@ -37,6 +49,8 @@ Dữ liệu được lưu **trên trình duyệt của máy đang dùng** (local
 ```
 docs/      PLAN.md (kế hoạch, đặc tả, lộ trình) · Khaosat.md (tổng hợp khảo sát) · PRD
 app/       index.html · assets/css/app.css · assets/js/{core,modules}/*.js · app.js
+api/       máy chủ AI (Vercel Functions): ocr.js · stt.js · health.js · _providers.js (OpenAI / Gemini / Qwen)
+tools/     dev.mjs · eval.mjs · make-samples.mjs · env-push.mjs · prices.json
 legacy/    prototype HTML cũ (tham chiếu): vinmec_retail_pharmacy.html, vinmec_ocp2_v1.html (gộp từ nhánh main)
 ```
 

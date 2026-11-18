@@ -13,6 +13,16 @@
     const admin = VM.store.isAdmin();
     top.innerHTML = `<button class="btn" id="stXls" title="Xuất danh sách kho, nhân viên, nhà cung cấp, ngưỡng cảnh báo">${icon('download')}<span class="label">Xuất Excel</span></button><button class="btn ghost" id="stUndo" disabled>${icon('undo')}<span class="label">Hoàn tác</span></button><button class="btn primary" id="stSave" disabled>${icon('check')}<span class="label">Lưu cài đặt</span></button>`;
     const st = draft.settings, v = x => esc(x == null ? '' : x);
+    const provOpts = cur => Object.entries(VM.ai.PROVIDERS).map(([k, l]) => `<option value="${k}" ${(cur || 'auto') === k ? 'selected' : ''}>${esc(l)}</option>`).join('');
+    // Độ chính xác đo tại khoa, tách theo nhà cung cấp / mô hình (aiStats.by) để so sánh khi dùng thật
+    const byProvider = () => {
+      const rows = Object.entries(S().aiStats.by || {}).sort((a, b) => a[0].localeCompare(b[0]));
+      if (!rows.length) return '';
+      return `<div class="c12 table-wrap"><table class="t"><thead><tr><th>Loại</th><th>Nhà cung cấp / mô hình</th><th class="num">Số lần</th><th class="num">Chính xác</th></tr></thead><tbody>${rows.map(([k, x]) => {
+        const [kind, tag] = [k.slice(0, k.indexOf(':')), k.slice(k.indexOf(':') + 1)], ocr = kind === 'ocr';
+        return `<tr><td>${ocr ? 'OCR' : 'Giọng nói'}</td><td class="mono">${esc(tag)}</td><td class="num">${ocr ? `${x.docs} HĐ · ${x.fields} ô` : x.n}</td><td class="num"><b>${ocr ? VM.ai.pct(x.kept, x.fields) : VM.ai.pct(x.top1, x.n)}</b></td></tr>`;
+      }).join('')}</tbody></table></div>`;
+    };
     view.innerHTML = `${admin ? '' : `<div class="alert warn" style="margin-bottom:16px">${icon('info', 's')}<span>Chỉ <b>Quản lý</b> được thay đổi cài đặt. Bạn đang xem ở chế độ chỉ đọc.</span></div>`}
       <fieldset id="stForm" ${admin ? '' : 'disabled'} style="border:0;padding:0;margin:0"><div class="form-grid" style="gap:18px">
         <div class="card c6"><div class="card-h"><div class="kpi-ic" style="width:38px;height:38px">${icon('cross')}</div><div><h3>Nhà thuốc</h3><div class="sub">Hiển thị trên hóa đơn bán lẻ và sổ in</div></div></div>
@@ -40,10 +50,14 @@
             ${num('priceDiffPct', 'Chênh lệch giá nhập cần hỏi QLD (%)', st.priceDiffPct)}
             ${num('snapshotMinutes', 'Tạo điểm khôi phục mỗi (phút)', st.snapshotMinutes)}
           </div></div>
-        <div class="card c12" id="aiCard"><div class="card-h"><div class="kpi-ic" style="width:38px;height:38px">${icon('shield')}</div><div style="flex:1"><h3>AI cục bộ – giọng nói &amp; OCR hóa đơn</h3><div class="sub">Mặc định không gửi âm thanh / ảnh hóa đơn ra Internet. Chỉ gọi máy chủ trong mạng nội bộ bệnh viện.</div></div></div>
+        <div class="card c12" id="aiCard"><div class="card-h"><div class="kpi-ic" style="width:38px;height:38px">${icon('shield')}</div><div style="flex:1"><h3>AI – giọng nói &amp; OCR hóa đơn</h3><div class="sub">${VM.isHosted() ? 'Có máy chủ AI của app: mặc định dùng AI của app (OpenAI / Gemini / Qwen) – âm thanh / ảnh hóa đơn được gửi tới nhà cung cấp đã chọn.' : 'Mặc định không gửi âm thanh / ảnh hóa đơn ra Internet. Chỉ gọi máy chủ trong mạng nội bộ bệnh viện.'}</div></div></div>
           <div class="card-b form-grid">
             <div class="field c6"><label>Nhập bằng giọng nói (Bán hàng)</label><select class="select" data-ai="stt">${Object.entries(VM.ai.MODES).map(([k, m]) => `<option value="${k}" ${st.ai.stt === k ? 'selected' : ''}>${esc(m.label)}</option>`).join('')}</select>
               <span class="hint" id="aiSttHint"></span></div>
+            <div class="field c6"><label>Đọc ảnh hóa đơn (OCR)</label><select class="select" data-ai="ocr">${Object.entries(VM.ai.OCR_MODES).map(([k, m]) => `<option value="${k}" ${st.ai.ocr === k ? 'selected' : ''}>${esc(m.label)}</option>`).join('')}</select>
+              <span class="hint" id="aiAppHint"></span></div>
+            <div class="field c6 ai-prov"><label>Nhà cung cấp OCR (AI của app)</label><select class="select" data-ai="ocrProvider">${provOpts(st.ai.ocrProvider)}</select></div>
+            <div class="field c6 ai-prov"><label>Nhà cung cấp giọng nói (AI của app)</label><select class="select" data-ai="sttProvider">${provOpts(st.ai.sttProvider)}</select></div>
             <div class="field c6"><label>Máy chủ giọng nói nội bộ (Whisper / PhoWhisper)</label><input class="input mono" data-ai="sttUrl" value="${v(st.ai.sttUrl)}" placeholder="http://192.168.1.20:8080/inference"><span class="hint">whisper.cpp server: <span class="mono">/inference</span> · máy chủ kiểu OpenAI: <span class="mono">/v1/audio/transcriptions</span></span></div>
             <div class="field c6"><label>Máy chủ OCR nội bộ (API kiểu OpenAI – Ollama / vLLM)</label><input class="input mono" data-ai="ocrUrl" value="${v(st.ai.ocrUrl)}" placeholder="http://192.168.1.20:11434/v1/chat/completions"></div>
             <div class="field c3"><label>Tên mô hình OCR</label><input class="input mono" data-ai="ocrModel" value="${v(st.ai.ocrModel)}" placeholder="qwen2.5vl:7b"></div>
@@ -53,6 +67,7 @@
               <div><span>Độ chính xác OCR thực tế</span><b>${VM.ai.pct(S().aiStats.ocr.kept, S().aiStats.ocr.fields)}</b><small>${S().aiStats.ocr.fields} ô máy đọc · ${S().aiStats.ocr.docs} hóa đơn · tính theo số ô dược sĩ giữ nguyên khi lưu</small></div>
               <div><span>Giọng nói: chọn đúng ngay gợi ý đầu</span><b>${VM.ai.pct(S().aiStats.voice.top1, S().aiStats.voice.n)}</b><small>${S().aiStats.voice.n} lần thêm hàng bằng giọng nói</small></div>
             </div>
+            ${byProvider()}
           </div></div>
       </div></fieldset>`;
     drawStores(); drawStaff();
@@ -61,13 +76,44 @@
     $$('[data-s]', form).forEach(i => i.oninput = () => { st[i.dataset.s] = i.value.trim(); touch(); });
     $$('[data-b]', form).forEach(i => i.oninput = i.onchange = () => { st.bank[i.dataset.b] = i.value.trim(); touch(); });
     $$('[data-n]', form).forEach(i => i.oninput = () => { st[i.dataset.n] = Math.max(1, Math.floor(VM.parseNum(i.value))); touch(); });
-    const sttHint = () => { const h = $('#aiSttHint'), m = st.ai.stt; h.innerHTML = m === 'cloud' ? '<b style="color:var(--danger)">Âm thanh được gửi tới máy chủ của nhà cung cấp trình duyệt.</b> Chỉ dùng khi đã được phép.' : m === 'local' ? 'Chạy ngay trên máy (Chrome/Edge có nhận giọng nói on-device). Máy chưa có gói tiếng Việt thì dùng máy chủ nội bộ.' : m === 'server' ? 'Ghi âm tối đa 10 giây rồi gửi tới máy chủ nội bộ.' : 'Nút micro sẽ bị tắt.'; };
+    // Trạng thái máy chủ AI của app: nhà cung cấp nào đã có khóa, mô hình nào. Đọc bản nháp st (chưa lưu), không đọc cài đặt đã lưu
+    const usesApp = () => st.ai.stt === 'app' || st.ai.ocr === 'app';
+    const pname = id => VM.ai.PROVIDERS[id] || id;
+    const showProv = () => $$('.ai-prov', form).forEach((f, i) => { f.hidden = !(i === 0 ? st.ai.ocr === 'app' : st.ai.stt === 'app'); });
+    const markProv = r => $$('[data-ai=ocrProvider],[data-ai=sttProvider]', form).forEach(sel => {
+      const kind = sel.dataset.ai === 'ocrProvider' ? 'ocr' : 'stt';
+      [...sel.options].forEach(o => {
+        if (o.value === 'auto') { o.textContent = `${VM.ai.PROVIDERS.auto}${r.defaults && r.defaults[kind] ? ' – ' + pname(r.defaults[kind]) : ''}`; return; }
+        const p = (r.providers || {})[o.value], ok = p && p.ready && p[kind].length;
+        o.disabled = !ok; o.textContent = `${pname(o.value)}${ok ? ' · ' + p[kind][0] : p && p.ready ? ' · chưa đặt mô hình' : ' · chưa có khóa'}`;
+      });
+    });
+    const appHint = async () => {
+      const h = $('#aiAppHint'); if (!h) return;
+      showProv();
+      if (!usesApp()) { h.textContent = st.ai.ocr === 'lan' ? 'Ảnh gửi tới máy chủ OCR nội bộ điền bên dưới.' : ''; return; }
+      h.textContent = 'Đang kiểm tra máy chủ AI của app…';
+      try {
+        const r = await VM.ai.health(); if (!$('#aiAppHint')) return;
+        markProv(r);
+        const ready = Object.entries(r.providers || {}).filter(([, p]) => p.ready).map(([id]) => pname(id));
+        h.innerHTML = r.ready ? `<b style="color:var(--success)">Sẵn sàng</b> · ${esc(ready.join(', '))}` : '<b style="color:var(--danger)">Máy chủ chưa có khóa AI nào</b> – điền khóa vào .env (npm run dev) hoặc biến môi trường trên Vercel rồi deploy lại.';
+      } catch (e) { if ($('#aiAppHint')) h.innerHTML = `<b style="color:var(--danger)">${esc(e.message)}</b>`; }
+    };
+    appHint();
+    const sttHint = () => { const h = $('#aiSttHint'), m = st.ai.stt; h.innerHTML = m === 'app' ? '<b style="color:var(--warning)">Ghi âm tối đa 10 giây rồi gửi tới nhà cung cấp AI đã chọn</b> qua máy chủ của app (kèm tên thuốc trong danh mục để nhận đúng tên).' : m === 'cloud' ? '<b style="color:var(--danger)">Âm thanh được gửi tới máy chủ của nhà cung cấp trình duyệt.</b> Chỉ dùng khi đã được phép.' : m === 'local' ? 'Chạy ngay trên máy (Chrome/Edge có nhận giọng nói on-device). Máy chưa có gói tiếng Việt thì dùng máy chủ nội bộ.' : m === 'server' ? 'Ghi âm tối đa 10 giây rồi gửi tới máy chủ nội bộ.' : 'Nút micro sẽ bị tắt.'; };
     sttHint();
-    $$('[data-ai]', form).forEach(i => i.oninput = i.onchange = () => { st.ai[i.dataset.ai] = i.type === 'checkbox' ? i.checked : i.value.trim(); if (i.dataset.ai === 'stt') sttHint(); touch(); });
+    $$('[data-ai]', form).forEach(i => i.oninput = i.onchange = () => { st.ai[i.dataset.ai] = i.type === 'checkbox' ? i.checked : i.value.trim(); if (i.dataset.ai === 'stt') sttHint(); if (i.dataset.ai === 'stt' || i.dataset.ai === 'ocr') appHint(); touch(); });
+    showProv();
     $('#aiPing').onclick = async () => {
+      if (usesApp()) {
+        try { const r = await VM.ai.health(); VM.ui.toast(r.ready ? 'AI của app: sẵn sàng' : 'AI của app: máy chủ chưa có khóa AI nào', r.ready ? undefined : 'bad', 5000); }
+        catch (e) { VM.ui.toast(e.message, 'bad', 6000); }
+        appHint();
+      }
       for (const [k, label] of [['ocrUrl', 'OCR'], ['sttUrl', 'Giọng nói']]) {
         const url = st.ai[k];
-        if (!url) continue;
+        if (!url || (k === 'ocrUrl' ? st.ai.ocr === 'app' : st.ai.stt !== 'server')) continue;
         if (!VM.isLocalUrl(url) && !st.ai.allowPublic) { VM.ui.toast(`${label}: ${url} không thuộc mạng nội bộ – bị chặn`, 'bad', 5000); continue; }
         try { await fetch(new URL(url).origin + '/', { mode: 'no-cors', cache: 'no-store' }); VM.ui.toast(`${label}: máy chủ ${new URL(url).origin} đang chạy`); }
         catch (e) { VM.ui.toast(`${label}: không kết nối được ${new URL(url).origin}`, 'warn', 5000); }
@@ -94,7 +140,7 @@
         ['Phiếu vay quá hạn sau (giờ)', st.loanOverdueHours], ['Hóa đơn tồn đọng sau (ngày)', st.invoiceAlertDays], ['Cảnh báo hạn dùng trước (ngày)', st.expiryWarnDays],
         ['Chênh lệch giá nhập cần hỏi (%)', st.priceDiffPct], ['Tạo điểm khôi phục mỗi (phút)', st.snapshotMinutes],
         ['File điều chuyển – plans', tr.plant || ''], ['File điều chuyển – Funds center', tr.fundsCenter || ''], ['File điều chuyển – số lượng theo', tr.unit === 'loan' ? 'ĐVT ghi trên phiếu' : 'ĐVT nhỏ nhất'],
-        ['Giọng nói', (VM.ai.MODES[st.ai.stt] || {}).label || st.ai.stt], ['Máy chủ OCR', st.ai.ocrUrl], ['Mô hình OCR', st.ai.ocrModel]],
+        ['Giọng nói', (VM.ai.MODES[st.ai.stt] || {}).label || st.ai.stt], ['OCR hóa đơn', (VM.ai.OCR_MODES[st.ai.ocr] || {}).label || st.ai.ocr], ['Nhà cung cấp OCR', VM.ai.PROVIDERS[st.ai.ocrProvider || 'auto']], ['Nhà cung cấp giọng nói', VM.ai.PROVIDERS[st.ai.sttProvider || 'auto']], ['Máy chủ OCR', st.ai.ocrUrl], ['Mô hình OCR', st.ai.ocrModel]],
     }, `vinmec_cai_dat_${VM.fileStamp()}.xlsx`);
   }
   function touch() { dirty = true; $('#stSave').disabled = false; $('#stUndo').disabled = false; }
@@ -152,7 +198,7 @@
     S().staff = draft.staff;
     const me = VM.store.currentUser(), mine = draft.staff.find(s => s.id === (me || {}).id);
     if (mine) { VM.store.setUser(Object.assign({}, me, { name: mine.name, role: mine.role, admin: mine.admin })); VM.ui.renderMe(); }
-    VM.store.log('Sửa cài đặt', 'Hệ thống', `AI: giọng nói=${st.ai.stt}, máy chủ ngoài=${st.ai.allowPublic ? 'CHO PHÉP' : 'chặn'}`);
+    VM.store.log('Sửa cài đặt', 'Hệ thống', `AI: giọng nói=${st.ai.stt}/${st.ai.sttProvider || 'auto'}, OCR=${st.ai.ocr}/${st.ai.ocrProvider || 'auto'}, máy chủ ngoài=${st.ai.allowPublic ? 'CHO PHÉP' : 'chặn'}`);
     VM.store.save('settings');
     dirty = false; $('#stSave').disabled = true; $('#stUndo').disabled = true;
     VM.ui.done('Đã lưu cài đặt');

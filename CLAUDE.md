@@ -2,40 +2,131 @@
 
 ## ▶ Lệnh chạy nhanh trên máy (local)
 
-Mở terminal ở thư mục gốc repo (`d:\55 Vinmec\VinmecProject`). Không cần build, không cần `npm install`.
+Không cần build, không cần `npm install`. Cần Python 3 (máy này có 3.12) hoặc Node.js.
 
-| Việc | PowerShell (Windows) | Git Bash / macOS / Linux |
-| --- | --- | --- |
-| **Chạy server** (khuyên dùng) | `python -m http.server 8090 --bind 127.0.0.1 -d app` | như bên trái |
-| Mở app | `Start-Process http://127.0.0.1:8090/` | `start http://127.0.0.1:8090/` (Git Bash) · `open …` (macOS) |
-| Chạy server bằng Node thay Python | `npx serve app -l 8090` | như bên trái |
-| Mở thẳng file, không server | `Start-Process app\index.html` | `start app/index.html` |
-| Dừng server | `Ctrl + C` trong cửa sổ đang chạy (hoặc lệnh ở khối dưới) | `Ctrl + C` |
-| Kiểm tra cú pháp JS | xem khối dưới | xem khối dưới |
-| Cổng 8090 bị chiếm | đổi số cổng, VD `python -m http.server 8091 --bind 127.0.0.1 -d app` rồi mở `http://127.0.0.1:8091/` | như bên trái |
+**Cách 1 – không cần terminal:** nhấp đúp file **`chay.bat`** ở thư mục gốc repo. Cửa sổ đen hiện lên và trình duyệt tự mở app. Đóng cửa sổ đó là dừng app.
 
-```powershell
-# PowerShell – chạy server rồi tự mở trình duyệt
-python -m http.server 8090 --bind 127.0.0.1 -d app
-Start-Process http://127.0.0.1:8090/          # chạy ở cửa sổ PowerShell thứ hai
+**Cách 2 – terminal (PowerShell, cmd hay Git Bash đều được).** Copy nguyên dòng dưới, dán vào terminal, Enter. Chạy được từ **bất kỳ thư mục nào**:
 
-# Dừng server đang chiếm cổng 8090 (khi đã đóng mất cửa sổ chạy server)
-Get-NetTCPConnection -LocalPort 8090 -State Listen | ForEach-Object { Stop-Process -Id $_.OwningProcess }
-
-# Kiểm tra cú pháp mọi file JS
-Get-ChildItem app\assets\js -Recurse -Filter *.js | ForEach-Object { node --check $_.FullName }
+```
+python "D:\55 Vinmec\VinmecProject\serve.py"
 ```
 
-```bash
-# Git Bash / macOS / Linux
-python -m http.server 8090 --bind 127.0.0.1 -d app
+Nếu đang đứng sẵn ở thư mục repo thì gõ ngắn:
+
+```
+python serve.py
+```
+
+`serve.py` tự làm 3 việc: tìm thư mục `app/`, chọn cổng trống (8090, bận thì 8091…), mở trình duyệt khi server đã sẵn sàng. Terminal sẽ đứng ở dòng "đang chạy" – **đó là bình thường**, cứ để cửa sổ đó mở trong lúc dùng app.
+
+| Việc                                  | Lệnh / thao tác                                                                      |
+| -------------------------------------- | -------------------------------------------------------------------------------------- |
+| Dừng app                              | Bấm **Ctrl + C** trong cửa sổ đang chạy, hoặc đóng cửa sổ              |
+| Không tự mở trình duyệt           | thêm `--no-open` vào cuối lệnh                                                   |
+| Chọn cổng khác                      | thêm `--port 8095` vào cuối lệnh                                                 |
+| Cho máy khác cùng Wi-Fi mở được | thêm `--lan` (micro / giọng nói vẫn cần HTTPS, xem bản Vercel)                 |
+| Không có Python, dùng Node          | `npx serve "D:\55 Vinmec\VinmecProject\app" -l 8090` rồi mở http://127.0.0.1:8090/ |
+| Mở thẳng file, không server         | nhấp đúp `app\index.html` (dữ liệu tách riêng với bản chạy qua server)     |
+
+Dừng server đang chiếm cổng 8090 khi đã lỡ đóng mất cửa sổ (PowerShell):
+
+```
+Get-NetTCPConnection -LocalPort 8090 -State Listen | ForEach-Object { Stop-Process -Id $_.OwningProcess }
+```
+
+Kiểm tra cú pháp mọi file JS (PowerShell):
+
+```
+Get-ChildItem "D:\55 Vinmec\VinmecProject\app\assets\js" -Recurse -Filter *.js | ForEach-Object { node --check $_.FullName }
+```
+
+Kiểm tra cú pháp (Git Bash / macOS / Linux, đứng ở thư mục repo):
+
+```
 for f in app/assets/js/core/*.js app/assets/js/modules/*.js app/assets/js/app.js; do node --check "$f"; done
 ```
 
-- Địa chỉ app: **http://127.0.0.1:8090/**. Sau khi sửa code, bấm **Ctrl + F5** để trình duyệt nạp lại CSS/JS mới.
-- Dữ liệu nằm trong localStorage **theo địa chỉ**: `http://127.0.0.1:8090`, `http://localhost:8090` và `file://` là 3 bộ dữ liệu riêng. Muốn làm lại từ dữ liệu mẫu: Khác → Sao lưu & khôi phục → "Đặt lại ứng dụng" (gõ `XOA`), hoặc DevTools → Application → Local Storage → xóa các khóa `vmhub.*`.
+**Vì sao lệnh cũ hay hỏng** (đừng lặp lại khi viết lệnh mới vào file này):
+
+- `python -m http.server … -d app` dùng đường dẫn tương đối: mở terminal ở thư mục khác thì server vẫn chạy nhưng trang báo **404**.
+- Đường dẫn có dấu cách (`55 Vinmec`): `cd d:\55 Vinmec\VinmecProject` không có ngoặc kép sẽ lỗi. Luôn bọc đường dẫn trong `"…"`.
+- Copy lệnh từ ô bảng dính dấu `` ` ``: với PowerShell đó là ký tự thoát, terminal hiện `>>` và đứng chờ. Lệnh để copy luôn đặt trong khối code riêng, mỗi khối một lệnh.
+- Khối nhiều dòng "chạy server rồi mở trình duyệt": dòng server chiếm terminal nên dòng mở trình duyệt không bao giờ chạy.
+- Trên Windows, Python mặc định cho 2 server cùng nghe một cổng (`SO_REUSEADDR`), trình duyệt trúng server cũ. `serve.py` giữ cổng độc quyền (`SO_EXCLUSIVEADDRUSE`).
+
+**Lưu ý khi dùng:**
+
+- Địa chỉ app: **http://127.0.0.1:8090/**. `serve.py` tắt cache (`Cache-Control: no-store`), sửa code xong chỉ cần F5.
+- Dữ liệu nằm trong localStorage **theo địa chỉ**: `http://127.0.0.1:8090`, `http://127.0.0.1:8091`, `http://localhost:8090` và `file://` là các bộ dữ liệu riêng. Muốn làm lại từ dữ liệu mẫu: Khác → Sao lưu & khôi phục → "Đặt lại ứng dụng" (gõ `XOA`), hoặc DevTools → Application → Local Storage → xóa các khóa `vmhub.*`.
 - Ảnh QR (VietQR) và font Google cần Internet. Phần còn lại chạy offline.
 - Dùng Chrome hoặc Edge (tự ghi thư mục sao lưu chỉ có trên 2 trình duyệt này).
+
+## ▶ AI (OCR hóa đơn + giọng nói): điền khóa, thử, đánh giá
+
+App gọi AI qua máy chủ `api/` (không bao giờ gọi thẳng từ trình duyệt), hỗ trợ **OpenAI, Google Gemini, Qwen (Alibaba Cloud)** và **Qwen tự cài** (Ollama / vLLM). Cần Node.js ≥ 20. Không có bước build.
+
+1. Mở file `.env` ở thư mục repo (đã tạo sẵn, khóa để trống; mẫu đầy đủ ở `.env.example`) bằng Notepad, điền khóa nào có. Để trống khóa nào thì bỏ qua nhà cung cấp đó. `.env` đã bị `.gitignore` và `.vercelignore` chặn.
+2. Chạy app + AI trên máy (http://127.0.0.1:8095, dữ liệu riêng với `serve.py`). Đứng ở thư mục repo:
+
+```
+npm run dev
+```
+
+3. So sánh các nhà cung cấp trên cùng bộ mẫu. Tạo bộ mẫu mô phỏng một lần (thêm ` -- --tts` để tạo cả giọng đọc máy bằng OpenAI):
+
+```
+npm run eval:samples
+```
+
+```
+npm run eval
+```
+
+Kết quả: `eval/results/<thời điểm>.md` (bảng tổng hợp) và `.json` (từng lần gọi). Tùy chọn: `npm run eval -- --only ocr`, `--provider gemini,qwen`, `--runs 2`, `--limit 5`. Mẫu thật (ảnh hóa đơn đã che thông tin, ghi âm của dược sĩ) đặt vào `eval/samples/ocr|stt/` theo hướng dẫn đầu file `tools/eval.mjs`; `eval/samples/` và `eval/results/` không lên git.
+
+Trong app: Khác → Cài đặt → thẻ AI → chọn "AI của app" rồi chọn **Nhà cung cấp OCR / giọng nói** (Tự động = theo `AI_OCR_PROVIDER` / `AI_STT_PROVIDER`; trống thì cái đầu tiên có khóa theo thứ tự OpenAI → Gemini → Qwen → tự cài). Bảng "độ chính xác theo nhà cung cấp" đo trên thao tác thật của dược sĩ.
+
+## ▶ Bản trên Vercel (dùng trên điện thoại)
+
+Vercel phục vụ `app/` làm trang tĩnh và chạy `api/*.js` làm máy chủ AI. Cấu hình ở `vercel.json`, `.vercelignore`, `package.json`.
+
+Lần đầu (PowerShell, mỗi lệnh một lần):
+
+```
+cd "D:\55 Vinmec\VinmecProject"
+```
+
+```
+npx vercel login
+```
+
+```
+npx vercel link --yes
+```
+
+Đưa khóa trong `.env` lên Vercel (không in giá trị khóa ra màn hình), rồi deploy:
+
+```
+npm run env:push
+```
+
+```
+npm run deploy
+```
+
+**Đã deploy (19/11/2026): https://vinmec-pharmacy.vercel.app** (project Vercel `vinmec-pharmacy`, máy này đã liên kết sẵn trong `.vercel/`). Hai lưu ý khi liên kết lại ở máy khác:
+
+- `npx vercel link --yes` báo lỗi tên project vì tên thư mục `VinmecProject` có chữ hoa → dùng `npx vercel link --yes --project vinmec-pharmacy`.
+- Vercel CLI tự nối `.vercel` và `.env*` vào cuối `.gitignore`; dòng `.env*` đè lên `!.env.example` làm file mẫu biến mất khỏi git → xóa 2 dòng đó (`.gitignore` đã chặn `.vercel/`, `.env`, `.env.*` sẵn).
+
+Lệnh deploy in ra địa chỉ `https://….vercel.app`: mở trên điện thoại bằng Chrome (Android) hoặc Safari (iPhone), cho phép micro / camera khi được hỏi. Có thể "Thêm vào màn hình chính" để mở như app.
+
+- Sửa code: chạy lại `npm run deploy`. Đổi khóa / mô hình trong `.env`: `npm run env:push` rồi `npm run deploy` (biến mới chỉ áp dụng cho bản deploy sau).
+- Kiểm tra máy chủ AI: mở `https://<địa chỉ>/api/health` → `"ready": true`, trong `providers` nhà cung cấp nào có `"ready": true` là đã có khóa. Trong app: Khác → Cài đặt → thẻ AI hiện "Sẵn sàng · …".
+- Bản Vercel không gọi được Qwen tự cài trong mạng nội bộ (`LOCAL_AI_URL`); chỉ `npm run dev` / `npm run eval` dùng được.
+- Dữ liệu vẫn nằm trong localStorage **của từng điện thoại** (chưa đồng bộ giữa các máy – việc của Phase 3). Muốn mang dữ liệu từ máy bàn sang: tải file sao lưu ở máy bàn → mở trên điện thoại → Sao lưu & khôi phục → khôi phục từ file.
+- Địa chỉ Vercel là **công khai**, app chưa có mật khẩu (chọn tên là vào ca). Đừng nhập dữ liệu bệnh nhân thật lên bản này cho tới khi có đăng nhập (Phase 2). Đặt giới hạn chi tiêu cho từng khóa (OpenAI → Limits; Google AI Studio / Alibaba Model Studio → hạn mức dự án). Khóa Gemini **gói miễn phí** cho phép Google dùng dữ liệu để cải tiến sản phẩm: không dùng gói này cho hóa đơn thật.
 
 ---
 
@@ -65,7 +156,8 @@ Kèm theo: Tổng quan, Lịch sử bán (đối soát OH/SAP), Danh mục hàng
     - `<base href="file:///d:/55%20Vinmec/VinmecProject/app/">`;
     - một script chạy trước `util.js`: xóa localStorage, gán sẵn session `vmhub.session`, gom lỗi qua `window.onerror`;
     - một script chạy sau `app.js`: lần lượt bấm qua từng màn và ghi kết quả vào `<pre>`.
-  - Lần chạy cuối (18/11/2026, sau khi làm giao diện tối giản + chia đôi màn Bán hàng): **61/61** bước đều OK, 2 lần liền, không có lỗi JS. Bước mới / sửa: tab Thuốc lọc danh sách `#posRes` chỉ còn OTC; tiêu đề "Vinmec Pharmacy", ô "Tìm kiếm", không còn Hay bán, nút đổi tên, 5 tab trên 1 hàng, giỏ nằm bên phải; gõ tên + Enter / ↓ Enter / quét mã hàng thêm vào giỏ; 6 mặt hàng trong giỏ thấy hết không cuộn và nút thanh toán không khuất (1440×900); nút "Hiển thị tất cả" ẩn/hiện `.xd` và lưu `vmhub.detail`; Lịch sử bán mỗi mặt hàng 1 dòng, không cuộn ngang.
+  - **Test AI của app** (18/11/2026): không chạy được qua `file://` (cần `api/` cùng tên miền). Dùng một server Node nhỏ trong scratchpad: phục vụ `app/`, `import()` đúng `api/*.js` và gọi `POST(new Request(…))`, thay `globalThis.fetch` tới `api.openai.com` bằng bản giả có ghi lại request; trang test chèn `VM.isHosted = () => true` ngay sau `util.js`. Lái Chrome headless qua DevTools Protocol (WebSocket có sẵn trong Node 22), **không** dùng `--virtual-time-budget` (MediaRecorder cần thời gian thật), thêm `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream` để có micro giả. Fetch giả thay cho cả `generativelanguage.googleapis.com` và `dashscope`; đổi khóa qua `/__ctl?nokey|key|qwen|fail=N`. Kết quả (19/11/2026, nhiều nhà cung cấp): 35/35 bước + 2 bước migrate + 10 bước kiểm tra máy chủ (Origin lạ 403, quá cỡ 413, thiếu khóa 503…), 4 lần liền, không lỗi JS. Thử `tools/eval.mjs`: gán `globalThis.fetch` giả rồi `import()` với `--samples <thư mục scratchpad>` (để kết quả không rơi vào `eval/results/` của repo).
+  - Lần chạy trước (18/11/2026, sau khi làm giao diện tối giản + chia đôi màn Bán hàng): **61/61** bước đều OK, 2 lần liền, không có lỗi JS. Bước mới / sửa: tab Thuốc lọc danh sách `#posRes` chỉ còn OTC; tiêu đề "Vinmec Pharmacy", ô "Tìm kiếm", không còn Hay bán, nút đổi tên, 5 tab trên 1 hàng, giỏ nằm bên phải; gõ tên + Enter / ↓ Enter / quét mã hàng thêm vào giỏ; 6 mặt hàng trong giỏ thấy hết không cuộn và nút thanh toán không khuất (1440×900); nút "Hiển thị tất cả" ẩn/hiện `.xd` và lưu `vmhub.detail`; Lịch sử bán mỗi mặt hàng 1 dòng, không cuộn ngang.
   - Lần trước (sau khi làm lại Danh mục + màu theo nghiệp vụ): 57/57. Các bước: nhóm Khác + hàm lượng trong dữ liệu mẫu, Esc không bị nuốt sau khi đổi màn, bảng danh mục không cuộn ngang, tab Khác lọc bảng, file mẫu đúng 10 cột (đọc ngược .xlsx), nhập Excel theo mẫu (ĐVT Hộp quy đổi tồn, nhóm Khác, Kho Nhà thuốc → Y001, báo thiếu HSD), form thêm 10 trường, nút Điều chỉnh tồn trong form sửa. Nhập Excel cần chờ tới ~5 giây ảo (readTable chạy bất đồng bộ).
   - Lần trước (sau khi thêm Thống kê vay thuốc + Copy quyết toán trong ngày): 47/47 bước đều OK, không có lỗi JS (2 lần liền). 12 bước mới: lịch sử vay mẫu + migrate, KPI khớp đếm tay theo ngày / tuần / tháng / chiều vay, biểu đồ riêng 1 thuốc, sắp xếp, tìm, xuất Excel, phím Q, copy 3 cột / 3 dòng, giữ số 0 đầu số HĐ, ô ngày là ngày thật. Trước đó: 35/35 sau khi làm lại Sổ vay theo mã vay. Gồm màn chọn nghiệp vụ + phím 1/2/3, tour, tạo mã vay nhiều thuốc (quét → số lượng → cộng dồn → máy quét bắn mã vào ô SL → hàng ngoài danh mục → giữ nháp → Hoàn thành → người vay/cho vay → lưu), trang chi tiết (sửa thông số, gạch sổ từng phần / cả mã vay, xác nhận, hủy), file điều chuyển, thông báo hoàn thành, quét mã hóa đơn, kết thúc ca → vào lại.
   - Trong trang test nhớ tắt tour (`vmhub.tour.<id>` = `{"off":true}`) ở các bước không kiểm tra tour, nếu không tour tự chạy sẽ che màn. Bước kết thúc ca cần chờ tới ~90 giây ảo và `--virtual-time-budget=200000` (IndexedDB chạy bằng thời gian thật nên dưới virtual time đồng hồ ảo bị phóng đại; ngoài đời chỉ vài chục ms).
@@ -83,17 +175,20 @@ Kèm theo: Tổng quan, Lịch sử bán (đối soát OH/SAP), Danh mục hàng
   - Thứ tự các thẻ `<script>` cũng chính là thứ tự xuất hiện trên menu.
 - Mỗi file bọc trong `(function (VM) { 'use strict'; ... })(window.VM);`.
 
-| File               | Xuất ra                                                                                                                                                                                                          | Vai trò                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `core/util.js`   | `VM.$, $$, esc, icon, money, num, fmtDate, fmtDT, ymd, iso, daysUntil, hoursSince, ago, parseDate, parseNum, normalize, search, uid, debounce, download, sum, fileStamp, gs1, gtinKey, gtinCheck, isLocalUrl…` | Tiện ích. `search()` là fuzzy, bỏ dấu tiếng Việt. `gs1()` đọc mã DataMatrix GS1 (AI 01/17/10/21). `isLocalUrl()` nhận diện địa chỉ trong mạng nội bộ                                                                                                                                                                                                                                        |
-| `core/store.js`  | `VM.store`                                                                                                                                                                                                      | State duy nhất, lưu vào localStorage, nhật ký (audit), dữ liệu mẫu, quy tắc nghiệp vụ. Thêm `matchScan(raw)`, `productFreq()`, `topProducts(n)`, `peopleFreq()`, `LOAN_STORES` / `loanStores()` (chỉ Y001, Y003), `loanGroup(l)`, `loanVouchers(list?)`, `voucherStatus(lines)`, `voucherOpen(v)`, `loanCode(peek)`, `CATEGORIES` (otc / supp / device / other) + `catOf(p)` |
-| `core/xlsx.js`   | `VM.xlsx.exportXlsx(sheets, filename)`, `readTable(file)`                                                                                                                                                     | Tự ghi/đọc .xlsx (zip không nén) và CSV, không cần thư viện                                                                                                                                                                                                                                                                                                                                               |
-| `core/backup.js` | `VM.backup`                                                                                                                                                                                                     | Snapshot IndexedDB, file JSON có checksum FNV-1a, ghi thư mục bằng File System Access API                                                                                                                                                                                                                                                                                                                       |
-| `core/ai.js`     | `VM.ai = { MODES, listen, ocrInvoice, parseXmlInvoice, parseInvoiceCode, track, pct, ping, sttSupported }`                                                                                                      | Giọng nói và OCR **chỉ gọi máy chủ nội bộ** (hàm `guard`). Đọc XML hóa đơn điện tử và mã QR / chuỗi tra cứu HĐĐT (`parseInvoiceCode`). Đo độ chính xác thực tế vào `state.aiStats`                                                                                                                                                                                      |
-| `core/ui.js`     | `VM.ui`                                                                                                                                                                                                         | Shell gồm thanh biểu tượng (rail) và rèm (curtain), hash router `#/<id>/<arg>`, modal, confirm, toast, `done` (thông báo hoàn thành), print, `register`, `suggest` (danh sách gợi ý thả nổi), `catBar` (tab nhóm hàng, dùng chung cho Bán hàng và Danh mục). Nút `#detailBtn` (Hiển thị tất cả / Thu gọn) và `#tourBtn` (?) trên thanh tiêu đề                       |
-| `core/tour.js`   | `VM.tour = { start, auto, has, reset, clearSession, prefs, active }`                                                                                                                                            | Hướng dẫn ban đầu dạng spotlight. Tự chạy lần đầu mở mỗi màn có `tour`; lần đầu tiên kèm các bước chung của khung (rail, rèm, sao lưu, kết thúc ca, nút ?)                                                                                                                                                                                                                           |
-| `modules/*.js`   | `VM.pos`, `VM.loans`, `VM.invoices`, `VM.catalog`                                                                                                                                                         | Mỗi màn là một module. `loan-stats.js` (id `loanstats`, nhóm `loans`) là màn Thống kê vay thuốc, nạp ngay sau `loans.js`                                                                                                                                                                                                                                                                         |
-| `app.js`         | `VM.app = { logout, start }`                                                                                                                                                                                    | Màn vào ca, khởi động, kết thúc ca                                                                                                                                                                                                                                                                                                                                                                           |
+| File                                                           | Xuất ra                                                                                                                                                                                                          | Vai trò                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `core/util.js`                                               | `VM.$, $$, esc, icon, money, num, fmtDate, fmtDT, ymd, iso, daysUntil, hoursSince, ago, parseDate, parseNum, normalize, search, uid, debounce, download, sum, fileStamp, gs1, gtinKey, gtinCheck, isLocalUrl…` | Tiện ích. `search()` là fuzzy, bỏ dấu tiếng Việt. `gs1()` đọc mã DataMatrix GS1 (AI 01/17/10/21). `isLocalUrl()` nhận diện địa chỉ trong mạng nội bộ                                                                                                                                                                                                                                        |
+| `core/store.js`                                              | `VM.store`                                                                                                                                                                                                      | State duy nhất, lưu vào localStorage, nhật ký (audit), dữ liệu mẫu, quy tắc nghiệp vụ. Thêm `matchScan(raw)`, `productFreq()`, `topProducts(n)`, `peopleFreq()`, `LOAN_STORES` / `loanStores()` (chỉ Y001, Y003), `loanGroup(l)`, `loanVouchers(list?)`, `voucherStatus(lines)`, `voucherOpen(v)`, `loanCode(peek)`, `CATEGORIES` (otc / supp / device / other) + `catOf(p)` |
+| `core/xlsx.js`                                               | `VM.xlsx.exportXlsx(sheets, filename)`, `readTable(file)`                                                                                                                                                     | Tự ghi/đọc .xlsx (zip không nén) và CSV, không cần thư viện                                                                                                                                                                                                                                                                                                                                               |
+| `core/backup.js`                                             | `VM.backup`                                                                                                                                                                                                     | Snapshot IndexedDB, file JSON có checksum FNV-1a, ghi thư mục bằng File System Access API                                                                                                                                                                                                                                                                                                                       |
+| `core/ai.js`                                                 | `VM.ai = { MODES, OCR_MODES, PROVIDERS, health, usesApp, listen, ocrInvoice, parseXmlInvoice, parseInvoiceCode, track, pct, ping, sttSupported }`                                                                          | Giọng nói và OCR gọi máy chủ nội bộ (hàm `guard` chặn địa chỉ ngoài), hoặc **AI của app** (`api/stt`, `api/ocr` trên Vercel / `npm run dev` → OpenAI / Gemini / Qwen). Đọc XML hóa đơn điện tử và mã QR / chuỗi tra cứu HĐĐT (`parseInvoiceCode`). Đo độ chính xác thực tế vào `state.aiStats`                                                                                              |
+| `core/ui.js`                                                 | `VM.ui`                                                                                                                                                                                                         | Shell gồm thanh biểu tượng (rail) và rèm (curtain), hash router `#/<id>/<arg>`, modal, confirm, toast, `done` (thông báo hoàn thành), print, `register`, `suggest` (danh sách gợi ý thả nổi), `catBar` (tab nhóm hàng, dùng chung cho Bán hàng và Danh mục). Nút `#detailBtn` (Hiển thị tất cả / Thu gọn) và `#tourBtn` (?) trên thanh tiêu đề                       |
+| `core/tour.js`                                               | `VM.tour = { start, auto, has, reset, clearSession, prefs, active }`                                                                                                                                            | Hướng dẫn ban đầu dạng spotlight. Tự chạy lần đầu mở mỗi màn có `tour`; lần đầu tiên kèm các bước chung của khung (rail, rèm, sao lưu, kết thúc ca, nút ?)                                                                                                                                                                                                                           |
+| `modules/*.js`                                               | `VM.pos`, `VM.loans`, `VM.invoices`, `VM.catalog`                                                                                                                                                         | Mỗi màn là một module. `loan-stats.js` (id `loanstats`, nhóm `loans`) là màn Thống kê vay thuốc, nạp ngay sau `loans.js`                                                                                                                                                                                                                                                                         |
+| `api/*.js` (gốc repo, **không** nằm trong `app/`) | Vercel Functions (ES module, `export function GET/POST(Request)`): `ocr.js`, `stt.js`, `health.js`, dùng chung `_lib.js`, `_prompt.js` (prompt OCR), `_providers.js` (OpenAI / Gemini / Qwen / tự cài); file bắt đầu bằng `_` không thành đường dẫn                     | Máy chủ AI của bản Vercel và `npm run dev`. `package.json` có `"type":"module"` cho thư mục này                                                                                                                                                                                                                                                                                                                |
+| `tools/*.mjs`, `tools/prices.json` | `npm run dev`, `eval`, `eval:samples`, `env:push` | `dev.mjs` chạy app + `api/` ở cổng 8095 với khóa trong `.env`; `eval.mjs` chấm điểm các nhà cung cấp; `make-samples.mjs` sinh hóa đơn / câu nói mẫu hư cấu; `env-push.mjs` đẩy biến `.env` lên Vercel; `prices.json` giá tham khảo để tính chi phí |
+| `serve.py`, `chay.bat`                                     | –                                                                                                                                                                                                                | Chạy app ở máy local (xem đầu file)                                                                                                                                                                                                                                                                                                                                                                            |
+| `app.js`                                                     | `VM.app = { logout, start }`                                                                                                                                                                                    | Màn vào ca, khởi động, kết thúc ca                                                                                                                                                                                                                                                                                                                                                                           |
 
 **Điều hướng:** rail bên trái có 3 biểu tượng nghiệp vụ là `retail` (Bán lẻ), `loans` (Sổ vay), `invoices` (Hóa đơn), cộng nút "Khác" (`system`: Tổng quan, Sao lưu, Cài đặt).
 
@@ -179,8 +274,8 @@ meta{createdAt,updatedAt,rev,demo}
 settings{pharmacyName, counter, bank{bin,account,owner}, stores[{code,name,plant,fundsCenter}],
          suppliers[], loanOverdueHours=24, invoiceAlertDays=2, expiryWarnDays=90, priceDiffPct=5, snapshotMinutes=15,
          transfer{plant='1000', fundsCenter='1000', unit:'base'|'loan', fillLot=false},
-         ai{stt:'off'|'local'|'server'|'cloud', sttUrl, ocrUrl, ocrModel, allowPublic=false}}
-aiStats{ocr{docs,fields,kept}, voice{n,top1}}   // độ chính xác đo tại khoa
+         ai{stt:'off'|'local'|'server'|'app'|'cloud', ocr:'lan'|'app', ocrProvider, sttProvider /* 'auto'|'openai'|'gemini'|'qwen'|'local' */, sttUrl, ocrUrl, ocrModel, allowPublic=false}}
+aiStats{ocr{docs,fields,kept}, voice{n,top1}, by{'ocr:<nhà cung cấp>/<mô hình>':{docs,fields,kept}, 'voice:<…>':{n,top1}}}   // độ chính xác đo tại khoa
 staff[{id,name,role,store,admin}]
 products[{id,code,sap,gtin,name,strength,ingredient,category:'otc'|'supp'|'device'|'other',group,store,units[{name,factor,price}],defaultUnit,stock,lot,expiry,minStock,active,image}]
 sales[{id,code,createdAt,sellerId,sellerName,customer,pid,items[{productId,code,sap,name,lot,unit,factor,qty,price,listPrice,total,special,seller}],total,payment:'qr'|'cash',status,recon:'pending'|'done',demo}]
@@ -304,6 +399,18 @@ seq{ VAY<yyyymmdd>, ORD<yyyymmdd>, demoLoanHist, demoQtDay, demoCat2, demoCat3 }
   - Khi lưu hóa đơn từ OCR, mỗi ô máy đọc được mà dược sĩ giữ nguyên cộng vào `aiStats.ocr.kept`.
   - Khi thêm hàng bằng giọng nói, chọn đúng gợi ý đầu tiên thì cộng `aiStats.voice.top1`.
   - Chi tiết mô hình đề xuất và cách nghiệm thu: [docs/AI-cuc-bo.md](docs/AI-cuc-bo.md).
+- **AI của app (bản Vercel / `npm run dev`; OpenAI, Gemini, Qwen)** – chế độ `stt: 'app'` và `ocr: 'app'`:
+  - Trình duyệt gọi `api/stt`, `api/ocr`, `api/health` (đường dẫn tương đối, cùng tên miền nên **không qua `guard()`**). Khóa nằm ở biến môi trường máy chủ (`OPENAI_API_KEY`, `GEMINI_API_KEY`, `QWEN_API_KEY`, `LOCAL_AI_URL`), **không bao giờ** xuống trình duyệt hay vào git.
+  - Request mang `provider` (`settings.ai.ocrProvider` / `sttProvider`, mặc định `auto`). `pick()` trong `api/_providers.js`: nhà cung cấp được yêu cầu nếu có khóa → `AI_OCR_PROVIDER` / `AI_STT_PROVIDER` → cái đầu tiên có khóa theo `ORDER` (openai, gemini, qwen, local). Phản hồi kèm `provider`, `model`, `ms`.
+  - Mô hình: biến `*_OCR_MODEL` / `*_STT_MODEL` ghi được nhiều tên, cách dấu phẩy; app dùng tên **đầu tiên**, `npm run eval` thử **tất cả**. Mặc định: OpenAI `gpt-4.1-mini` / `gpt-4o-mini-transcribe`; Gemini `gemini-3.8-flash` / `gemini-3.5-flash-lite` (Interactions API, header `x-goog-api-key`); Qwen `qwen3-vl-plus` / `qwen3-asr-flash` (DashScope chế độ tương thích OpenAI, vùng Singapore); tự cài `qwen2.5vl:7b`.
+  - `api/health` trả `{ok, ready, providers:{id:{label, ready, ocr[], stt[]}}, defaults:{ocr, stt}}`. Cài đặt → thẻ AI: 2 ô chọn nhà cung cấp (ẩn khi chế độ không phải `app`; nhà cung cấp chưa có khóa bị khóa và ghi "· chưa có khóa"), dòng trạng thái liệt kê nhà cung cấp sẵn sàng, bảng độ chính xác theo `aiStats.by`. Trạng thái đọc bản nháp `st.ai`, không đọc cài đặt đã lưu.
+  - Máy chủ tự dựng prompt OCR (`api/_prompt.js`, giữ khớp với `PROMPT` trong `ai.js`), chỉ nhận ảnh `data:image/(jpeg|png|webp)` → không ai dùng ké làm chatbot. Chặn `Origin` khác tên miền app (403), thân > 4,4 MB (413). Lỗi 401 / 404 / 429 của nhà cung cấp đổi thành câu tiếng Việt.
+  - Giọng nói: ghi âm tối đa 10 giây → WAV 16 kHz (`toWav16k`) → `api/stt`, kèm `prompt` = tên thuốc trong danh mục (xếp theo `productFreq`, ≤ 700 ký tự) để mô hình viết đúng tên biệt dược.
+  - Ảnh OCR: JPEG 2000px / 0,85; nếu > 3,8 MB thì nén lại 1600px / 0,75 (Vercel nhận tối đa 4,5 MB). OCR đọc thêm `sellerTax` (MST bán) và `invoiceSymbol`. Thời gian chờ OCR 130 giây.
+  - `VM.isHosted()` (util.js) = `window.VM_APP_API === true` (do `npm run dev` chèn vào trang) hoặc trang chạy https và không phải địa chỉ nội bộ. Dữ liệu mới khi có máy chủ AI mặc định `stt:'app', ocr:'app'`; chạy `serve.py` mặc định `stt:'local', ocr:'lan'` như cũ. `migrate()` chuyển `stt` `local`/`server` → `app` **một lần** cho dữ liệu cũ (chưa có `ai.ocr`) mở trên bản Vercel, VD khôi phục file sao lưu từ máy bàn; đồng thời bổ sung `ocrProvider` / `sttProvider` = `auto`.
+  - `track()` cộng thêm vào `aiStats.by['ocr:<provider>/<model>']` / `['voice:…']` để so sánh nhà cung cấp trên dữ liệu thật.
+  - **Đánh giá** (`npm run eval`): OCR chấm độ đúng từng trường đầu hóa đơn và dòng hàng, tỉ lệ "đúng cả 4 trường quyết toán" (số HĐ so nguyên chuỗi kể cả số 0 đầu, ngày, tổng SL, tổng tiền), số dòng hàng, JSON hợp lệ, thời gian (trung vị / p90), chi phí / 1.000 hóa đơn (`tools/prices.json`, giá `null` = "chưa có giá"); giọng nói chấm tỉ lệ đúng tên thuốc, WER / CER sau chuẩn hóa tiếng Việt (số → chữ). Lỗi 429 thử lại 1 lần sau 20 giây.
+  - Chạy local bằng `serve.py` thì **không có** `api/` (chỉ là trang tĩnh): chế độ `app` sẽ báo "AI của app chỉ chạy trên bản Vercel hoặc khi mở bằng npm run dev".
 
 ## 5. Thiết kế giao diện ("Medical modern")
 
@@ -358,7 +465,11 @@ Mức cảnh báo của `backup.status()`:
 
 ## 7. Bảo mật & quyền riêng tư (bắt buộc)
 
+- **Khóa AI** (`OPENAI_API_KEY`, `GEMINI_API_KEY`, `QWEN_API_KEY`, `LOCAL_AI_KEY`) chỉ nằm trong file `.env` trên máy (đã bị `.gitignore` / `.vercelignore` chặn) và biến môi trường của Vercel. Không ghi vào code, `vercel.json`, `.env.example` hay localStorage; các script không in giá trị khóa ra màn hình.
+- Chế độ "AI của app" gửi âm thanh / ảnh hóa đơn tới nhà cung cấp đã chọn. OpenAI API và gói trả phí của Gemini / Alibaba không dùng dữ liệu để huấn luyện theo mặc định; **gói miễn phí của Gemini thì có**. Bản chạy trong mạng bệnh viện vẫn dùng chế độ nội bộ (Qwen tự cài).
+- Bộ mẫu đánh giá thật (`eval/samples/`) và kết quả (`eval/results/`) không lên git. Mẫu do `make-samples.mjs` sinh dùng NCC hư cấu có chữ "(MẪU)", MST 999000xxxx và dòng "MẪU THỬ – KHÔNG CÓ GIÁ TRỊ".
 - Tài liệu khảo sát yêu cầu **xóa thông tin mật**. Vì vậy:
+
   - trong `docs/` chỉ ghi chức danh, không ghi tên thật;
   - dữ liệu mẫu và nhân viên mẫu đều là **tên hư cấu**;
   - không đưa tên nhân viên thật, PID hay thông tin bệnh nhân vào code hoặc docs.
@@ -367,6 +478,23 @@ Mức cảnh báo của `backup.status()`:
 - Chưa có mật khẩu hay PIN: chọn tên là vào ca. Phase 2 cần bổ sung.
 
 ## 8. Nhật ký thay đổi
+
+### 19/11/2026 – Nhiều nhà cung cấp AI (OpenAI / Gemini / Qwen) + công cụ đánh giá (nhánh `Duy`)
+
+- **Máy chủ AI** (`api/_providers.js`, `_prompt.js`): OpenAI, Google Gemini (Interactions API), Qwen trên Alibaba Cloud (DashScope: `qwen3-vl-plus` / `qwen-vl-ocr`, `qwen3-asr-flash`) và Qwen tự cài (Ollama / vLLM, như thiết kế ban đầu). Chọn theo request → `AI_*_PROVIDER` → cái đầu tiên có khóa. `api/health` trả trạng thái từng nhà cung cấp.
+- **Khóa trong `.env`** (mẫu `.env.example`): `npm run dev` chạy app + AI trên máy (cổng 8095), `npm run env:push` đẩy biến lên Vercel, `npm run deploy`.
+- **App:** Cài đặt có 2 ô chọn nhà cung cấp OCR / giọng nói và bảng độ chính xác theo nhà cung cấp (`aiStats.by`); màn quét hóa đơn ghi rõ ảnh gửi tới nhà cung cấp nào.
+- **Đánh giá:** `npm run eval:samples` sinh 30 ảnh hóa đơn hư cấu (5 kiểu: rõ, chụp nghiêng, xoay, mờ, tối) + 16 câu nói mẫu (`--tts` tạo giọng máy); `npm run eval` chấm OCR / giọng nói cho mọi nhà cung cấp × mô hình, ghi `eval/results/*.md`.
+- **Sửa lỗi:** `track()` ghi nhầm `s.byProvider` thay vì `s.by`.
+- Kiểm tra (fetch giả cho cả 3 nhà cung cấp): trình duyệt 35/35 bước, 4 lần liền, không lỗi JS; máy chủ 10/10 (Origin lạ 403, quá cỡ 413, thiếu khóa 503, chọn nhà cung cấp, lỗi 401 → tiếng Việt…); migrate 2/2; `eval.mjs` chấm đúng (số HĐ mất số 0 đầu bị tính sai, 429 thử lại, liệt kê lỗi). **Chưa chạy với khóa thật**: dạng request của Gemini Interactions / Qwen ASR, tên mô hình Qwen và giá Gemini / Qwen cần xác nhận ở lần `npm run eval` đầu tiên.
+
+### 18/11/2026 – Sửa lệnh chạy local, AI giọng nói + OCR qua OpenAI, deploy Vercel (nhánh `Duy`)
+
+- **Lệnh chạy:** lệnh cũ hỏng vì đường dẫn tương đối (`-d app` → 404 khi đứng sai thư mục), đường dẫn có dấu cách không bọc ngoặc kép, và dấu backtick dính khi copy từ bảng (PowerShell hiện `>>`). Thêm `serve.py` (tự tìm `app/`, tự chọn cổng trống, tự mở trình duyệt, tắt cache, giữ cổng độc quyền trên Windows) và `chay.bat` (nhấp đúp). Viết lại phần lệnh đầu file: mỗi lệnh một khối code.
+- **AI của app:** thêm `api/ocr.js`, `api/stt.js`, `api/health.js` (Vercel Functions gọi OpenAI), chế độ `app` cho giọng nói và OCR trong `core/ai.js`, ô chọn OCR + trạng thái máy chủ trong Cài đặt. Bản Vercel mặc định dùng AI của app; chạy local vẫn mặc định không gửi gì ra ngoài.
+- **Quyết định của người dùng (18/11/2026):** dùng OpenAI cho cả 2; chấp nhận gửi âm thanh / ảnh hóa đơn ra ngoài trên bản Vercel (khác khuyến nghị trong docs/AI-cuc-bo.md, đã ghi rõ ở đó); không đặt mã truy cập vì sau này mỗi tài khoản sẽ có đăng nhập.
+- **Sửa lỗi:** hóa đơn nhập từ XML có `invoiceSymbol` nhưng form ghi hóa đơn không giữ lại.
+- Kiểm tra: xem mục "Test AI của app" ở §2.
 
 ### 18/11/2026 – Hợp nhất nhánh `main` vào `Duy`
 

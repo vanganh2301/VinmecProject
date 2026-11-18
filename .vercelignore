@@ -1,0 +1,13 @@
+# Chỉ đưa app/ (trang tĩnh) và api/ (Vercel Functions) lên Vercel
+legacy/
+docs/
+serve.py
+chay.bat
+*.md
+*.xlsx
+vinmec-pharmacy-backup_*.json
+vinmec-pharmacy-snapshot_*.json
+.env
+.env.*
+tools/
+eval/

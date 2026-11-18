@@ -170,6 +170,9 @@ window.VM = window.VM || {};
     const [a, b] = [+m[1], +m[2]];
     return a === 127 || a === 10 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31);
   }
+  // App có máy chủ AI cùng địa chỉ (/api/ocr, /api/stt): bản Vercel (https://….vercel.app)
+  // hoặc mở qua npm run dev (tools/dev.mjs chèn window.VM_APP_API = true)
+  const isHosted = () => window.VM_APP_API === true || (location.protocol === 'https:' && !isLocalUrl(location.href));
 
-  Object.assign(VM, { $, $$, esc, icon, pad, money, num, now, iso, ymd, fmtDate, fmtTime, fmtDT, daysUntil, hoursSince, ago, parseDate, normalize, fuzzyScore, search, uid, initials, debounce, download, sum, fileStamp, parseNum, gs1, gtinKey, gtinCheck, isLocalUrl, copyText, copyCells, tsv });
+  Object.assign(VM, { isHosted, $, $$, esc, icon, pad, money, num, now, iso, ymd, fmtDate, fmtTime, fmtDT, daysUntil, hoursSince, ago, parseDate, normalize, fuzzyScore, search, uid, initials, debounce, download, sum, fileStamp, parseNum, gs1, gtinKey, gtinCheck, isLocalUrl, copyText, copyCells, tsv });
 })(window.VM);

@@ -428,7 +428,7 @@
       btn.classList.toggle('on', s === 'listening'); btn.classList.toggle('busy', s === 'processing' || s === 'installing');
       live.classList.toggle('hidden', s === 'idle' && !voicePending);
       if (s === 'listening') live.innerHTML = `${icon('mic', 's')} Đang nghe… nói tên thuốc + số lượng, VD: <b>“Paracetamol hai vỉ và Vitamin C một hộp”</b>. Bấm micro / F3 để dừng.`;
-      if (s === 'processing') live.innerHTML = 'Đang chuyển giọng nói thành chữ trên máy chủ nội bộ…';
+      if (s === 'processing') live.innerHTML = S().settings.ai.stt === 'app' ? 'Đang chuyển giọng nói thành chữ…' : 'Đang chuyển giọng nói thành chữ trên máy chủ nội bộ…';
       if (s === 'installing') live.innerHTML = 'Đang tải gói tiếng Việt về máy (chỉ lần đầu)…';
       if (s === 'idle') voice = null;
     };

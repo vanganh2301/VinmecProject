@@ -1,0 +1,12 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Local tooling
+node_modules/
+
+# Data exported from the app – may contain patient / business data, never commit
+vinmec-pharmacy-backup_*.json
+vinmec-pharmacy-snapshot_*.json
+*.xlsx

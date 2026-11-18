@@ -47,6 +47,7 @@
         </section>
         <aside class="card cart" aria-label="Giỏ hàng">
           <div class="cart-h"><h3>Giỏ hàng</h3><span class="pill pri" id="cartCount"></span><span class="order-code xd" id="orderCode" title="Mã đơn"></span>
+            <button type="button" class="pill warn low-btn hidden" id="lowBtn"></button>
             <button class="btn ghost icon sm cart-clear" id="clearCart" title="Xóa giỏ" aria-label="Xóa giỏ">${icon('trash', 's')}</button></div>
           <div class="cart-items" id="cartItems"></div>
           <div class="cart-foot">
@@ -86,6 +87,7 @@
     $('#clearCart').onclick = async () => { if (!draft.items.length) return; if (await VM.ui.confirm({ title: 'Xóa toàn bộ giỏ hàng?', message: 'Các mặt hàng đã chọn sẽ bị xóa khỏi đơn đang tạo.', ok: 'Xóa giỏ', danger: true })) { draft.items = []; saveDraft(); renderCart(); } };
     $('#payQr').onclick = () => openPay('qr');
     $('#payCash').onclick = () => openPay('cash');
+    $('#lowBtn').onclick = openLow;
 
     keyHandler = e => {
       if (document.querySelector('.overlay')) return;
@@ -223,6 +225,34 @@
     const issue = draft.items.length ? cartIssue() : null;
     $('#cartIssue').innerHTML = issue ? `<div class="alert bad">${icon('alert', 's')}<span>${esc(issue)}</span></div>` : '';
     $('#payQr').disabled = $('#payCash').disabled = !draft.items.length || !!issue;
+    renderLow();
+  }
+
+  // Cảnh báo tồn thấp: pill nhỏ trên đầu giỏ (không chiếm chỗ dòng hàng), bấm xem danh sách → Danh mục "Cần chú ý"
+  const lowStock = () => S().products.filter(p => p.active && p.stock <= (p.minStock || 0))
+    .sort((a, b) => (a.stock / Math.max(1, a.minStock || 0)) - (b.stock / Math.max(1, b.minStock || 0)) || a.name.localeCompare(b.name, 'vi'));
+  function renderLow() {
+    const b = $('#lowBtn'); if (!b) return;
+    const l = lowStock();
+    b.classList.toggle('hidden', !l.length);
+    b.innerHTML = `${icon('alert', 's')}${l.length} tồn thấp`;
+    b.title = 'Tồn thấp: ' + l.slice(0, 6).map(p => `${p.name} (${p.stock <= 0 ? 'hết hàng' : 'còn ' + VM.store.stockText(p)})`).join(', ') + (l.length > 6 ? '…' : '');
+  }
+  function openLow() {
+    const l = lowStock();
+    VM.ui.modal({
+      title: 'Cảnh báo tồn thấp', sub: `${l.length} mặt hàng đang bán có tồn ≤ mức tối thiểu`, ic: 'alert',
+      body: l.length ? `<table class="t"><thead><tr><th>Mặt hàng</th><th class="num">Tồn</th><th class="num">Tối thiểu</th></tr></thead><tbody>
+        ${l.map(p => `<tr><td><span class="tag ${p.category}">${esc(VM.store.catOf(p).short)}</span> <b>${esc(p.name)}</b></td>
+          <td class="num">${p.stock <= 0 ? `<span class="qchip bad">${icon('x', 's')}Hết hàng</span>` : `<span class="qchip warn">${esc(VM.store.stockText(p))}</span>`}</td>
+          <td class="num muted">${esc(VM.store.stockText({ ...p, stock: p.minStock || 0 }))}</td></tr>`).join('')}</tbody></table>`
+        : VM.ui.empty('check', 'Không có mặt hàng tồn thấp', ''),
+      foot: `<button class="btn" data-x>Đóng</button><button class="btn primary" data-cat>${icon('package', 's')} Mở Danh mục</button>`,
+      onMount(el, close) {
+        el.querySelector('[data-x]').onclick = () => close();
+        el.querySelector('[data-cat]').onclick = () => { close(); VM.ui.go('catalog/alert'); };
+      },
+    });
   }
 
   async function editPrice(it) {

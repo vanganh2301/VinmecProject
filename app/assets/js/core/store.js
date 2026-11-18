@@ -83,6 +83,7 @@
     };
     demoData(s);
     demoCatalogExtra(s);
+    demoCatalogMain(s);
     return s;
   }
 
@@ -97,6 +98,52 @@
       const body = '20000000' + VM.pad(15, 4);
       s.products.push({ id: VM.uid('p_'), code: 'KH001', sap: '40001001', gtin: body + VM.gtinCheck(body), name: 'Kem dưỡng ẩm da nhạy cảm', strength: 'Tuýp 50g', ingredient: '', category: 'other', group: 'Chăm sóc da', store: 'Y001', units: [{ name: 'Tuýp', factor: 1, price: 145000 }], defaultUnit: 'Tuýp', stock: 14, lot: 'KD2406N', expiry: VM.ymd(d), minStock: 3, active: true, image: '', updatedAt: VM.iso() });
     }
+  }
+
+  // 26 mặt hàng mẫu gộp từ prototype nhánh main (legacy/vinmec_ocp2_v1.html), quy về 4 nhóm của khoa:
+  // Dược mỹ phẩm / Chăm sóc cá nhân → nhóm "Khác" (tên nhóm cũ giữ ở trường group). Tồn = ĐVT nhỏ nhất.
+  // Thêm sau lịch sử bán mẫu để không đổi dữ liệu mẫu đã sinh; dữ liệu mẫu cũ được bổ sung một lần (seq.demoCat3).
+  function demoCatalogMain(s) {
+    if (s.seq.demoCat3) return;
+    s.seq.demoCat3 = 1;
+    const u = (name, factor, price) => ({ name, factor, price });
+    const d = n => { const x = new Date(); x.setDate(x.getDate() + n); return VM.ymd(x); };
+    const rows = [
+      // code, sap, name, strength, ingredient, category, group, units, defaultUnit, stock (theo ĐVT mặc định), lot, HSD (ngày), tồn tối thiểu (theo ĐVT mặc định)
+      ['OTC009', '10005001', 'Panadol Extra (đỏ)', 'Paracetamol 500mg, Caffeine 65mg', 'Paracetamol, Caffeine', 'otc', 'Giảm đau – hạ sốt', [u('Viên', 1, 2300), u('Vỉ', 12, 23000), u('Hộp', 180, 345000)], 'Hộp', 120, 'LOT-PND-01', 549, 20],
+      ['OTC010', '10005002', 'Panadol (xanh)', 'Paracetamol 500mg', 'Paracetamol', 'otc', 'Giảm đau – hạ sốt', [u('Viên', 1, 1700), u('Vỉ', 12, 19000), u('Hộp', 120, 190000)], 'Hộp', 110, 'LOT-PND-02', 575, 20],
+      ['OTC011', '10005003', 'Panadol Cảm Cúm', 'Paracetamol 500mg, Phenylephrine 10mg', 'Paracetamol, Phenylephrine', 'otc', 'Giảm đau – hạ sốt', [u('Viên', 1, 2500), u('Vỉ', 12, 24000), u('Hộp', 180, 360000)], 'Hộp', 95, 'LOT-PND-03', 723, 20],
+      ['OTC012', '10005004', 'Panadol viên sủi 500mg', 'Paracetamol 500mg', 'Paracetamol', 'otc', 'Giảm đau – hạ sốt', [u('Viên', 1, 4500), u('Vỉ', 4, 18000), u('Hộp', 16, 72000)], 'Hộp', 80, 'LOT-PND-04', 646, 20],
+      ['OTC013', '10005005', 'Panadol Extra with Optizorb', 'Paracetamol 500mg', 'Paracetamol', 'otc', 'Giảm đau – hạ sốt', [u('Viên', 1, 2800), u('Vỉ', 10, 28000), u('Hộp', 120, 336000)], 'Hộp', 70, 'LOT-PND-05', 694, 20],
+      ['TPCN04', '20001101', 'Blackmores Omega Double High Strength Fish Oil', 'EPA 360mg, DHA 240mg – lọ 90 viên', 'Dầu cá', 'supp', 'Dầu cá – Omega 3', [u('Viên', 1, 6000), u('Lọ', 90, 520000)], 'Lọ', 65, 'LOT-BKM-01', 700, 10],
+      ['TPCN05', '20001102', 'Sụn vi cá mập Shark Cartilage 750mg', 'Chondroitin 750mg – lọ 100 viên', 'Sụn vi cá mập', 'supp', 'Xương khớp', [u('Viên', 1, 4200), u('Hộp', 100, 395000)], 'Hộp', 45, 'LOT-CST-02', 767, 10],
+      ['TPCN06', '20001103', 'Dầu cá Omega-3 Fish Oil 1000mg (Goodhealth)', 'EPA 180mg, DHA 120mg – lọ 150 viên', 'Dầu cá', 'supp', 'Dầu cá – Omega 3', [u('Viên', 1, 2000), u('Lọ', 150, 285000)], 'Lọ', 80, 'LOT-GDH-03', 636, 10],
+      ['TPCN07', '20001104', 'Glucosamine HCl 1500mg with MSM', 'Glucosamine 1500mg, MSM 1500mg – 375 viên', 'Glucosamine, MSM', 'supp', 'Xương khớp', [u('Viên', 1, 1600), u('Hộp', 375, 580000)], 'Hộp', 50, 'LOT-KKL-04', 743, 10],
+      ['TPCN08', '20001105', 'Ocuvite Lutein & Zeaxanthin', 'Lutein 6mg, Zeaxanthin – hộp 3 vỉ x 10 viên', 'Lutein, Zeaxanthin', 'supp', 'Mắt', [u('Vỉ', 1, 110000), u('Hộp', 3, 320000)], 'Hộp', 40, 'LOT-OCV-05', 604, 10],
+      ['TPCN09', '20001106', 'Hoạt huyết dưỡng não Traphaco', 'Cao đinh lăng 150mg, Ginkgo 5mg – hộp 5 vỉ x 20 viên', 'Đinh lăng, Ginkgo biloba', 'supp', 'Tuần hoàn não', [u('Vỉ', 1, 14000), u('Hộp', 5, 65000)], 'Hộp', 90, 'LOT-TRP-06', 657, 10],
+      ['VTYT04', '30001101', 'Máy đo huyết áp bắp tay Omron HEM-7120', 'Bắp tay, tự động', '', 'device', 'Thiết bị', [u('Hộp', 1, 870000)], 'Hộp', 35, 'LOT-OMR-01', 1825, 3],
+      ['VTYT05', '30001102', 'Nhiệt kế điện tử đầu mềm Omron MC-246', 'Đo miệng / nách – 60 giây', '', 'device', 'Thiết bị', [u('Hộp', 1, 105000)], 'Hộp', 90, 'LOT-OMR-02', 1825, 5],
+      ['VTYT06', '30001103', 'Máy xông khí dung Omron NE-C106', 'Hạt sương 4,56 µm', '', 'device', 'Thiết bị', [u('Hộp', 1, 790000)], 'Hộp', 25, 'LOT-OMR-03', 1825, 3],
+      ['VTYT07', '30001104', 'Máy đo huyết áp cổ tay Omron HEM-6161', 'Cổ tay', '', 'device', 'Thiết bị', [u('Hộp', 1, 780000)], 'Hộp', 30, 'LOT-OMR-04', 1825, 3],
+      ['VTYT08', '30001105', 'Máy đo huyết áp bắp tay Omron HEM-7121', 'Bắp tay, bộ nhớ 30 lần đo', '', 'device', 'Thiết bị', [u('Hộp', 1, 1050000)], 'Hộp', 20, 'LOT-OMR-05', 1825, 3],
+      ['KH002', '40001002', 'La Roche-Posay Cicaplast Baume B5+', 'Panthenol 5% – tuýp 40ml', 'Panthenol, Madecassoside', 'other', 'Dược mỹ phẩm', [u('Tuýp', 1, 330000)], 'Tuýp', 75, 'LOT-LRP-01', 588, 10],
+      ['KH003', '40001003', 'La Roche-Posay Effaclar Foaming Gel 200ml', 'Kẽm PCA – chai 200ml', 'Kẽm PCA', 'other', 'Dược mỹ phẩm', [u('Chai', 1, 385000)], 'Chai', 60, 'LOT-LRP-02', 539, 10],
+      ['KH004', '40001004', 'La Roche-Posay Effaclar Foaming Gel 50ml', 'Kẽm PCA – tuýp 50ml', 'Kẽm PCA', 'other', 'Dược mỹ phẩm', [u('Tuýp', 1, 145000)], 'Tuýp', 85, 'LOT-LRP-03', 667, 10],
+      ['KH005', '40001005', 'La Roche-Posay Micellar Water Ultra 400ml', 'Tẩy trang – chai 400ml', '', 'other', 'Dược mỹ phẩm', [u('Chai', 1, 435000)], 'Chai', 55, 'LOT-LRP-04', 763, 10],
+      ['KH006', '40001006', 'La Roche-Posay Thermal Spring Water 150ml', 'Xịt khoáng – bình 150ml', '', 'other', 'Dược mỹ phẩm', [u('Bình', 1, 265000)], 'Bình', 70, 'LOT-LRP-05', 743, 10],
+      ['KH007', '40001007', 'Dầu gội dược liệu Thái Dương 3 hương hoa đào', 'Chai 200ml', '', 'other', 'Chăm sóc cá nhân', [u('Chai', 1, 55000)], 'Chai', 90, 'LOT-STD-01', 561, 10],
+      ['KH008', '40001008', 'Dầu gội dược liệu Thái Dương 7', 'Trị gàu – chai 200ml', '', 'other', 'Chăm sóc cá nhân', [u('Chai', 1, 115000)], 'Chai', 85, 'LOT-STD-02', 604, 10],
+      ['KH009', '40001009', 'Dầu gội dược liệu Thái Dương 3 hương lá thơm', 'Chai 200ml', '', 'other', 'Chăm sóc cá nhân', [u('Chai', 1, 55000)], 'Chai', 70, 'LOT-STD-03', 672, 10],
+      ['KH010', '40001010', 'Kem nghệ Thái Dương nano bạc', 'Tuýp 20g', 'Curcumin, nano bạc', 'other', 'Chăm sóc cá nhân', [u('Tuýp', 1, 20000)], 'Tuýp', 130, 'LOT-STD-04', 718, 10],
+      ['KH011', '40001011', 'Nước súc miệng Valentine Thái Dương', 'Chai 500ml', 'Nano bạc, bạc hà', 'other', 'Chăm sóc cá nhân', [u('Chai', 1, 42000)], 'Chai', 100, 'LOT-STD-05', 761, 10],
+    ];
+    const have = new Set(s.products.map(p => p.code));
+    rows.forEach(([code, sap, name, strength, ingredient, category, group, units, defaultUnit, stock, lot, days, min], i) => {
+      if (have.has(code)) return;
+      const f = units.find(x => x.name === defaultUnit).factor;
+      const body = '20000000' + VM.pad(16 + i, 4);
+      s.products.push({ id: VM.uid('p_'), code, sap, gtin: body + VM.gtinCheck(body), name, strength, ingredient, category, group, store: 'Y001', units, defaultUnit, stock: stock * f, lot, expiry: d(days), minStock: min * f, active: true, image: '', updatedAt: VM.iso() });
+    });
   }
 
   const blankStats = () => ({ ocr: { docs: 0, fields: 0, kept: 0 }, voice: { n: 0, top1: 0 } });
@@ -271,6 +318,7 @@
     if (s.meta.demo && !s.seq.demoLoanHist && s.products.length) { demoLoanHistory(s); s.__migrated = true; }
     if (s.meta.demo && !s.seq.demoQtDay) { demoTodayInvoices(s); s.__migrated = true; }
     if (s.meta.demo && !s.seq.demoCat2 && s.products.length) { demoCatalogExtra(s); s.__migrated = true; }
+    if (s.meta.demo && !s.seq.demoCat3 && s.products.length) { demoCatalogMain(s); s.__migrated = true; }
     // Nhóm hàng lạ (nhập từ file cũ) → "Khác" để thanh phân loại luôn đếm đủ
     s.products.forEach(p => { if (!CATEGORIES[p.category]) p.category = 'other'; });
     return s;

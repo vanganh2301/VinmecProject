@@ -57,7 +57,9 @@
     return f.q.trim() ? VM.search(l, f.q, ['name', 'code', 'sap', 'ingredient', 'gtin', 'strength']) : l.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
   }
 
-  function render(view, top) {
+  function render(view, top, arg) {
+    // #/catalog/alert (từ cảnh báo tồn thấp ở màn Bán hàng) → mở sẵn bộ lọc "Cần chú ý", mọi nhóm
+    if (arg === 'alert') { f.state = 'alert'; f.cat = ''; f.q = ''; }
     top.innerHTML = `<input type="file" id="impFile" accept=".xlsx,.csv" hidden>
       <button class="btn" id="tplBtn" title="Tải file Excel mẫu (10 cột)">${icon('sheet')}<span class="label">File mẫu</span></button>
       <button class="btn" id="impBtn">${icon('upload')}<span class="label">Nhập Excel</span></button>

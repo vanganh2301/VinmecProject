@@ -37,7 +37,7 @@ Dữ liệu được lưu **trên trình duyệt của máy đang dùng** (local
 ```
 docs/      PLAN.md (kế hoạch, đặc tả, lộ trình) · Khaosat.md (tổng hợp khảo sát) · PRD
 app/       index.html · assets/css/app.css · assets/js/{core,modules}/*.js · app.js
-legacy/    prototype HTML cũ (tham chiếu)
+legacy/    prototype HTML cũ (tham chiếu): vinmec_retail_pharmacy.html, vinmec_ocp2_v1.html (gộp từ nhánh main)
 ```
 
 Chi tiết từng file nằm trong [docs/PLAN.md §5](docs/PLAN.md). Code là HTML/CSS/JS thuần, các script nạp theo thứ tự trong `index.html` và dùng chung namespace `window.VM`. Mỗi module tự đăng ký vào router và sidebar qua `VM.ui.register({...})`.

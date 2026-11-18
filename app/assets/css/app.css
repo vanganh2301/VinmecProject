@@ -1146,6 +1146,9 @@ table.ct{table-layout:fixed;min-width:0}
 .pos>.cart{position:sticky;top:76px;display:flex;flex-direction:column;max-height:calc(100vh - 92px);min-height:0}
 .pos .cart-h{padding:10px 12px 10px 16px;flex-wrap:nowrap}
 .pos .cart-h .cart-clear{margin-left:auto}
+.pos .cart-h .low-btn{margin-left:auto;border:0;cursor:pointer;font:inherit;font-size:12px;font-weight:700}
+.pos .cart-h .low-btn:hover{background:var(--warning-100,#fde9c8)}
+.pos .cart-h .low-btn:not(.hidden)+.cart-clear{margin-left:0}
 .pos .cart-items{flex:1 1 auto;min-height:150px;max-height:none;overflow-y:auto}
 .pos .crow{grid-template-columns:minmax(0,1fr) 106px 88px 28px;gap:8px;padding:5px 8px 5px 14px;min-height:52px}
 .pos .crow .cr-name{min-width:0;display:flex;flex-direction:column;gap:1px}

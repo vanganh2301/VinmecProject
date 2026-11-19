@@ -140,8 +140,8 @@
     if (arg === 'overdue') f.tab = 'pending'; // liên kết cũ tới tab "Quá … ngày" đã bỏ
     if (['pending', 'no_invoice', 'received', 'handed', 'entered', 'all'].includes(arg)) f.tab = arg;
     top.innerHTML = `<button class="btn" id="iDay" title="Copy 3 trường quyết toán của mọi hóa đơn trong ngày (phím Q)">${icon('copy')}<span class="label">Quyết toán ngày</span></button>
-      <button class="btn icon" id="iPrint" title="In sổ hóa đơn" aria-label="In sổ">${icon('printer')}</button>
-      <button class="btn icon" id="iXls" title="Xuất Excel sổ hóa đơn (sheet đầu: Quyết toán)" aria-label="Xuất Excel">${icon('download')}</button>
+      <button class="btn icon hide-m" id="iPrint" title="In sổ hóa đơn" aria-label="In sổ">${icon('printer')}</button>
+      <button class="btn icon hide-m" id="iXls" title="Xuất Excel sổ hóa đơn (sheet đầu: Quyết toán)" aria-label="Xuất Excel">${icon('download')}</button>
       <button class="btn" id="iNew">${icon('edit')}<span class="label">Ghi tay</span> <span class="kbd hide-m">N</span></button>
       <button class="btn primary" id="iScan">${icon('scan')}<span class="label">Quét hóa đơn</span> <span class="kbd hide-m">S</span></button>`;
     const sups = [...new Set([...S().settings.suppliers, ...S().invoices.map(i => i.supplier)].filter(Boolean))].sort();
@@ -153,8 +153,8 @@
           <select class="select xd" id="iSup" aria-label="Nhà cung cấp" style="max-width:260px"><option value="">Mọi nhà cung cấp</option>${sups.map(s => `<option ${s === f.sup ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
           <input class="input xd" type="date" id="iFrom" value="${f.from}" aria-label="Từ ngày" style="width:auto"><input class="input xd" type="date" id="iTo" value="${f.to}" aria-label="Đến ngày" style="width:auto">
         </div>
-        <div class="toolbar" style="padding:10px 18px"><div class="seg" id="iTabs"></div><div id="iBulk" style="margin-left:auto;display:flex;gap:8px;align-items:center"></div></div>
-        <div class="table-wrap" id="iTable"></div>
+        <div class="toolbar i-tabs-bar"><div class="seg" id="iTabs"></div><div id="iBulk" class="i-bulk"></div></div>
+        <div class="table-wrap it-wrap" id="iTable"></div>
       </div>`;
     $$('#iBook [data-b]').forEach(b => b.onclick = () => { f.book = b.dataset.b; draw(); });
     $('#iQ').oninput = VM.debounce(() => { f.q = $('#iQ').value; draw(); }, 150);
@@ -194,7 +194,7 @@
     const list = filtered();
     selected.forEach(id => { if (!list.some(i => i.id === id)) selected.delete(id); });
     const sel = list.filter(i => selected.has(i.id));
-    $('#iBulk').innerHTML = sel.length ? `<span class="muted small">Đã chọn ${sel.length}</span>
+    $('#iBulk').innerHTML = sel.length ? `<span class="muted small i-bulk-n">Đã chọn <b>${sel.length}</b></span>
       <button class="btn sm" id="bQt" title="Mỗi hóa đơn một dòng: ngày hàng về · SL tổng · số HĐ">${icon('copy', 's')} Copy quyết toán</button>
       <button class="btn sm" id="bPrint">${icon('printer', 's')} Phiếu bàn giao</button>
       ${sel.some(i => i.status === 'received') ? `<button class="btn primary sm" id="bHand">${icon('arrowr', 's')} Bàn giao NVD</button>` : ''}
@@ -208,19 +208,19 @@
       $('#iTable').innerHTML = VM.ui.empty(f.tab === 'pending' ? 'checkc' : 'file', f.tab === 'pending' ? 'Không còn hóa đơn tồn đọng' : 'Không có hóa đơn', f.tab === 'pending' ? 'Mọi hóa đơn đã được nhập hệ thống.' : 'Thử đổi bộ lọc hoặc ghi hóa đơn mới.', `<button class="btn primary" id="iNew2">${icon('plus', 's')} Ghi hóa đơn</button>`);
       $('#iNew2').onclick = () => openEditor();
     } else {
-      $('#iTable').innerHTML = `<table class="t it"><thead><tr><th style="width:40px"><input type="checkbox" id="iAll" aria-label="Chọn tất cả"></th><th>Hàng về</th><th>Nhà cung cấp · Số HĐ</th><th class="hide-m">Sổ</th><th class="num hide-m xd">Mặt hàng</th><th class="num">Tổng tiền</th><th class="hide-m xd">Bàn giao</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+      $('#iTable').innerHTML = `<table class="t it"><thead><tr><th class="i-c-chk"><input type="checkbox" id="iAll" aria-label="Chọn tất cả"></th><th class="i-c-date">Hàng về</th><th class="i-c-ncc">Nhà cung cấp · Số HĐ</th><th class="i-c-book">Sổ</th><th class="num i-c-items xd">Mặt hàng</th><th class="num i-c-tot">Tổng tiền</th><th class="i-c-nvd xd">Bàn giao</th><th class="i-c-st">Trạng thái</th><th class="i-c-act"><span class="sr-only">Thao tác</span></th></tr></thead><tbody>
         ${list.map(i => {
           const st = IS[i.status] || IS.received, nx = NEXT[i.status];
           return `<tr class="clickable ${i.status === 'entered' || i.status === 'cancelled' ? 'done' : ''}" data-id="${i.id}">
             <td onclick="event.stopPropagation()"><input type="checkbox" data-sel="${i.id}" ${selected.has(i.id) ? 'checked' : ''} aria-label="Chọn"></td>
-            <td class="i-date" title="Ghi sổ ${esc(VM.ago(i.createdAt))}"><b>${VM.fmtDate(i.receivedAt)}</b><div class="t-sub xd">${VM.ago(i.createdAt)}</div></td>
-            <td class="i-ncc"><div class="t-title" title="${esc(i.supplier)}">${esc(i.supplier)}</div><div class="t-sub">${i.invoiceNo ? `HĐ <span class="mono">${esc(i.invoiceNo)}</span><span class="xd">${i.invoiceDate ? ' · ngày HĐ ' + VM.fmtDate(i.invoiceDate) : ''}${i.poNo ? ` · PO <span class="mono">${esc(i.poNo)}</span>` : ''}</span>` : '<span style="color:var(--danger)">Chưa có số HĐ</span>'}</div>${i.note ? `<div class="t-sub xd">“${esc(i.note)}”</div>` : ''}</td>
-            <td class="hide-m">${VM.ui.pill(i.book === 'IPD' ? 'info' : 'pri', BOOK[i.book] || i.book)}</td>
-            <td class="num hide-m xd">${num(i.itemCount || 0)}</td>
-            <td class="num"><b>${i.total ? money(i.total) : '—'}</b>${i.tax ? `<div class="t-sub xd">VAT ${num(i.tax)}</div>` : ''}</td>
-            <td class="hide-m xd">${i.nvdReceiver ? `<div>${esc(i.nvdReceiver)}</div><div class="t-sub">${VM.fmtDT(i.nvdAt)}</div>` : '<span class="muted">—</span>'}</td>
-            <td>${VM.ui.pill(st.cls, st.label)}${st.step >= 0 ? `<div class="steps xd" style="margin-top:6px" title="Bước ${st.step}/3">${[1, 2, 3].map(k => `<i class="${st.step >= k ? 'on' : ''}"></i>`).join('')}</div>` : ''}</td>
-            <td onclick="event.stopPropagation()"><div class="actions">${nx ? `<button class="btn ${i.status === 'no_invoice' ? '' : 'tonal'} sm" data-next="${i.id}">${icon(nx.ic, 's')} ${nx.label}</button>` : ''}${i.status !== 'cancelled' ? `<button class="btn ghost icon sm" data-qtrow="${i.id}" title="Copy 3 ô cho file quyết toán: ngày hàng về · SL tổng · số HĐ" aria-label="Copy cho file quyết toán">${icon('copy', 's')}</button>` : ''}<button class="btn ghost icon sm xd" data-open="${i.id}" aria-label="Chi tiết">${icon('chevr', 's')}</button></div></td></tr>`;
+            <td class="i-date i-c-date" title="Ghi sổ ${esc(VM.ago(i.createdAt))}"><b>${VM.fmtDate(i.receivedAt)}</b><div class="t-sub xd">${VM.ago(i.createdAt)}</div></td>
+            <td class="i-ncc"><div class="t-title" title="${esc(i.supplier)}">${esc(i.supplier)}</div><div class="i-meta"><span>${VM.fmtDate(i.receivedAt)} · ${esc(BOOK[i.book] || i.book)}</span>${i.total ? `<b class="i-meta-tot">${money(i.total)}</b>` : ''}${VM.ui.pill(st.cls, st.label)}</div><div class="t-sub">${i.invoiceNo ? `HĐ <span class="mono">${esc(i.invoiceNo)}</span><span class="xd">${i.invoiceDate ? ' · ngày HĐ ' + VM.fmtDate(i.invoiceDate) : ''}${i.poNo ? ` · PO <span class="mono">${esc(i.poNo)}</span>` : ''}</span>` : '<span style="color:var(--danger)">Chưa có số HĐ</span>'}</div>${i.note ? `<div class="t-sub xd">“${esc(i.note)}”</div>` : ''}</td>
+            <td class="i-c-book">${VM.ui.pill(i.book === 'IPD' ? 'info' : 'pri', BOOK[i.book] || i.book)}</td>
+            <td class="num i-c-items xd">${num(i.itemCount || 0)}</td>
+            <td class="num i-c-tot"><b>${i.total ? money(i.total) : '—'}</b>${i.tax ? `<div class="t-sub xd">VAT ${num(i.tax)}</div>` : ''}</td>
+            <td class="i-c-nvd xd">${i.nvdReceiver ? `<div>${esc(i.nvdReceiver)}</div><div class="t-sub">${VM.fmtDT(i.nvdAt)}</div>` : '<span class="muted">—</span>'}</td>
+            <td class="i-c-st">${VM.ui.pill(st.cls, st.label)}${st.step >= 0 ? `<div class="steps xd" style="margin-top:6px" title="Bước ${st.step}/3">${[1, 2, 3].map(k => `<i class="${st.step >= k ? 'on' : ''}"></i>`).join('')}</div>` : ''}</td>
+            <td class="i-c-act" onclick="event.stopPropagation()"><div class="actions">${nx ? `<button class="btn ${i.status === 'no_invoice' ? '' : 'tonal'} sm i-next" data-next="${i.id}" title="${nx.label}" aria-label="${nx.label}">${icon(nx.ic, 's')}<span class="lbl">${nx.label}</span></button>` : ''}${i.status !== 'cancelled' ? `<button class="btn ghost icon sm" data-qtrow="${i.id}" title="Copy 3 ô cho file quyết toán: ngày hàng về · SL tổng · số HĐ" aria-label="Copy cho file quyết toán">${icon('copy', 's')}</button>` : ''}<button class="btn ghost icon sm xd" data-open="${i.id}" aria-label="Chi tiết">${icon('chevr', 's')}</button></div></td></tr>`;
         }).join('')}</tbody></table>`;
       $$('#iTable tr[data-id]').forEach(tr => tr.onclick = () => openDetail(tr.dataset.id));
       $$('#iTable [data-open]').forEach(b => b.onclick = () => openDetail(b.dataset.open));
@@ -686,18 +686,6 @@
       { el: '#iDay', title: 'Copy quyết toán cả ngày', text: 'Phím <kbd>Q</kbd>. Copy một lần 3 trường <b>Ngày hàng về · SL tổng · Số HĐ</b> của mọi hóa đơn trong ngày, rồi dán vào file quyết toán. Có xem trước, đổi ngày bằng ‹ ›.' },
       { el: '#iXls', title: 'In & xuất Excel', text: 'In sổ, phiếu bàn giao hoặc xuất Excel (sheet đầu là “Quyết toán”).' },
     ],
-    subs: () => {
-      const all = S().invoices, c = st => all.filter(i => i.status === st).length;
-      return [
-        { arg: 'scan', label: 'Quét hóa đơn (XML / OCR)', icon: 'scan', hot: true },
-        { arg: 'new', label: 'Ghi tay / hàng về', icon: 'edit' },
-        { arg: 'qt', label: 'Copy quyết toán trong ngày', icon: 'copy', hot: true },
-        { arg: 'pending', label: 'Chưa xong', n: all.filter(isPending).length },
-        { arg: 'no_invoice', label: 'Hàng về chưa có HĐ', n: c('no_invoice'), tone: 'bad' },
-        { arg: 'received', label: 'Chờ bàn giao NVD', n: c('received'), tone: 'warn' },
-        { arg: 'handed', label: 'Chờ nhập hệ thống', n: c('handed') },
-        { arg: 'all', label: 'Tất cả hóa đơn' },
-      ];
-    },
+    // Không có mục con trên rèm: Sổ hóa đơn không dùng rèm (bỏ theo yêu cầu khoa 19/11/2026). #/invoices/scan|new|qt|<tab> vẫn mở được.
     badge: () => { const p = S().invoices.filter(isPending), bad = p.some(i => i.status === 'no_invoice'); return { n: p.length, soft: !bad, title: `${p.length} hóa đơn chưa nhập hệ thống` }; } });
 })(window.VM);

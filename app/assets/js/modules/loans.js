@@ -46,8 +46,8 @@
     selected = new Set();
     if (TABS.includes(arg)) f.tab = arg;
     top.innerHTML = `<button class="btn" id="lStats" title="Thuốc vay thường xuyên theo ngày / tuần / tháng, dự báo nhu cầu">${icon('trend')}<span class="label">Thống kê</span></button>
-      <button class="btn" id="lPrint">${icon('printer')}<span class="label">In sổ</span></button>
-      <button class="btn" id="lXls">${icon('download')}<span class="label">Xuất Excel</span></button>
+      <button class="btn hide-m" id="lPrint">${icon('printer')}<span class="label">In sổ</span></button>
+      <button class="btn hide-m" id="lXls">${icon('download')}<span class="label">Xuất Excel</span></button>
       <button class="btn primary" id="lSap" title="Xuất danh sách cần điều chuyển theo cột của tool điều chuyển nội viện">${icon('sheet')}<span class="label">File điều chuyển SAP</span></button>`;
     const d = draftLoad();
     view.innerHTML = `<div class="loan-top">
@@ -171,13 +171,19 @@
         <div class="nl-head">
           <div class="nl-id"><div class="kpi-ic info">${icon('swap')}</div><div><small>Mã vay mới</small><b class="mono" id="nlCode"></b></div></div>
           <ol class="nl-steps" id="nlSteps">
-            <li data-s="scan"><span class="stp">1</span><span>Quét thuốc &amp; số lượng</span></li>
-            <li data-s="who"><span class="stp">2</span><span>Người vay / cho vay</span></li>
+            <li><button type="button" data-s="scan" title="Về bước 1: quét thuốc và số lượng"><span class="stp">1</span><span class="l">Quét thuốc &amp; số lượng</span><span class="s">Thuốc</span></button></li>
+            <li><button type="button" data-s="who" title="Sang bước 2: người vay / người cho vay (Ctrl+Enter)"><span class="stp">2</span><span class="l">Người vay / cho vay</span><span class="s">Người vay</span></button></li>
           </ol>
         </div>
         <div class="nl-body" id="nlBody"></div>
       </div></div>`;
     $('#lBack').onclick = () => VM.ui.go('loans');
+    // Bấm số bước để chuyển: 1 → về quét thuốc (giữ người vay đã gõ), 2 → hoàn thành danh sách (cần ≥ 1 thuốc)
+    $$('#nlSteps [data-s]').forEach(b => b.onclick = () => {
+      if (b.dataset.s === D.step) return;
+      if (b.dataset.s === 'who') finishScan();
+      else { keepWho(); D.step = 'scan'; draftSave(); drawNew(); }
+    });
     drawNew();
     const key = e => {
       if (VM.tour && VM.tour.active) return;
@@ -190,7 +196,11 @@
 
   function drawNew() {
     $('#nlCode').textContent = VM.store.loanCode(true);
-    $$('#nlSteps li').forEach(li => { li.classList.toggle('on', li.dataset.s === D.step); li.classList.toggle('done', D.step === 'who' && li.dataset.s === 'scan'); });
+    $$('#nlSteps [data-s]').forEach(b => {
+      const on = b.dataset.s === D.step;
+      b.classList.toggle('on', on); b.classList.toggle('done', D.step === 'who' && b.dataset.s === 'scan');
+      if (on) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
+    });
     if (D.step === 'who') drawWho(); else drawScan();
   }
 
@@ -255,12 +265,12 @@
     box.classList.remove('hidden');
     box.innerHTML = `
       <div class="picked ${p ? '' : 'warn'}">${icon(p ? 'checkc' : 'alert', 's')}<div><b>${esc(pend.name)}</b>
-        <small>${p ? `ĐVT theo danh mục: <b>${esc(base.name)}</b>${big ? ` (1 ${esc(unitL(big.name))} = ${num(big.factor)} ${esc(unitL(base.name))})` : ''}${g ? ' · đọc từ DataMatrix' : ''}` : 'Không có trong danh mục – nhập ĐVT. Mã SAP bổ sung sau ở trang chi tiết mã vay.'}</small>
+        <small>${p ? `ĐVT theo danh mục: <b>${esc(base.name)}</b>${big ? ` (1 ${esc(unitL(big.name))} = ${num(big.factor)} ${esc(unitL(base.name))})` : ''}${g ? ' · đọc từ DataMatrix' : ''}` : 'Không có trong danh mục – ĐVT mặc định Viên, đổi ở ô ĐVT nếu khác. Mã SAP bổ sung sau ở trang chi tiết mã vay.'}</small>
         ${ex ? `<small class="nl-ex">${icon('info', 's')} Đã có ${num(ex.qty)} ${esc(unitL(ex.unit))} trong mã vay – số nhập sẽ cộng thêm</small>` : ''}</div></div>
       <div class="step-l">Số lượng vay <span class="req">*</span></div>
       <div class="qty-row">
         <div class="stepper big"><button type="button" id="lDec" aria-label="Giảm">${icon('minus', 's')}</button><input id="lQty" inputmode="numeric" value="1" aria-label="Số lượng"><button type="button" id="lInc" aria-label="Tăng">${icon('plus', 's')}</button></div>
-        ${p ? `<div class="unit-fix"><b>${esc(base.name)}</b><small>ĐVT nhỏ nhất</small></div>` : `<input class="input" id="lUnitIn" autocomplete="off" placeholder="ĐVT, VD: Viên" aria-label="Đơn vị tính">`}
+        ${p ? `<div class="unit-fix"><b>${esc(base.name)}</b><small>ĐVT nhỏ nhất</small></div>` : `<div class="unit-free"><small>ĐVT</small>${VM.ui.unitPick('Viên', 'id="lUnitIn"')}</div>`}
       </div>
       <div class="alert bad hidden" id="nqErr"></div>
       <div class="nl-qty-f">
@@ -277,6 +287,7 @@
       else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeQty(); }
     };
     if ($('#lUnitIn')) $('#lUnitIn').onkeydown = e => { if (e.key === 'Enter' && !e.ctrlKey) { e.preventDefault(); commitQty(); } else if (e.key === 'Escape') { e.preventDefault(); closeQty(); } };
+    VM.ui.bindUnitPick(box);
     $('#nqOk').onclick = commitQty;
     $('#nqCancel').onclick = closeQty;
     setTimeout(() => { qty.focus(); qty.select(); }, 20);
@@ -847,7 +858,7 @@
     keys: [['N', 'Tạo mã vay mới'], ['Enter', 'Thêm thuốc / sang ô kế tiếp'], ['Esc', 'Bỏ thuốc vừa quét'], ['Ctrl+Enter', 'Hoàn thành / Lưu mã vay']],
     tourKey: () => mode === 'list' ? 'loans' : 'loans:' + mode,
     tour: () => mode === 'new' ? [
-      { el: '#nlSteps', title: 'Tạo mã vay trong 2 bước', text: '<b>1.</b> Quét lần lượt từng thuốc và nhập số lượng. <b>2.</b> Ghi người vay, người cho vay rồi lưu.' },
+      { el: '#nlSteps', title: 'Tạo mã vay trong 2 bước', text: '<b>1.</b> Quét lần lượt từng thuốc và nhập số lượng. <b>2.</b> Ghi người vay, người cho vay rồi lưu. Bấm số <b>1</b> / <b>2</b> để chuyển qua lại giữa hai bước.' },
       { el: '#nlScanBox', title: 'Quét mã thuốc', text: 'Quét mã vạch / DataMatrix trên hộp hoặc gõ 1–2 chữ tên thuốc. Quét xong sẽ hiện ô <b>số lượng</b> – nhập rồi bấm <kbd>Enter</kbd>. ĐVT tự lấy theo thuốc.' },
       { el: '#nlList', title: 'Danh sách thuốc', text: 'Mỗi thuốc đã quét nằm ở đây. Sửa số lượng bằng nút − / + hoặc bấm 🗑 để bỏ. Quét lại cùng thuốc thì số lượng được cộng dồn.' },
       { el: '#nlDone', title: 'Hoàn thành vay thuốc', text: 'Quét đủ thuốc thì bấm nút này (hoặc <kbd>Ctrl+Enter</kbd>) để sang bước ghi người vay / người cho vay.' },
@@ -863,17 +874,7 @@
       { el: '#lTable', title: 'Danh sách theo mã vay', text: 'Mỗi dòng là một mã vay: vay bao nhiêu thuốc, số lượng, ai vay – ai cho vay. <b>Bấm vào dòng</b> để mở trang chi tiết (thông số, lịch sử từng thuốc). Tick nhiều mã vay để gạch sổ hàng loạt.' },
       { el: '#lSap', title: 'File điều chuyển SAP', text: 'Xem trước rồi tải Excel hoặc copy dán thẳng vào tool điều chuyển. Không chọn mã vay nào thì lấy tất cả thuốc đang mở.' },
     ],
-    subs: () => {
-      const all = VM.store.loanVouchers(), open = all.filter(vOpen), od = open.filter(v => v.overdue).length, pend_ = all.filter(v => v.status === 'pending').length;
-      return [
-        { arg: 'new', label: 'Tạo mã vay mới', icon: 'plus', hot: true },
-        { arg: 'open', label: 'Chưa gạch sổ', n: open.length },
-        { arg: 'overdue', label: 'Quá hạn', n: od, tone: 'bad' },
-        { arg: 'pending', label: 'Chờ xác nhận', n: pend_, tone: 'warn' },
-        { arg: 'settled', label: 'Đã gạch sổ' },
-        { arg: 'all', label: 'Tất cả mã vay' },
-      ];
-    },
+    // Không có mục con trên rèm (bỏ theo yêu cầu khoa 19/11/2026): nút "Tạo mã vay mới", KPI và tab lọc đã nằm ngay trên màn
     badge: () => { const open = VM.store.loanVouchers().filter(vOpen), od = open.filter(v => v.overdue).length; return { n: open.length, soft: !od, title: `${open.length} mã vay chưa gạch, ${od} quá hạn` }; },
   });
 })(window.VM);

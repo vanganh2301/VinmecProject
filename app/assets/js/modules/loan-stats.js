@@ -96,8 +96,8 @@
         <div class="chart-wrap" id="sChart"></div>
       </div>
       <div class="card">
-        <div class="toolbar">
-          <div class="input-icon grow">${icon('search')}<input class="input" id="sQ" type="search" placeholder="Tìm thuốc, mã hàng, mã SAP…" value="${esc(o.q)}"></div>
+        <div class="toolbar st-tb">
+          <div class="input-icon grow">${icon('search')}<input class="input" id="sQ" type="search" placeholder="Tìm thuốc" title="Tìm theo tên thuốc, mã hàng, mã SAP" value="${esc(o.q)}"></div>
           <select class="select" id="sSort" aria-label="Sắp xếp">${Object.entries(SORTS).map(([k, l]) => `<option value="${k}" ${o.sort === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
         </div>
         <div class="table-wrap" id="sTable"></div>
@@ -111,6 +111,11 @@
     $('#sSort').onchange = e => { o.sort = e.target.value; keep(); drawTable(); };
     $('#sQ').oninput = VM.debounce(() => { o.q = $('#sQ').value; drawTable(); }, 150);
     draw();
+    // Biểu đồ vẽ theo bề rộng thật của khung → vẽ lại khi đổi cỡ cửa sổ / thu mở rèm
+    let lastW = 0;
+    const ro = window.ResizeObserver ? new ResizeObserver(VM.debounce(() => { const w = $('#sChart') && $('#sChart').clientWidth; if (R && w && Math.abs(w - lastW) > 8) { lastW = w; drawChart(); } }, 120)) : null;
+    if (ro) ro.observe($('#sChart'));
+    return () => { if (ro) ro.disconnect(); };
   }
 
   function draw() {
@@ -150,9 +155,11 @@
     const nice = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000, 10000, 20000, 50000];
     const step = nice.find(s => max / s <= 5) || Math.ceil(max / 5);
     const yMax = Math.ceil(max / step) * step;
-    const W = 760, Hh = 250, L = 46, Rr = 58, T = 16, Bm = 30, cw = (W - L - Rr) / n, bw = Math.max(4, Math.min(30, cw * .62));
+    // Kích thước theo pixel thật của khung (không co cả hình như trước) → chữ trục luôn đủ to, kể cả trên điện thoại
+    const el = $('#sChart'), W = Math.max(280, Math.round((el.clientWidth || 796) - 36)), narrow = W < 560;
+    const Hh = narrow ? 220 : 250, L = narrow ? 34 : 46, Rr = narrow ? 50 : 58, T = 16, Bm = 30, cw = (W - L - Rr) / n, bw = Math.max(4, Math.min(30, cw * .62));
     const y = v => T + (Hh - T - Bm) * (1 - v / yMax);
-    const lab = Math.ceil(n / 12);
+    const lab = Math.max(1, Math.ceil(n / Math.max(2, Math.floor((W - L - Rr) / 52))));
     let g = '';
     for (let v = 0; v <= yMax; v += step) g += `<line class="grid-l" x1="${L}" x2="${W - Rr}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${num(v)}</text>`;
     const fx = L + (n - 1) * cw;
@@ -162,13 +169,12 @@
       const isFc = i === n - 1, isCur = i === n - 2;
       if (c > 0) g += `<path class="bar ${isFc ? 'fc' : isCur ? 'cur' : ''}" data-b="${i}" d="M${x},${Hh - Bm} V${top + r} q0,-${r} ${r},-${r} h${bw - 2 * r} q${r},0 ${r},${r} V${Hh - Bm} Z"/>`;
       // Nhãn trục: cách đều, và không đè lên nhãn "Dự báo" ở cột cuối
-      if (isFc || (i % lab === (n - 2) % lab && (n - 1 - i) * cw >= 46)) g += `<text class="ax ${isFc ? 'st-fct' : ''}" x="${L + i * cw + cw / 2}" y="${Hh - 10}" text-anchor="middle">${isFc ? 'Dự báo' : esc(R.B[i].short)}</text>`;
+      if (isFc || (i % lab === (n - 2) % lab && (n - 1 - i) * cw >= 50)) g += `<text class="ax ${isFc ? 'st-fct' : ''}" x="${L + i * cw + cw / 2}" y="${Hh - 10}" text-anchor="middle">${isFc ? 'Dự báo' : esc(R.B[i].short)}</text>`;
     });
     if (avg > 0) g += `<line class="st-avg" x1="${L}" x2="${fx}" y1="${y(avg)}" y2="${y(avg)}"/><text class="ax st-avgt" x="${W - Rr + 6}" y="${y(avg) + 4}" text-anchor="start">TB ${fmt1(avg)}</text>`;
     all.forEach((c, i) => { g += `<rect x="${L + i * cw}" y="${T}" width="${cw}" height="${Hh - T - Bm}" fill="transparent" data-i="${i}"/>`; });
-    const el = $('#sChart');
-    el.innerHTML = `<svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc($('#sChartT').textContent)}">${g}</svg><div class="chart-tip" id="sTip"></div>
-      <div class="muted small st-legend"><span>Tổng: <b>${num(VM.sum(vals))} ${esc(unit)}</b> · TB <b>${fmt1(avg)} ${esc(unit)}${G.per}</b></span><span><i class="st-sw"></i>Đã qua <i class="st-sw cur"></i>${G.label} hiện tại (chưa hết) <i class="st-sw fc"></i>Dự báo ${G.label.toLowerCase()} tới: <b>${num(fc)} ${esc(unit)}</b></span></div>`;
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${Hh}" width="${W}" height="${Hh}" role="img" aria-label="${esc($('#sChartT').textContent)}">${g}</svg><div class="chart-tip" id="sTip"></div>
+      <div class="muted small st-legend"><span class="st-li">Tổng: <b>${num(VM.sum(vals))} ${esc(unit)}</b> · TB <b>${fmt1(avg)} ${esc(unit)}${G.per}</b></span><span class="st-keys"><span class="st-li"><i class="st-sw"></i>Đã qua</span><span class="st-li"><i class="st-sw cur"></i>${G.label} hiện tại (chưa hết)</span><span class="st-li"><i class="st-sw fc"></i>Dự báo ${G.label.toLowerCase()} tới: <b>${num(fc)} ${esc(unit)}</b></span></span></div>`;
     const tip = $('#sTip'), svg = el.querySelector('svg');
     el.querySelectorAll('rect[data-i]').forEach(r => {
       r.onmouseenter = () => {
@@ -256,6 +262,5 @@
       { el: '#sTable', title: 'Thuốc vay thường xuyên', text: 'Xếp theo số lần vay. Cột <b>Dự báo</b> gợi ý lượng cần dự trù cho kỳ tới, so với tồn nhà thuốc. Bấm một thuốc để xem biểu đồ riêng.' },
       { el: '#sXls', title: 'Xuất Excel', text: 'Xuất bảng thống kê, ma trận thuốc × kỳ và tổng theo kỳ để gửi dự trù.' },
     ],
-    subs: () => Object.entries(GRAN).map(([k, g]) => ({ arg: k, label: `Theo ${g.label.toLowerCase()}` })),
   });
 })(window.VM);

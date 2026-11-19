@@ -133,7 +133,7 @@ VinmecProject/
 ### 6.2. Bán hàng (POS)
 - Tiêu đề "Vinmec Pharmacy". Nút trên cùng: Thêm hàng mới (ngoài danh mục), Báo cáo trong ngày (Excel), Đơn mới (F9). Thiết kế tối giản: mã đơn, mã hàng, tồn, lô/HSD chỉ hiện khi bấm "Hiển thị tất cả".
 - Trái: tab Thuốc / TPCN / Vật tư / Khác, ô "Tìm kiếm" **fuzzy** (không dấu, sai chính tả, mã SAP; máy quét mã vạch → Enter thêm ngay), nhập bằng giọng nói; danh sách hàng mỗi dòng: nhóm, tên, cảnh báo hết hàng/cận hạn, giá/ĐVT. Chọn bằng chuột hoặc ↑ ↓ Enter.
-- Phải (cố định): giỏ hàng thấy 6–7 mặt hàng không cần cuộn – đổi **ĐVT có hệ số quy đổi** (viên/vỉ/hộp), +/- số lượng, cảnh báo vượt tồn tại dòng, sửa giá (ghi nhật ký), hàng đặc biệt (tên người bán); khách/PID (không bắt buộc) trong mục gập; tổng tiền và 2 nút thanh toán ngay dưới giỏ.
+- Phải (cố định): giỏ hàng thấy 6–7 mặt hàng không cần cuộn – đổi **ĐVT có hệ số quy đổi** (viên/vỉ/hộp), +/- số lượng, cảnh báo vượt tồn tại dòng, đơn giá theo Danh mục (không sửa tại quầy, bỏ 19/11/2026), hàng đặc biệt (ĐVT mặc định Viên) (tên người bán); khách/PID (không bắt buộc) trong mục gập; tổng tiền và 2 nút thanh toán ngay dưới giỏ.
 - Thanh toán: **QR (VietQR, có mã đơn trong nội dung)** hoặc **Tiền mặt** (nhập tiền khách đưa → tiền thối, nút mệnh giá nhanh). Xác nhận → lưu đơn, trừ tồn, in phiếu.
 - Quy tắc: không bán hàng hết hạn / hết tồn / ngừng bán; chống bấm xác nhận 2 lần; nháp giỏ hàng tự lưu.
 

@@ -9,8 +9,8 @@
   // 3 nghiệp vụ chính = 3 biểu tượng trên rail; "Khác" gom Tổng quan / Sao lưu / Cài đặt
   const GROUPS = {
     retail: { label: 'Bán lẻ', icon: 'cart', home: 'pos' },
-    loans: { label: 'Sổ vay', icon: 'swap', home: 'loans' },
-    invoices: { label: 'Hóa đơn', icon: 'file', home: 'invoices', full: 'Sổ hóa đơn' },
+    loans: { label: 'Sổ vay', icon: 'swap', home: 'loans', noCur: true },
+    invoices: { label: 'Hóa đơn', icon: 'file', home: 'invoices', full: 'Sổ hóa đơn', noCur: true },
     system: { label: 'Khác', icon: 'grid', home: 'dashboard', full: 'Tổng quan & hệ thống' },
   };
   const register = def => modules.push(def);
@@ -59,6 +59,11 @@
     $('#detailBtn').onclick = () => setDetail(!$('#app').classList.contains('show-all'));
     setDetail(localStorage.getItem(LS_DETAIL) === '1', true);
     window.addEventListener('scroll', () => $('#topbar') && $('#topbar').classList.toggle('scrolled', window.scrollY > 4), { passive: true });
+    // Thanh tiêu đề tự thu gọn nút khi tiêu đề bị cắt (rèm mở / cửa sổ hẹp / màn có nhiều nút)
+    let fitRaf = 0;
+    const fitLater = () => { cancelAnimationFrame(fitRaf); fitRaf = requestAnimationFrame(fitTop); };
+    if (window.ResizeObserver) new ResizeObserver(fitLater).observe($('#topbar'));
+    new MutationObserver(fitLater).observe($('#topActions'), { childList: true, subtree: true });
     renderMe();
     renderNav();
     renderBackupChip();
@@ -72,13 +77,24 @@
     try { localStorage.setItem(LS_DETAIL, on ? '1' : '0'); } catch (e) { }
     if (!silent) window.dispatchEvent(new Event('vm-detail'));
   }
+  // Bậc 1: nút phụ chỉ còn icon · bậc 2: bỏ chữ "Hiển thị tất cả" và phím tắt · bậc 3: nút chính cũng chỉ còn icon.
+  // Chữ của nút vẫn còn trong title (rê chuột / giữ lâu để xem).
+  function fitTop() {
+    const tb = $('#topbar'), h = $('#pageTitle');
+    if (!tb || !h) return;
+    $$('#topActions .btn').forEach(b => { const l = b.querySelector('.label'); if (!b.title && l) b.title = l.textContent.trim(); });
+    tb.classList.remove('fit1', 'fit2', 'fit3', 'fit4');
+    for (const c of ['fit1', 'fit2', 'fit3', 'fit4']) { if (h.scrollWidth <= h.clientWidth + 1 && h.scrollHeight <= h.clientHeight + 1) break; tb.classList.add(c); }
+  }
   function setCur(open) {
     $('#app').classList.toggle('cur-open', open);
     if (window.innerWidth >= 768) localStorage.setItem(LS_CUR, open ? '1' : '0');
   }
-  // Bấm biểu tượng nhóm: đang ở nhóm đó thì mở/đóng rèm, nếu không thì sang trang chính của nhóm
+  // Bấm biểu tượng nhóm: đang ở nhóm đó thì mở/đóng rèm, nếu không thì sang trang chính của nhóm.
+  // Nhóm không có rèm (noCur: Sổ vay, Hóa đơn – bỏ theo yêu cầu khoa 19/11/2026) thì luôn về trang chính của nhóm.
   function railClick(g) {
-    if (groupOf(current) === g) { setCur(!$('#app').classList.contains('cur-open')); return; }
+    if (groupOf(current) === g && !GROUPS[g].noCur) { setCur(!$('#app').classList.contains('cur-open')); return; }
+    if (GROUPS[g].noCur && current === GROUPS[g].home && !currentArg) return;
     go(GROUPS[g].home);
   }
 
@@ -144,6 +160,7 @@
     $('#pageTitle').textContent = m.head || m.title;
     $('#pageIc').innerHTML = icon(m.icon);
     $('#app').dataset.area = m.group || 'system';
+    $('#app').classList.toggle('no-cur', !!(GROUPS[m.group] || {}).noCur);
     $('#detailBtn').classList.toggle('hidden', !m.detail);
     document.title = m.title + ' · Vinmec Pharmacy Hub';
     $('#topActions').innerHTML = '';
@@ -151,6 +168,7 @@
     view.innerHTML = '';
     view.className = 'content view-' + m.id;
     cleanup = m.render(view, $('#topActions'), currentArg);
+    fitTop();
     renderNav();
     window.scrollTo(0, 0);
     $('#tourBtn').classList.toggle('hidden', !(VM.tour && VM.tour.has(m.id)));
@@ -277,6 +295,7 @@
     stack.push(api);
     ov.querySelector('.close').onclick = () => close();
     ov.addEventListener('mousedown', e => { if (e.target === ov && dismissable) close(); });
+    bindUnitPick(ov);
     if (onMount) onMount(ov, close);
     setTimeout(() => { const f = ov.querySelector('[autofocus]') || ov.querySelector('.modal-b input:not([type=hidden]):not([readonly]),.modal-b select,.modal-b textarea') || ov.querySelector('.modal-f .btn.primary'); f && f.focus(); }, 30);
     return api;
@@ -320,6 +339,35 @@
   const staffOptions = () => VM.store.state.staff.map(s => `<option value="${esc(s.name)}">`).join('');
   const storeOptions = (sel) => VM.store.state.settings.stores.map(s => `<option value="${esc(s.code)}" ${s.code === sel ? 'selected' : ''}>${esc(s.code)} – ${esc(s.name)}</option>`).join('');
 
+  // ---------- Ô chọn đơn vị tính (dùng chung) ----------
+  // Danh sách sổ xuống (mặc định Viên) + "Khác…" để tự gõ. Giá trị thật nằm trong ô <input> đi kèm (attrs: name / id / data-…),
+  // nên code đọc form không phải đổi gì. Gọi bindUnitPick(root) sau khi chèn HTML.
+  const UNITS = ['Viên', 'Vỉ', 'Hộp', 'Gói', 'Chai', 'Lọ', 'Ống', 'Tuýp', 'Cái', 'Bộ', 'Túi'];
+  function unitPick(value, attrs = '', opt = {}) {
+    const v = String(value == null ? '' : value).trim();
+    const known = UNITS.find(u => u.toLowerCase() === v.toLowerCase());
+    const list = v && !known ? [...UNITS, v] : UNITS;
+    const cur = known || v;
+    return `<div class="unit-pick">
+      <select class="select" data-unit-pick aria-label="${esc(opt.label || 'Đơn vị tính')}">${cur ? '' : '<option value="" selected>— Chọn ĐVT —</option>'}${list.map(u => `<option ${u === cur ? 'selected' : ''}>${esc(u)}</option>`).join('')}<option value="__other">Khác (tự gõ)…</option></select>
+      <input class="input hidden" ${attrs} value="${esc(cur)}" autocomplete="off" placeholder="Gõ ĐVT, VD: Lốc" aria-label="Đơn vị tính khác">
+    </div>`;
+  }
+  function bindUnitPick(root) {
+    root.querySelectorAll('[data-unit-pick]').forEach(sel => {
+      if (sel.dataset.bound) return;
+      sel.dataset.bound = '1';
+      const inp = sel.nextElementSibling, fire = () => { inp.dispatchEvent(new Event('input', { bubbles: true })); inp.dispatchEvent(new Event('change', { bubbles: true })); };
+      sel.addEventListener('change', () => {
+        const other = sel.value === '__other';
+        sel.closest('.unit-pick').classList.toggle('other', other);
+        inp.classList.toggle('hidden', !other);
+        if (other) { inp.value = ''; inp.focus(); } else inp.value = sel.value;
+        fire();
+      });
+    });
+  }
+
   /** Read all [name] fields of a container into an object */
   function formData(root) {
     const o = {};
@@ -327,5 +375,5 @@
     return o;
   }
 
-  VM.ui = { register, shell, route, go, rerender, teardown, renderNav, renderMe, renderBackupChip, toast, done, modal, confirm, print, pill, empty, staffOptions, storeOptions, formData, suggest, catBar, get current() { return current; }, modules };
+  VM.ui = { register, shell, route, go, rerender, teardown, renderNav, renderMe, renderBackupChip, toast, done, modal, confirm, print, pill, empty, staffOptions, storeOptions, formData, suggest, catBar, unitPick, bindUnitPick, UNITS, get current() { return current; }, modules };
 })(window.VM);

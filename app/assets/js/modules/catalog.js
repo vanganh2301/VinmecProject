@@ -61,8 +61,8 @@
     // #/catalog/alert (từ cảnh báo tồn thấp ở màn Bán hàng) → mở sẵn bộ lọc "Cần chú ý", mọi nhóm
     if (arg === 'alert') { f.state = 'alert'; f.cat = ''; f.q = ''; }
     top.innerHTML = `<input type="file" id="impFile" accept=".xlsx,.csv" hidden>
-      <button class="btn" id="tplBtn" title="Tải file Excel mẫu (10 cột)">${icon('sheet')}<span class="label">File mẫu</span></button>
-      <button class="btn" id="impBtn">${icon('upload')}<span class="label">Nhập Excel</span></button>
+      <button class="btn hide-m" id="tplBtn" title="Tải file Excel mẫu (10 cột)">${icon('sheet')}<span class="label">File mẫu</span></button>
+      <button class="btn hide-m" id="impBtn">${icon('upload')}<span class="label">Nhập Excel</span></button>
       <button class="btn" id="expBtn">${icon('download')}<span class="label">Xuất Excel</span></button>
       <button class="btn primary" id="addBtn">${icon('plus')}<span class="label">Thêm mặt hàng</span></button>`;
     view.innerHTML = `<div class="card ct-card">
@@ -124,28 +124,27 @@
   }
 
   function unitRow(u = { name: '', factor: '', price: '' }) {
-    return `<tr><td><input class="input" data-un value="${esc(u.name)}" placeholder="Vỉ / Hộp" list="unitNames"></td><td><input class="input num" data-uf inputmode="numeric" value="${esc(u.factor)}" placeholder="10"></td><td><input class="input num" data-up inputmode="numeric" value="${u.price === '' ? '' : num(u.price)}" placeholder="0"></td><td><button class="btn ghost icon sm" data-urm aria-label="Xóa đơn vị">${icon('trash', 's')}</button></td></tr>`;
+    return `<tr><td>${VM.ui.unitPick(u.name, 'data-un', { label: 'Đơn vị lớn hơn' })}</td><td><input class="input num" data-uf inputmode="numeric" value="${esc(u.factor)}" placeholder="10"></td><td><input class="input num" data-up inputmode="numeric" value="${u.price === '' ? '' : num(u.price)}" placeholder="0"></td><td><button class="btn ghost icon sm" data-urm aria-label="Xóa đơn vị">${icon('trash', 's')}</button></td></tr>`;
   }
 
   // Form thêm / sửa: 10 trường như file mẫu; mã SAP, mã vạch, quy đổi ĐVT… gom trong "Thông tin thêm"
   function openEditor(id) {
     const p = id ? VM.store.product(id) : null;
-    const d = p || { code: '', sap: '', gtin: '', name: '', strength: '', ingredient: '', category: f.cat || 'otc', group: '', store: 'Y001', units: [{ name: '', factor: 1, price: '' }], defaultUnit: '', stock: '', minStock: 10, lot: '', expiry: '', active: true, image: '' };
+    const d = p || { code: '', sap: '', gtin: '', name: '', strength: '', ingredient: '', category: f.cat || 'otc', group: '', store: 'Y001', units: [{ name: 'Viên', factor: 1, price: '' }], defaultUnit: '', stock: '', minStock: 10, lot: '', expiry: '', active: true, image: '' };
     const us = sortUnits(d.units), main = us[0], extra = us.slice(1);
     VM.ui.modal({
       title: p ? 'Sửa mặt hàng' : 'Thêm mặt hàng', sub: p ? `<span class="mono">${esc(p.code)}</span> · cập nhật lần cuối ${VM.fmtDT(p.updatedAt)}` : 'Điền 10 thông tin giống file Excel mẫu. Dấu <span class="req">*</span> là bắt buộc.', ic: 'package', size: 'lg',
       body: `<div class="form-grid pe-grid">
-        <div class="field c3"><label>Mã hàng <span class="req">*</span></label><input class="input mono" name="code" value="${esc(d.code)}" placeholder="VD: SAP011"></div>
-        <div class="field c6"><label>Tên hàng <span class="req">*</span></label><input class="input" name="name" value="${esc(d.name)}" placeholder="VD: Paracetamol 500mg viên nén"></div>
-        <div class="field c3"><label>Nhóm hàng <span class="req">*</span></label><select class="select" name="category">${Object.entries(CAT).map(([k, v]) => `<option value="${k}" ${d.category === k ? 'selected' : ''}>${v.label}</option>`).join('')}</select></div>
-        <div class="field c3"><label>Hàm lượng</label><input class="input" name="strength" value="${esc(d.strength || '')}" placeholder="500mg · Hộp 60 viên"></div>
-        <div class="field c3"><label>Kho</label><select class="select" name="store">${S().settings.stores.map(x => `<option value="${esc(x.code)}" ${x.code === d.store ? 'selected' : ''}>${esc(storeLabel(x.code))}</option>`).join('')}${S().settings.stores.some(x => x.code === d.store) ? '' : `<option value="${esc(d.store)}" selected>${esc(d.store)}</option>`}</select></div>
-        <div class="field c3"><label>Đơn vị tính <span class="req">*</span></label><input class="input" name="unit" id="pUnit" value="${esc(main.name)}" list="unitNames" placeholder="Hộp / Viên / Gói"></div>
-        <div class="field c3"><label>Giá bán (đ) <span class="req">*</span></label><input class="input num" name="price" inputmode="numeric" value="${main.price === '' ? '' : num(main.price)}" placeholder="0"></div>
-        <div class="field c3"><label>Số lượng tồn</label><input class="input num" name="stock" inputmode="numeric" value="${d.stock === '' ? '' : d.stock}" placeholder="0" ${p ? 'readonly title="Dùng nút Điều chỉnh tồn để thay đổi"' : ''}>${p ? '<button type="button" class="linkbtn hint" id="pAdj">' + icon('refresh', 's') + ' Điều chỉnh tồn (có lý do)</button>' : '<span class="hint">Theo đơn vị tính ở trên</span>'}</div>
-        <div class="field c3"><label>Hạn sử dụng <span class="req">*</span></label><input class="input" type="date" name="expiry" value="${esc(d.expiry)}"></div>
-        <div class="field c3"><label>Số lô</label><input class="input mono" name="lot" value="${esc(d.lot)}"></div>
-        <div class="c3"></div>
+        <div class="field c8"><label>Tên hàng <span class="req">*</span></label><input class="input" name="name" value="${esc(d.name)}" placeholder="VD: Paracetamol 500mg viên nén"></div>
+        <div class="field c4"><label>Mã hàng <span class="req">*</span></label><input class="input mono" name="code" value="${esc(d.code)}" placeholder="VD: SAP011"></div>
+        <div class="field c4 half"><label>Nhóm hàng <span class="req">*</span></label><select class="select" name="category">${Object.entries(CAT).map(([k, v]) => `<option value="${k}" ${d.category === k ? 'selected' : ''}>${v.label}</option>`).join('')}</select></div>
+        <div class="field c4 half"><label>Kho</label><select class="select" name="store">${S().settings.stores.map(x => `<option value="${esc(x.code)}" ${x.code === d.store ? 'selected' : ''}>${esc(storeLabel(x.code))}</option>`).join('')}${S().settings.stores.some(x => x.code === d.store) ? '' : `<option value="${esc(d.store)}" selected>${esc(d.store)}</option>`}</select></div>
+        <div class="field c4"><label>Hàm lượng</label><input class="input" name="strength" value="${esc(d.strength || '')}" placeholder="500mg · Hộp 60 viên"></div>
+        <div class="field c4"><label>Đơn vị tính <span class="req">*</span></label>${VM.ui.unitPick(main.name, 'name="unit" id="pUnit"', { label: 'Đơn vị tính nhỏ nhất' })}</div>
+        <div class="field c4 half"><label>Giá bán (đ) <span class="req">*</span></label><input class="input num" name="price" inputmode="numeric" value="${main.price === '' ? '' : num(main.price)}" placeholder="0"></div>
+        <div class="field c4 half"><label>Số lượng tồn</label><input class="input num" name="stock" inputmode="numeric" value="${d.stock === '' ? '' : d.stock}" placeholder="0" ${p ? 'readonly title="Dùng nút Điều chỉnh tồn để thay đổi"' : ''}>${p ? '<button type="button" class="linkbtn hint" id="pAdj">' + icon('refresh', 's') + ' Điều chỉnh tồn (có lý do)</button>' : '<span class="hint">Tính theo đơn vị tính đã chọn</span>'}</div>
+        <div class="field c6 half"><label>Hạn sử dụng <span class="req">*</span></label><input class="input" type="date" name="expiry" value="${esc(d.expiry)}"></div>
+        <div class="field c6 half"><label>Số lô</label><input class="input mono" name="lot" value="${esc(d.lot)}"></div>
         <details class="c12 pe-more"><summary>${icon('chevr', 's')}<b>Thông tin thêm</b><span class="muted">không bắt buộc · mã SAP, mã vạch, quy đổi Vỉ/Hộp, tồn tối thiểu${p ? ', ngừng bán' : ''}</span></summary>
           <div class="form-grid" style="margin-top:12px">
             <div class="field c4"><label>Mã SAP</label><input class="input mono" name="sap" value="${esc(d.sap || '')}"><span class="hint">Cần cho file điều chuyển SAP</span></div>
@@ -153,7 +152,6 @@
             <div class="field c4"><label>Hoạt chất</label><input class="input" name="ingredient" value="${esc(d.ingredient || '')}"></div>
             <div class="c12"><div class="label-t" style="margin-bottom:6px">Đơn vị lớn hơn <span class="muted small">— hệ số = số <b id="pBaseN">${esc(main.name || 'ĐVT')}</b> trong 1 đơn vị (VD: 1 hộp = 10 vỉ)</span></div>
               <table class="t lines-tbl"><thead><tr><th>Đơn vị</th><th style="width:120px">Hệ số</th><th style="width:160px">Giá bán (đ)</th><th style="width:44px"></th></tr></thead><tbody id="uRows">${extra.map(unitRow).join('')}</tbody></table>
-              <datalist id="unitNames"><option>Viên</option><option>Vỉ</option><option>Hộp</option><option>Chai</option><option>Lọ</option><option>Ống</option><option>Gói</option><option>Tuýp</option><option>Cái</option></datalist>
               <button class="btn ghost sm" id="uAdd" style="margin-top:6px">${icon('plus', 's')} Thêm đơn vị</button></div>
             <div class="field c4"><label>ĐVT bán mặc định</label><select class="select" name="defaultUnit" id="defUnit"></select></div>
             <div class="field c4"><label>Tồn tối thiểu (cảnh báo)</label><input class="input num" name="minStock" inputmode="numeric" value="${d.minStock}"></div>
@@ -172,10 +170,10 @@
           el.querySelector('#pBaseN').textContent = unitIn.value.trim() || 'ĐVT';
         };
         const bindRows = () => { $$('[data-urm]', rows).forEach(b => b.onclick = e => { e.preventDefault(); b.closest('tr').remove(); syncDef(); }); $$('[data-un]', rows).forEach(i => i.onchange = syncDef); };
-        el.querySelector('#uAdd').onclick = e => { e.preventDefault(); rows.insertAdjacentHTML('beforeend', unitRow()); bindRows(); rows.lastElementChild.querySelector('input').focus(); };
+        el.querySelector('#uAdd').onclick = e => { e.preventDefault(); rows.insertAdjacentHTML('beforeend', unitRow()); VM.ui.bindUnitPick(rows); bindRows(); rows.lastElementChild.querySelector('select').focus(); };
         unitIn.oninput = syncDef;
         bindRows(); syncDef();
-        if (!p) setTimeout(() => el.querySelector('[name=code]').focus(), 30);
+        if (!p) setTimeout(() => el.querySelector('[name=name]').focus(), 30);
         el.querySelector('[data-x]').onclick = () => close();
         el.querySelector('[data-ok]').onclick = () => {
           const v = VM.ui.formData(el), errs = [];

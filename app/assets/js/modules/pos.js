@@ -7,7 +7,12 @@
 
   let draft, busy = false, keyHandler = null, voice = null, voicePending = null, bar = null, cat = '';
   const draftKey = () => 'vmhub.draft.' + ((VM.store.currentUser() || {}).id || 'x');
-  function loadDraft() { try { draft = JSON.parse(localStorage.getItem(draftKey()) || 'null'); } catch { draft = null; } if (!draft) draft = { items: [], customer: '', pid: '' }; }
+  function loadDraft() {
+    try { draft = JSON.parse(localStorage.getItem(draftKey()) || 'null'); } catch { draft = null; }
+    if (!draft) draft = { items: [], customer: '', pid: '' };
+    // Không còn sửa giá tại quầy: giỏ dở từ bản cũ (đã sửa giá) quay về giá danh mục
+    draft.items.forEach(i => { if (!i.special && i.listPrice != null) i.price = i.listPrice; });
+  }
   const saveDraft = () => localStorage.setItem(draftKey(), JSON.stringify(draft));
 
   const total = () => VM.sum(draft.items, i => i.qty * i.price);
@@ -31,7 +36,7 @@
     const ai = S().settings.ai, mode = VM.ai.MODES[ai.stt] || VM.ai.MODES.off;
     top.innerHTML = `
       <button class="btn" id="addSpecial" title="Thêm hàng chưa có trong danh mục vào đơn">${icon('plus')}<span class="label">Thêm hàng mới</span></button>
-      <button class="btn" id="posXls" title="Xuất Excel các đơn bán trong ngày">${icon('download')}<span class="label">Báo cáo trong ngày</span></button>
+      <button class="btn hide-m" id="posXls" title="Xuất Excel các đơn bán trong ngày">${icon('download')}<span class="label">Báo cáo trong ngày</span></button>
       <button class="btn" id="newOrderBtn" title="Đơn mới (F9)">${icon('cart')}<span class="label">Đơn mới</span> <span class="kbd hide-m">F9</span></button>`;
     view.innerHTML = `
       <div class="pos">
@@ -40,6 +45,7 @@
           <div class="pos-search" id="posSearchBox">
             ${icon('search')}
             <input id="posSearch" type="search" autocomplete="off" placeholder="Tìm kiếm" aria-label="Tìm kiếm" aria-controls="posRes">
+            <button type="button" class="mic-tip" id="micTip" title="Mẹo tìm thuốc bằng giọng nói" aria-label="Mẹo tìm thuốc bằng giọng nói">${icon('help', 's')}</button>
             <button class="mic-btn" id="micBtn" title="Nhập bằng giọng nói (F3) – ${esc(mode.label)}" aria-label="Nhập bằng giọng nói" ${ai.stt === 'off' ? 'disabled' : ''}>${icon('mic')}</button>
           </div>
           <div class="voice-live hidden" id="voiceLive"></div>
@@ -84,6 +90,7 @@
       VM.history.exportSales(list, 'vinmec_bao_cao_ban_hang_trong_ngay');
     };
     $('#micBtn').onclick = toggleVoice;
+    $('#micTip').onclick = openVoiceTips;
     $('#addSpecial').onclick = openSpecial;
     $('#clearCart').onclick = async () => { if (!draft.items.length) return; if (await VM.ui.confirm({ title: 'Xóa toàn bộ giỏ hàng?', message: 'Các mặt hàng đã chọn sẽ bị xóa khỏi đơn đang tạo.', ok: 'Xóa giỏ', danger: true })) { draft.items = []; saveDraft(); renderCart(); } };
     $('#payQr').onclick = () => openPay('qr');
@@ -197,11 +204,11 @@
         const iss = lineIssue(it);
         const more = it.special ? `Ngoài danh mục · người bán ${it.seller || '—'}` : `${it.code} · Lô ${it.lot || '—'}${p ? ' · HSD ' + VM.fmtDate(p.expiry) + ' · tồn ' + VM.store.stockText(p) : ''}`;
         const unitSel = p && p.units.length > 1 ? `<select class="unit-sel" data-unit="${it.key}" aria-label="Đơn vị tính">${p.units.map(u => `<option ${u.name === it.unit ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select>` : `<span class="unit-txt">${esc(it.unit)}</span>`;
-        const edited = it.price !== it.listPrice && !it.special;
+        // Đơn giá lấy theo danh mục, không sửa tại quầy (đổi giá: Danh mục hàng → Sửa, có ghi nhật ký)
         return `<div class="crow ${iss ? 'bad' : ''}" data-key="${it.key}">
           <div class="cr-name" title="${esc(it.name)} – ${esc(more)}">
             <b>${it.special ? '<span class="spc">MỚI</span>' : ''}${esc(it.name)}</b>
-            <small>${unitSel}<button class="cr-price ${edited ? 'edited' : ''}" data-price="${it.key}" title="Sửa đơn giá">${num(it.price)}đ${edited ? ' ✎' : ''}</button><span class="xd">· ${esc(more)}</span></small>
+            <small>${unitSel}<span class="cr-price">${num(it.price)}đ</span><span class="xd">· ${esc(more)}</span></small>
             ${iss ? `<small class="cr-iss">⚠ ${esc(iss)}</small>` : ''}
           </div>
           <div class="stepper"><button data-dec="${it.key}" aria-label="Giảm">${icon('minus', 's')}</button><input inputmode="numeric" value="${it.qty}" data-qty="${it.key}" aria-label="Số lượng"><button data-inc="${it.key}" aria-label="Tăng">${icon('plus', 's')}</button></div>
@@ -223,7 +230,6 @@
       const it = find(s.dataset.unit), p = VM.store.product(it.productId), u = p.units.find(x => x.name === s.value);
       it.unit = u.name; it.factor = u.factor; it.price = u.price; it.listPrice = u.price; saveDraft(); renderCart();
     });
-    $$('[data-price]', el).forEach(b => b.onclick = () => editPrice(find(b.dataset.price)));
     $('#sumTotal').textContent = money(total());
     const issue = draft.items.length ? cartIssue() : null;
     $('#cartIssue').innerHTML = issue ? `<div class="alert bad">${icon('alert', 's')}<span>${esc(issue)}</span></div>` : '';
@@ -258,21 +264,13 @@
     });
   }
 
-  async function editPrice(it) {
-    const v = await VM.ui.confirm({ title: 'Sửa đơn giá', message: `<b>${esc(it.name)}</b><br><span class="muted">Giá danh mục: ${money(it.listPrice)}/${esc(it.unit.toLowerCase())}. Việc sửa giá sẽ được ghi vào nhật ký.</span>`, ok: 'Cập nhật giá', ic: 'edit', input: { label: 'Đơn giá mới (đ)', required: true, value: String(it.price) } });
-    if (v === false) return;
-    const n = Math.round(VM.parseNum(v));
-    if (n < 0) return VM.ui.toast('Giá không hợp lệ', 'bad');
-    it.price = n; saveDraft(); renderCart();
-  }
-
   function openSpecial() {
     const u = VM.store.currentUser();
     VM.ui.modal({
       title: 'Thêm hàng mới', sub: 'Hàng chưa có trong danh mục (theo nhu cầu khách). Ghi rõ người bán để đối soát.', ic: 'package',
       body: `<div class="form-grid">
         <div class="field c12"><label>Tên hàng <span class="req">*</span></label><input class="input" name="name" placeholder="VD: Băng thun cổ tay size M"></div>
-        <div class="field c6 half"><label>Đơn vị tính</label><input class="input" name="unit" list="unitList" value="Cái"><datalist id="unitList"><option>Hộp</option><option>Chai</option><option>Lọ</option><option>Ống</option><option>Vỉ</option><option>Viên</option><option>Cái</option><option>Gói</option></datalist></div>
+        <div class="field c6 half"><label>Đơn vị tính</label>${VM.ui.unitPick('Viên', 'name="unit"')}</div>
         <div class="field c6 half"><label>Số lượng <span class="req">*</span></label><input class="input" name="qty" inputmode="numeric" value="1"></div>
         <div class="field c6"><label>Đơn giá (đ) <span class="req">*</span></label><input class="input" name="price" inputmode="numeric"></div>
         <div class="field c6"><label>Tên người bán</label><input class="input" name="seller" list="staffList" value="${esc(u.name)}"><datalist id="staffList">${VM.ui.staffOptions()}</datalist></div>
@@ -280,11 +278,14 @@
       foot: `<button class="btn" data-x>Hủy</button><button class="btn primary" data-ok>${icon('plus', 's')} Thêm vào giỏ</button>`,
       onMount(el, close) {
         el.querySelector('[data-x]').onclick = () => close();
+        setTimeout(() => el.querySelector('[name=name]').focus(), 30);
+        el.querySelectorAll('input').forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); el.querySelector('[data-ok]').click(); } }));
         el.querySelector('[data-ok]').onclick = () => {
           const d = VM.ui.formData(el), qty = Math.floor(VM.parseNum(d.qty)), price = Math.round(VM.parseNum(d.price));
           const err = !d.name ? 'Nhập tên hàng' : qty <= 0 ? 'Số lượng phải > 0' : !(price > 0) ? 'Nhập đơn giá' : '';
-          if (err) { const e = el.querySelector('#spErr'); e.textContent = err; e.classList.remove('hidden'); return; }
-          draft.items.push({ key: VM.uid('c'), special: true, productId: '', code: 'DACBIET', sap: '', name: d.name, lot: '', store: '', unit: d.unit || 'Cái', factor: 1, qty, price, listPrice: price, seller: d.seller });
+          const err2 = err || (!d.unit ? 'Chọn hoặc gõ đơn vị tính' : '');
+          if (err2) { const e = el.querySelector('#spErr'); e.textContent = err2; e.classList.remove('hidden'); return; }
+          draft.items.push({ key: VM.uid('c'), special: true, productId: '', code: 'DACBIET', sap: '', name: d.name, lot: '', store: '', unit: d.unit, factor: 1, qty, price, listPrice: price, seller: d.seller });
           saveDraft(); renderCart(); close();
         };
       },
@@ -489,6 +490,30 @@
   }
   const splitVoice = t => t.split(/\s*(?:,|;|\bvà\b|\bva\b|\brồi\b|\bvới\b|\bthêm\b)\s*/i).map(x => x.trim()).filter(x => x.length > 1);
 
+  // Mẹo dùng micro: cách nói, sau khi nói thì làm gì, khi nghe sai thì sửa thế nào
+  function openVoiceTips() {
+    const ai = S().settings.ai, off = ai.stt === 'off', admin = VM.store.isAdmin();
+    const tip = (ic, t, d) => `<li><span class="vt-ic">${icon(ic, 's')}</span><div><b>${t}</b><span>${d}</span></div></li>`;
+    VM.ui.modal({
+      title: 'Mẹo tìm thuốc bằng giọng nói', sub: 'Nói tên thuốc thay vì gõ – app lọc danh sách, dược sĩ chọn đúng dòng', ic: 'mic',
+      body: `${off ? `<div class="alert warn" style="margin-bottom:12px">${icon('alert', 's')}<span>Giọng nói đang <b>tắt</b>. ${admin ? 'Bật ở Khác → Cài đặt → thẻ AI.' : 'Nhờ Quản lý bật ở Khác → Cài đặt → thẻ AI.'}</span></div>` : ''}
+        <ol class="voice-tips">
+          ${tip('mic', 'Bấm micro hoặc phím F3 rồi nói', 'Nút micro chuyển đỏ là đang nghe. Nói xong bấm lại micro (hoặc F3) để dừng; tối đa khoảng 10 giây.')}
+          ${tip('pill', 'Tên thuốc + số lượng + đơn vị', 'VD: <q>Paracetamol hai vỉ</q>, <q>Smecta 3 gói</q>. Nói tên biệt dược hoặc hoạt chất, thêm hàm lượng nếu có nhiều loại: <q>Omeprazole 20</q>.')}
+          ${tip('layers', 'Nhiều mặt hàng một lần', 'Ngăn cách bằng <q>và</q>, <q>rồi</q>, <q>với</q>: <q>Smecta ba gói và Vitamin C một hộp</q> → app mở hộp xác nhận từng dòng.')}
+          ${tip('check', 'Kiểm tra trước khi thêm', 'Một mặt hàng: danh sách bên dưới đã lọc sẵn, dòng tô màu là gợi ý đầu – bấm dòng đúng hoặc Enter. Không có gì vào giỏ nếu chưa chọn.')}
+          ${tip('x', 'Nghe sai?', 'Bấm <kbd>Esc</kbd> để xóa rồi nói lại, hoặc gõ vài chữ đầu tên thuốc. Gõ không dấu cũng được.')}
+          ${tip('info', 'Nói cho dễ nghe', 'Nói rõ, cách micro 20–30 cm, tránh lúc quầy ồn. Lần đầu trình duyệt hỏi quyền micro – chọn Cho phép.')}
+        </ol>`,
+      foot: `<button class="btn" data-x>Đóng</button>${off ? '' : `<button class="btn primary" data-go>${icon('mic', 's')} Bắt đầu nói <span class="kbd">F3</span></button>`}`,
+      onMount(el, close) {
+        el.querySelector('[data-x]').onclick = () => close();
+        const g = el.querySelector('[data-go]');
+        if (g) g.onclick = () => { close(); setTimeout(toggleVoice, 50); };
+      },
+    });
+  }
+
   async function toggleVoice() {
     const btn = $('#micBtn'), live = $('#voiceLive');
     if (!btn || btn.disabled) return;
@@ -496,7 +521,7 @@
     const setState = s => {
       btn.classList.toggle('on', s === 'listening'); btn.classList.toggle('busy', s === 'processing' || s === 'installing');
       live.classList.toggle('hidden', s === 'idle' && !voicePending);
-      if (s === 'listening') live.innerHTML = `${icon('mic', 's')} Đang nghe… nói tên thuốc + số lượng, VD: <b>“Paracetamol hai vỉ và Vitamin C một hộp”</b>. Bấm micro / F3 để dừng.`;
+      if (s === 'listening') live.innerHTML = `${icon('mic', 's')} Đang nghe… nói <b>tên thuốc + số lượng + ĐVT</b>, VD: <b>“Paracetamol hai vỉ và Vitamin C một hộp”</b>. Nói xong bấm micro / F3 để dừng.`;
       if (s === 'processing') live.innerHTML = S().settings.ai.stt === 'app' ? 'Đang chuyển giọng nói thành chữ…' : 'Đang chuyển giọng nói thành chữ trên máy chủ nội bộ…';
       if (s === 'installing') live.innerHTML = 'Đang tải gói tiếng Việt về máy (chỉ lần đầu)…';
       if (s === 'idle') voice = null;
@@ -514,7 +539,7 @@
   function applyVoice(text) {
     const segs = splitVoice(text), live = $('#voiceLive');
     live.classList.remove('hidden');
-    live.innerHTML = `${icon('mic', 's')} Nghe được: <b>“${esc(text)}”</b>`;
+    live.innerHTML = `${icon('mic', 's')} Nghe được: <b>“${esc(text)}”</b> <span class="muted">– bấm dòng đúng hoặc Enter; nghe sai thì Esc rồi nói lại</span>`;
     VM.store.log('Nhập bằng giọng nói', 'Bán lẻ', `“${text}”`);
     if (segs.length <= 1) {
       // Một mặt hàng: đưa vào ô tìm kiếm, dược sĩ chọn đúng dòng rồi Enter
@@ -561,13 +586,13 @@
 
   VM.pos = { printReceipt, receiptHtml };
   VM.ui.register({ id: 'pos', title: 'Bán hàng', head: 'Vinmec Pharmacy', group: 'retail', icon: 'cart', render, hot: true, detail: true,
-    keys: [['F2', 'Tìm hàng'], ['↑ ↓ Enter', 'Chọn hàng'], ['F3', 'Giọng nói'], ['F4', 'Thanh toán QR'], ['F8', 'Tiền mặt'], ['F9', 'Đơn mới']],
+    keys: [['F2', 'Tìm hàng'], ['↑ ↓ Enter', 'Chọn hàng'], ['F3', 'Giọng nói'], ['Esc', 'Xóa ô tìm / nghe sai'], ['F4', 'Thanh toán QR'], ['F8', 'Tiền mặt'], ['F9', 'Đơn mới']],
     tour: () => [
       { el: '#posSearchBox', title: 'Tìm hoặc quét thuốc', text: 'Gõ 1–2 chữ tên thuốc, hoạt chất hoặc mã (không dấu cũng được), danh sách bên dưới lọc ngay. Gõ <b>“2 para”</b> để thêm kèm số lượng. Máy quét mã vạch / DataMatrix: quét thẳng vào ô này. Phím tắt <kbd>F2</kbd>.' },
       { el: '#catBar .cat-tabs', title: 'Phân loại hàng', text: 'Bấm <b>Thuốc</b>, <b>TPCN</b>, <b>Vật tư</b> hoặc <b>Khác</b> để chỉ xem nhóm đó. Bấm lại (hoặc “Tất cả”) để bỏ lọc.' },
       { el: '#posRes', title: 'Danh sách hàng', text: 'Bấm một dòng (hoặc <kbd>↑</kbd> <kbd>↓</kbd> rồi <kbd>Enter</kbd>) để thêm vào giỏ. Hàng bán nhiều đứng trước.' },
-      { el: '#micBtn:not([disabled])', title: 'Nói tên thuốc', text: 'Bấm micro (hoặc <kbd>F3</kbd>) rồi đọc tên thuốc và số lượng. Nói nhiều mặt hàng thì app hỏi xác nhận từng dòng.' },
-      { el: '.cart', title: 'Giỏ hàng', text: 'Mỗi mặt hàng một dòng: đổi ĐVT, sửa đơn giá, tăng/giảm số lượng ngay trên dòng. Giỏ đang dở được giữ lại khi đổi ca.' },
+      { el: '#micBtn:not([disabled])', title: 'Nói tên thuốc', text: 'Bấm micro (hoặc <kbd>F3</kbd>) rồi đọc tên thuốc + số lượng + ĐVT, VD “Smecta ba gói”. Nói nhiều mặt hàng thì app hỏi xác nhận từng dòng. Nút <b>?</b> bên cạnh có đủ mẹo.' },
+      { el: '.cart', title: 'Giỏ hàng', text: 'Mỗi mặt hàng một dòng: đổi ĐVT, tăng/giảm số lượng ngay trên dòng. Đơn giá lấy theo Danh mục, không sửa tại quầy. Giỏ đang dở được giữ lại khi đổi ca.' },
       { el: '.pay-btns', title: 'Thanh toán', text: '<kbd>F4</kbd> chuyển khoản QR · <kbd>F8</kbd> tiền mặt. Sau khi thanh toán có thể in phiếu.' },
       { el: '#detailBtn', title: 'Hiển thị tất cả', text: 'Mặc định chỉ hiện thông tin cần thiết. Bấm để xem thêm mã hàng, lô, HSD, tồn kho, mã đơn… bấm lại để thu gọn.' },
       { el: '#newOrderBtn', title: 'Đơn mới, thêm hàng mới, báo cáo', text: '<kbd>F9</kbd> mở đơn mới. “Thêm hàng mới” để bán mặt hàng chưa có trong danh mục; “Báo cáo trong ngày” xuất Excel các đơn bán hôm nay.' },

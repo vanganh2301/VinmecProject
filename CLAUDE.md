@@ -485,6 +485,14 @@ Mức cảnh báo của `backup.status()`:
 
 ## 8. Nhật ký thay đổi
 
+### 19/11/2026 – Số tiền thanh toán không còn tràn, thử AI với khóa OpenAI thật (nhánh `Duy`)
+
+- **Điện thoại (≤767px):** thành tiền từng dòng trong giỏ rơi vào cột 28px của nút × nên bị cắt → xếp lại `"nm nm x" / "st tt tt"`. Cột giỏ dùng `minmax(0,1fr)` thay `1fr`, đầu giỏ cho xuống dòng (pill "Chưa có TK QR" + "tồn thấp" từng kéo rộng cả trang). Tổng tiền, số tiền trong hộp thanh toán, tiền thối co theo bề rộng (`clamp`).
+- **Máy tính:** cột thành tiền 88px cắt số ≥ 10 chữ số → `minmax(88px, max-content)`.
+- **768–1024px:** nút trên thanh tiêu đề không co nên đẩy "Hiển thị tất cả" và "?" ra ngoài, phải kéo ngang ở Bán hàng / Danh mục / Sổ vay / Sổ hóa đơn → các nút chỉ còn icon ở khoảng này.
+- Kiểm tra: đo `scrollWidth` của trang ở 10 màn (kể cả hộp thanh toán QR / tiền mặt) × 7 bề rộng (500–1440px), giỏ 4 mặt hàng × 999 (tổng 126.173.700 đ): không màn nào tràn (code cũ: 6 màn tràn ở 800px). QR 33/33 bước.
+- **AI thật (chỉ có `OPENAI_API_KEY`):** `npm run eval -- --provider openai` trên 30 ảnh hóa đơn mô phỏng + 16 câu giọng máy: OCR `gpt-4.1-mini` đúng 98,0% số ô, quyết toán đúng cả 4 trường 90%, 0 lỗi gọi, ~6 s/HĐ, ≈ $1,8 / 1.000 HĐ; giọng nói `gpt-4o-mini-transcribe` đúng tên thuốc 94,4% (hay sai "Omeprazole"), 0,5 s, ≈ $0,16 / 1.000 lần. Gemini / Qwen chưa có khóa nên chưa so được.
+
 ### 19/11/2026 – Gộp phần thanh toán QR từ prototype POS nhánh `main` (nhánh `Duy`)
 
 - Lấy từ `legacy/vinmec_ocp2_v1.html` (bản POS của nhánh `main`): sửa tài khoản nhận tiền ngay ở màn Bán hàng, hiện đủ ngân hàng / số TK / chủ TK, nút chép nội dung CK, nội dung CK không có dấu `-`, báo mất mạng khi tạo QR, tên chủ TK tự in hoa. Viết lại theo kiến trúc app (modal, `VM.store.log`, chỉ Quản lý được đổi tài khoản), không chép nguyên khối HTML.

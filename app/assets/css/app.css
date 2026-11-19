@@ -1079,6 +1079,13 @@ table.ct{table-layout:fixed;min-width:0}
   .topbar-actions{flex-shrink:0}
   .topbar>div:not(.topbar-actions){flex:1 1 auto}
 }
+/* Máy tính bảng / cửa sổ hẹp: nút trên thanh tiêu đề chỉ còn icon (chữ vẫn ở title), không đẩy "Hiển thị tất cả" và "?" ra ngoài màn hình */
+@media (min-width:768px) and (max-width:1024px){
+  .topbar-actions{flex-wrap:nowrap;gap:6px}
+  .topbar-actions .btn .label,.detail-btn .label{display:none}
+  .topbar-actions .btn,.detail-btn{padding:0 11px}
+  .topbar>div:not(.topbar-actions){flex:1 1 0;min-width:0}
+}
 @media (max-width:1380px){
   .page-ic{display:none}
 }
@@ -1157,7 +1164,7 @@ table.ct{table-layout:fixed;min-width:0}
 .pos .cart-h .low-btn:not(.hidden)~.cart-clear,.pos .cart-h .low-btn:not(.hidden)~.low-btn{margin-left:0}
 .pos .cart-h .low-btn{white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
 .pos .cart-items{flex:1 1 auto;min-height:150px;max-height:none;overflow-y:auto}
-.pos .crow{grid-template-columns:minmax(0,1fr) 106px 88px 28px;gap:8px;padding:5px 8px 5px 14px;min-height:52px}
+.pos .crow{grid-template-columns:minmax(0,1fr) 106px minmax(88px,max-content) 28px;gap:8px;padding:5px 8px 5px 14px;min-height:52px}
 .pos .crow .cr-name{min-width:0;display:flex;flex-direction:column;gap:1px}
 .pos .crow .cr-name b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pos .crow .cr-name small{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;min-width:0}
@@ -1168,7 +1175,7 @@ table.ct{table-layout:fixed;min-width:0}
 .pos .crow .cr-price{font-size:12px}
 .pos .crow .stepper button{width:32px;height:32px}
 .pos .crow .stepper input{width:40px;height:32px;font-size:14px}
-.pos .crow .cr-total{font-size:14px}
+.pos .crow .cr-total{font-size:14px;white-space:nowrap;text-align:right}
 .pos .crow .spc{margin-right:5px;vertical-align:1px}
 .cart-foot{border-top:1px solid var(--line);padding:10px 14px 14px;display:flex;flex-direction:column;gap:10px}
 .cart-foot .sum-total{border-top:0;padding-top:0}
@@ -1195,14 +1202,23 @@ table.ct{table-layout:fixed;min-width:0}
 .it .i-date{white-space:nowrap}
 
 @media (max-width:1024px){
-  .pos{grid-template-columns:1fr}
-  .pos>.cart{position:static;max-height:none}
+  .pos{grid-template-columns:minmax(0,1fr)}
+  .pos>.cart{position:static;max-height:none;min-width:0}
   .pos-res{max-height:46vh}
   .pos .cart-items{max-height:none}
 }
 @media (max-width:767px){
-  .pos .crow{grid-template-columns:minmax(0,1fr) 28px;grid-template-areas:"nm x" "st tt";row-gap:6px;padding:8px 10px}
-  .pos .crow .cr-name{grid-area:nm}.pos .crow .stepper{grid-area:st;justify-self:start}.pos .crow .cr-total{grid-area:tt;align-self:center}.pos .crow .c-del{grid-area:x}
+  /* thành tiền nằm cùng hàng với bước số lượng, chiếm phần còn lại (trước đây rơi vào cột 28px của nút × nên bị cắt) */
+  .pos .crow{grid-template-columns:auto minmax(0,1fr) 28px;grid-template-areas:"nm nm x" "st tt tt";row-gap:6px;padding:8px 10px}
+  .pos .crow .cr-name{grid-area:nm}.pos .crow .stepper{grid-area:st;justify-self:start}.pos .crow .cr-total{grid-area:tt;align-self:center;justify-self:end;min-width:0;max-width:100%;overflow-wrap:anywhere;text-align:right}.pos .crow .c-del{grid-area:x}
+  /* đầu giỏ: các pill xuống dòng thay vì kéo rộng cả trang */
+  .pos .cart-h{flex-wrap:wrap;row-gap:6px}
+  .pos .cart-h h3{white-space:nowrap}
+  .cart-foot .sum-total{flex-wrap:wrap;gap:4px 10px}
+  .cart-foot .sum-total strong{font-size:clamp(22px,7.4vw,28px);min-width:0;overflow-wrap:anywhere}
+  .amount-big{font-size:clamp(26px,9vw,34px);overflow-wrap:anywhere}
+  .change strong{font-size:clamp(18px,6vw,22px);overflow-wrap:anywhere;text-align:right}
+  .pay-btns .btn{min-width:0}
   .pr-i{grid-template-columns:44px minmax(0,1fr) auto;gap:8px}
   .pr-i .qtyb{display:none}
   .ht .h-code{width:70px}

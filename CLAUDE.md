@@ -272,7 +272,7 @@ IndexedDB `vmhub-backup` (**version 2**) có 2 store: `snapshots` (giữ 30 bả
 ```
 meta{createdAt,updatedAt,rev,demo}
 settings{pharmacyName, counter, bank{bin,account,owner}, stores[{code,name,plant,fundsCenter}],
-         suppliers[], loanOverdueHours=24, invoiceAlertDays=2, expiryWarnDays=90, priceDiffPct=5, snapshotMinutes=15,
+         suppliers[], loanOverdueHours=24, expiryWarnDays=90, priceDiffPct=5, snapshotMinutes=15,
          transfer{plant='1000', fundsCenter='1000', unit:'base'|'loan', fillLot=false},
          ai{stt:'off'|'local'|'server'|'app'|'cloud', ocr:'lan'|'app', ocrProvider, sttProvider /* 'auto'|'openai'|'gemini'|'qwen'|'local' */, sttUrl, ocrUrl, ocrModel, allowPublic=false}}
 aiStats{ocr{docs,fields,kept}, voice{n,top1}, by{'ocr:<nhà cung cấp>/<mô hình>':{docs,fields,kept}, 'voice:<…>':{n,top1}}}   // độ chính xác đo tại khoa
@@ -322,7 +322,7 @@ seq{ VAY<yyyymmdd>, ORD<yyyymmdd>, demoLoanHist, demoQtDay, demoCat2, demoCat3 }
   - `pending` nếu chưa ai xác nhận;
   - còn lại là `open`.
   - Phiếu quá hạn: đang mở và đã quá `loanOverdueHours` giờ.
-- **Trạng thái hóa đơn:** `no_invoice` → `received` → `handed` → `entered`, hoặc `cancelled`. Hóa đơn tồn đọng: đang ở `no_invoice`/`received` quá `invoiceAlertDays` ngày.
+- **Trạng thái hóa đơn:** `no_invoice` → `received` → `handed` → `entered`, hoặc `cancelled`. **Không** có hạn xử lý theo số ngày (bỏ ngày 19/11/2026: hóa đơn có thể nhập sau nhiều ngày mà không sao), nên không có tab / pill "Quá hạn" ở Sổ hóa đơn. Dữ liệu cũ còn `settings.invoiceAlertDays` thì bỏ qua; liên kết cũ `#/invoices/overdue` mở tab Chưa xong.
 - **Cảnh báo khi ghi hóa đơn:**
   - trùng NCC + số HĐ (bỏ số 0 ở đầu khi so);
   - hạn dùng còn dưới 180 ngày;
@@ -372,7 +372,7 @@ seq{ VAY<yyyymmdd>, ORD<yyyymmdd>, demoLoanHist, demoQtDay, demoCat2, demoCat3 }
   - **Nội dung CK** = mã đơn bỏ ký tự đặc biệt (`ORD-20261119-Q1-0001` → `ORD20261119Q10001`), vì nhiều ngân hàng tự bỏ dấu `-`. Ô tìm ở Lịch sử bán vẫn khớp vì `normalize` bỏ dấu `-`.
   - Hộp thanh toán QR: ảnh QR + ngân hàng / số TK / chủ TK / nội dung CK, nút **Chép** cho số TK và nội dung CK. Mất mạng (`navigator.onLine === false`) thì báo ngay, có nút Thử lại, có mạng lại tự tải lại.
   - Chưa có tài khoản: pill vàng **"Chưa có TK QR"** trên đầu giỏ + nút "Nhập tài khoản nhận tiền" trong hộp thanh toán, mở hộp nhập tài khoản ngay tại quầy (`openBank` trong `pos.js`). **Chỉ Quản lý** được lưu (nhân viên thường thấy chỉ đọc); mỗi lần đổi ghi nhật ký `Đổi tài khoản nhận CK`.
-  - **Không** có tài khoản mặc định (bản prototype dùng số TK mẫu `vietinbank 108876543210` – không đưa vào để tránh khách chuyển tiền vào tài khoản không phải của khoa).
+  - **Tài khoản mặc định của khoa** (xác nhận 19/11/2026): VietinBank (BIN `970415`) · `108876543210` · chủ TK `BV DKTQ VINMEC` (`VM.store.DEFAULT_BANK`, lấy từ prototype POS của nhánh `main`). Dữ liệu mới có sẵn; dữ liệu cũ đang trống tài khoản được `migrate()` điền **một lần** (cờ `seq.bankDefault`, dữ liệu mới đặt sẵn cờ) – Quản lý cố ý xóa trống thì không tự điền lại.
   - Ảnh QR lấy từ `img.vietqr.io`, nên cần Internet.
 - **Nhóm hàng** (`VM.store.CATEGORIES`): `otc` Thuốc OTC, `supp` Thực phẩm chức năng, `device` Vật tư y tế, `other` Khác. Mỗi nhóm có `label`, `short` (tag), `tab` (chữ trên tab), `icon`. `catOf(p)` trả nhóm của mặt hàng, nhóm lạ coi là `other`; `migrate()` cũng đổi nhóm không hợp lệ thành `other`.
 - **Thanh phân loại** `VM.ui.catBar(el, { cat, counts(), onCat(k) })` → `{ set, refresh, cat }`: tab Tất cả / Thuốc / TPCN / Vật tư / Khác kèm số mặt hàng; bấm lại tab đang chọn thì về Tất cả. Ở Bán hàng: lọc danh sách hàng bên trái; ở Danh mục: lọc bảng. (Nút "Hay bán" đã bỏ theo yêu cầu khoa ngày 18/11/2026; `topProducts` vẫn còn trong store, dùng cho Tổng quan.)
@@ -485,6 +485,13 @@ Mức cảnh báo của `backup.status()`:
 
 ## 8. Nhật ký thay đổi
 
+### 19/11/2026 – Bỏ hạn "quá 2 ngày" của hóa đơn, kết thúc ca không tự tải file sao lưu (nhánh `Duy`)
+
+- **Sổ hóa đơn:** bỏ tab "Quá 2 ngày", pill "Quá hạn" trên dòng, dòng "Quá hạn xử lý" trong chi tiết, mục "hóa đơn tồn quá N ngày" ở Tổng quan, ô "Hóa đơn tồn đọng sau (ngày)" ở Cài đặt (kể cả Excel Cài đặt) và hàm `VM.store.invoiceOverdue`. Badge Hóa đơn chỉ đỏ khi có hàng về chưa có HĐ. Lý do: hóa đơn có thể nhập sau nhiều ngày mà không sao.
+- **Kết thúc ca:** ô "Tải bản sao lưu trước khi kết thúc ca" mặc định **không** tick (trước đây tự tick khi `backup.status()` khác `ok`, nên mỗi lần kết thúc ca lại tải một file `.json`). Snapshot IndexedDB khi kết thúc ca vẫn chạy như cũ.
+- Thêm tài khoản nhận CK mặc định của khoa (xem §4).
+- Kiểm tra: 7/7 bước (tab hóa đơn, không còn chữ Quá hạn, liên kết cũ, Tổng quan, Cài đặt, ô sao lưu không tick), không lỗi JS.
+
 ### 19/11/2026 – Số tiền thanh toán không còn tràn, thử AI với khóa OpenAI thật (nhánh `Duy`)
 
 - **Điện thoại (≤767px):** thành tiền từng dòng trong giỏ rơi vào cột 28px của nút × nên bị cắt → xếp lại `"nm nm x" / "st tt tt"`. Cột giỏ dùng `minmax(0,1fr)` thay `1fr`, đầu giỏ cho xuống dòng (pill "Chưa có TK QR" + "tồn thấp" từng kéo rộng cả trang). Tổng tiền, số tiền trong hộp thanh toán, tiền thối co theo bề rộng (`clamp`).
@@ -497,7 +504,7 @@ Mức cảnh báo của `backup.status()`:
 
 - Lấy từ `legacy/vinmec_ocp2_v1.html` (bản POS của nhánh `main`): sửa tài khoản nhận tiền ngay ở màn Bán hàng, hiện đủ ngân hàng / số TK / chủ TK, nút chép nội dung CK, nội dung CK không có dấu `-`, báo mất mạng khi tạo QR, tên chủ TK tự in hoa. Viết lại theo kiến trúc app (modal, `VM.store.log`, chỉ Quản lý được đổi tài khoản), không chép nguyên khối HTML.
 - Danh sách ngân hàng chuyển từ `settings.js` sang `VM.store.BANKS`, thêm 12 ngân hàng (OCB, MSB, SeABank, LPBank, Eximbank…). Cài đặt cũng chuẩn hóa tên chủ TK khi lưu.
-- Không lấy: số tài khoản mẫu mặc định, nút "mô phỏng mất mạng", bước "Kiểm tra đơn" riêng trước khi thanh toán.
+- Không lấy: nút "mô phỏng mất mạng", bước "Kiểm tra đơn" riêng trước khi thanh toán. Tài khoản mặc định VietinBank 108876543210 ban đầu chưa lấy, khoa xác nhận là tài khoản của khoa nên đã thêm sau (xem §4).
 - Kiểm tra: 33/33 bước (chưa có TK → pill + nút khóa, nhập TK báo lỗi / lưu bằng Enter / ghi nhật ký, URL VietQR đúng, chép, mất mạng → có mạng lại, hoàn tất đơn QR, gỡ listener, nhân viên thường chỉ đọc, Cài đặt dùng chung danh sách), không lỗi JS; chụp 1440×900 thấy mã VietQR thật tải về đúng số tiền và nội dung.
 
 ### 19/11/2026 – Nhiều nhà cung cấp AI (OpenAI / Gemini / Qwen) + công cụ đánh giá (nhánh `Duy`)
@@ -641,7 +648,7 @@ Mức cảnh báo của `backup.status()`:
    - tool nhận số lượng theo **ĐVT nhỏ nhất** hay theo ĐVT khác (app đang mặc định quy đổi về ĐVT nhỏ nhất);
    - giá trị plans / Funds center cố định thật là gì (đang để `1000`).
 3. Sổ vay là "lấy tạm" hay "khoản nợ thuốc"? Hiện app hỗ trợ cả hai nhờ gạch sổ từng phần.
-4. Tài khoản ngân hàng nhận tiền qua QR; ai được quyền sửa giá bán lẻ.
+4. ~~Tài khoản ngân hàng nhận tiền qua QR~~: VietinBank 108876543210 (xác nhận 19/11/2026; còn cần xác nhận tên chủ TK chính xác, đang để `BV DKTQ VINMEC`). Ai được quyền sửa giá bán lẻ.
 5. Mỗi thuốc có một hay nhiều mã SAP? SAP/OH có API hoặc cơ chế import/export không?
 
 **Phase 2 – thử nghiệm tại khoa:**

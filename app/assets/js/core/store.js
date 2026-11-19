@@ -17,6 +17,8 @@
   // Ngân hàng nhận chuyển khoản VietQR: [mã BIN NAPAS, tên]. Dùng ở Cài đặt và hộp "Tài khoản nhận chuyển khoản" của Bán hàng
   const BANKS = [['970436', 'Vietcombank'], ['970415', 'VietinBank'], ['970418', 'BIDV'], ['970405', 'Agribank'], ['970407', 'Techcombank'], ['970422', 'MB Bank'], ['970416', 'ACB'], ['970432', 'VPBank'], ['970423', 'TPBank'], ['970403', 'Sacombank'], ['970441', 'VIB'], ['970437', 'HDBank'], ['970443', 'SHB'],
     ['970448', 'OCB'], ['970426', 'MSB'], ['970440', 'SeABank'], ['970449', 'LPBank'], ['970431', 'Eximbank'], ['970428', 'Nam A Bank'], ['970425', 'ABBANK'], ['970412', 'PVcomBank'], ['970409', 'Bac A Bank'], ['970452', 'Kienlongbank'], ['970438', 'BaoViet Bank'], ['970429', 'SCB']];
+  // Tài khoản nhận chuyển khoản mặc định của khoa (xác nhận 19/11/2026). Quản lý đổi được ở Cài đặt hoặc ngay trong hộp thanh toán
+  const DEFAULT_BANK = { bin: '970415', account: '108876543210', owner: 'BV DKTQ VINMEC' };
   const bankName = bin => (BANKS.find(b => b[0] === bin) || [, bin ? 'Mã NH ' + bin : ''])[1];
   // Tên chủ tài khoản theo kiểu ngân hàng: in hoa, không dấu (VD "Bệnh viện Vinmec" → "BENH VIEN VINMEC")
   const bankOwner = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase().replace(/\s+/g, ' ').trim();
@@ -65,14 +67,13 @@
       settings: {
         pharmacyName: 'Nhà thuốc Vinmec OPC2',
         counter: 'Q1',
-        bank: { bin: '', account: '', owner: '' },
+        bank: Object.assign({}, DEFAULT_BANK),
         stores: [
           { code: 'Y001', name: 'Nhà thuốc (ngoại trú)', plant: '', fundsCenter: '' },
           { code: 'Y003', name: 'Kho thuốc nội trú', plant: '', fundsCenter: '' },
         ],
         suppliers: ['Cty CP Dược phẩm An Khang Phát', 'Cty TNHH Phân phối Dược Hà Thành', 'Cty TNHH Thiết bị Y tế Bình Minh'],
         loanOverdueHours: 24,
-        invoiceAlertDays: 2,
         expiryWarnDays: 90,
         priceDiffPct: 5,
         snapshotMinutes: 15,
@@ -87,7 +88,7 @@
       sales: [],
       loans: [],
       invoices: [],
-      seq: {},
+      seq: { bankDefault: 1 },
       audit: [],
       aiStats: blankStats(),
     };
@@ -321,6 +322,14 @@
     if (s.settings && s.settings.ai && !s.settings.ai.ocr && VM.isHosted() && ['local', 'server'].includes(s.settings.ai.stt)) s.settings.ai.stt = 'app';
     s.settings.ai = Object.assign({}, base.settings.ai, s.settings.ai || {});
     s.settings.transfer = Object.assign({}, base.settings.transfer, s.settings.transfer || {});
+    // Dữ liệu cũ chưa có tài khoản nhận CK → điền tài khoản mặc định của khoa MỘT lần (cờ seq.bankDefault);
+    // nếu sau đó Quản lý cố ý xóa trống thì không tự điền lại
+    s.seq = s.seq || {};
+    if (!s.seq.bankDefault) {
+      const b = s.settings.bank || {};
+      if (!b.bin && !b.account) { s.settings.bank = Object.assign({}, DEFAULT_BANK); s.__migrated = true; }
+      s.seq.bankDefault = 1;
+    }
     // Kho HO2 là kho của toàn bệnh viện, không thuộc Khoa Dược → bỏ khỏi danh sách kho (bản cũ có sẵn trong dữ liệu mẫu)
     if (Array.isArray(s.settings.stores)) s.settings.stores = s.settings.stores.filter(x => !/^H[O0]2$/i.test(String(x.code || '').trim()));
     s.aiStats = Object.assign(blankStats(), s.aiStats || {});
@@ -481,14 +490,13 @@
     entered: { label: 'Đã nhập hệ thống', cls: 'ok', step: 3 },
     cancelled: { label: 'Đã hủy', cls: '', step: -1 },
   };
-  const invoiceOverdue = inv => (inv.status === 'no_invoice' || inv.status === 'received') && VM.daysUntil(inv.receivedAt) < -state.settings.invoiceAlertDays;
 
   load();
 
   VM.store = {
     get state() { return state; }, save, replace, onChange, log, currentUser, setUser, isAdmin, seedState,
     orderCode, loanCode, storeName, product, baseUnit, stockText, productIssue, sellable, matchScan, productFreq, topProducts, peopleFreq,
-    loanStatus, loanRemaining, loanOverdue, loanStores, LOAN_STORES, loanGroup, loanVouchers, voucherStatus, voucherOpen, calcInvoice, invoiceOverdue,
-    CATEGORIES, catOf, BANKS, bankName, bankOwner, payMemo, INVOICE_STATUS, KEY, SCHEMA, get saveErr() { return saveErr; },
+    loanStatus, loanRemaining, loanOverdue, loanStores, LOAN_STORES, loanGroup, loanVouchers, voucherStatus, voucherOpen, calcInvoice,
+    CATEGORIES, catOf, BANKS, DEFAULT_BANK, bankName, bankOwner, payMemo, INVOICE_STATUS, KEY, SCHEMA, get saveErr() { return saveErr; },
   };
 })(window.VM);

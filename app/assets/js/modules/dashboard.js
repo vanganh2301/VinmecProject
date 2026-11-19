@@ -155,13 +155,11 @@
     const lowStock = st.products.filter(p => p.active && p.stock > 0 && p.stock <= (p.minStock || 0));
     const out = st.products.filter(p => p.active && p.stock <= 0);
     const exp = st.products.filter(p => p.active && VM.daysUntil(p.expiry) <= st.settings.expiryWarnDays);
-    const invLate = invPending.filter(VM.store.invoiceOverdue);
     const recon = paid().filter(s => s.recon !== 'done');
     const bk = VM.backup.status();
     const items = [];
     if (overdue.length) items.push(['danger', 'swap', `${overdue.length} mã vay quá ${st.settings.loanOverdueHours}h chưa gạch sổ`, overdue.slice(0, 2).map(v => `${v.code} (${v.lines.length} thuốc)`).join(', '), 'loans/overdue']);
-    if (invLate.length) items.push(['danger', 'file', `${invLate.length} hóa đơn tồn quá ${st.settings.invoiceAlertDays} ngày`, 'Chưa bàn giao NVD / chưa có hóa đơn', 'invoices']);
-    if (noInv.length && !invLate.length) items.push(['warn', 'file', `${noInv.length} lô hàng về chưa có hóa đơn`, 'Theo dõi để tránh thừa thuốc trên kệ', 'invoices']);
+    if (noInv.length) items.push(['warn', 'file', `${noInv.length} lô hàng về chưa có hóa đơn`, 'Theo dõi để tránh thừa thuốc trên kệ', 'invoices']);
     if (out.length) items.push(['danger', 'package', `${out.length} mặt hàng đã hết`, out.slice(0, 3).map(p => p.name).join(', '), 'catalog']);
     if (lowStock.length) items.push(['warn', 'package', `${lowStock.length} mặt hàng sắp hết`, lowStock.slice(0, 3).map(p => p.name).join(', '), 'catalog']);
     if (exp.length) items.push(['warn', 'calendar', `${exp.length} mặt hàng cận hạn / hết hạn`, exp.slice(0, 3).map(p => `${p.name} (${VM.fmtDate(p.expiry)})`).join(', '), 'catalog']);

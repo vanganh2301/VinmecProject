@@ -148,7 +148,7 @@
           <div class="card kpi"><div class="kpi-ic info">${icon('cash')}</div><div><span>Doanh thu ca</span><strong style="font-size:18px">${money(VM.sum(mine, s => s.total))}</strong></div></div></div>
         <div class="muted small" style="margin-bottom:10px">Tiền mặt ${money(VM.sum(mine.filter(s => s.payment === 'cash'), s => s.total))} · QR ${money(VM.sum(mine.filter(s => s.payment === 'qr'), s => s.total))}</div>
         ${cart ? `<div class="alert warn">${icon('cart', 's')}<span>Giỏ hàng đang có <b>${cart}</b> mặt hàng chưa thanh toán – sẽ được giữ lại cho lần đăng nhập sau của bạn.</span></div>` : ''}
-        <label class="check"><input type="checkbox" id="loBk" ${bk.level !== 'ok' ? 'checked' : ''}> Tải bản sao lưu trước khi kết thúc ca</label>`,
+        <label class="check"><input type="checkbox" id="loBk"> Tải bản sao lưu trước khi kết thúc ca</label>`,
       foot: `<button class="btn" data-x>Ở lại</button><button class="btn primary" data-ok>${icon('logout', 's')} Kết thúc ca</button>`,
       onMount(el, close) {
         el.querySelector('[data-x]').onclick = () => close();

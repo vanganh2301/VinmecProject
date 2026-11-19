@@ -45,7 +45,6 @@
         <div class="card c6"><div class="card-h"><div class="kpi-ic warn" style="width:38px;height:38px">${icon('alert')}</div><div><h3>Ngưỡng cảnh báo</h3><div class="sub">Áp dụng cho badge menu, bảng điều khiển và các sổ</div></div></div>
           <div class="card-b form-grid">
             ${num('loanOverdueHours', 'Phiếu vay quá hạn sau (giờ)', st.loanOverdueHours)}
-            ${num('invoiceAlertDays', 'Hóa đơn tồn đọng sau (ngày)', st.invoiceAlertDays)}
             ${num('expiryWarnDays', 'Cảnh báo hạn dùng trước (ngày)', st.expiryWarnDays)}
             ${num('priceDiffPct', 'Chênh lệch giá nhập cần hỏi QLD (%)', st.priceDiffPct)}
             ${num('snapshotMinutes', 'Tạo điểm khôi phục mỗi (phút)', st.snapshotMinutes)}
@@ -137,7 +136,7 @@
       'Nhân viên': [['Mã NV', 'Họ tên', 'Vai trò', 'Kho', 'Quản lý'], ...S().staff.map(x => [x.id, x.name, x.role, x.store, x.admin ? 'Có' : ''])],
       'Nhà cung cấp': [['Nhà cung cấp'], ...st.suppliers.map(x => [x])],
       'Thông số': [['Thông số', 'Giá trị'], ['Tên nhà thuốc', st.pharmacyName], ['Mã quầy', st.counter],
-        ['Phiếu vay quá hạn sau (giờ)', st.loanOverdueHours], ['Hóa đơn tồn đọng sau (ngày)', st.invoiceAlertDays], ['Cảnh báo hạn dùng trước (ngày)', st.expiryWarnDays],
+        ['Phiếu vay quá hạn sau (giờ)', st.loanOverdueHours], ['Cảnh báo hạn dùng trước (ngày)', st.expiryWarnDays],
         ['Chênh lệch giá nhập cần hỏi (%)', st.priceDiffPct], ['Tạo điểm khôi phục mỗi (phút)', st.snapshotMinutes],
         ['File điều chuyển – plans', tr.plant || ''], ['File điều chuyển – Funds center', tr.fundsCenter || ''], ['File điều chuyển – số lượng theo', tr.unit === 'loan' ? 'ĐVT ghi trên phiếu' : 'ĐVT nhỏ nhất'],
         ['Giọng nói', (VM.ai.MODES[st.ai.stt] || {}).label || st.ai.stt], ['OCR hóa đơn', (VM.ai.OCR_MODES[st.ai.ocr] || {}).label || st.ai.ocr], ['Nhà cung cấp OCR', VM.ai.PROVIDERS[st.ai.ocrProvider || 'auto']], ['Nhà cung cấp giọng nói', VM.ai.PROVIDERS[st.ai.sttProvider || 'auto']], ['Máy chủ OCR', st.ai.ocrUrl], ['Mô hình OCR', st.ai.ocrModel]],

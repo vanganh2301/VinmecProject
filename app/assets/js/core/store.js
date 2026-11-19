@@ -14,6 +14,15 @@
   };
   const catOf = p => CATEGORIES[p && p.category] || CATEGORIES.other;
 
+  // Ngân hàng nhận chuyển khoản VietQR: [mã BIN NAPAS, tên]. Dùng ở Cài đặt và hộp "Tài khoản nhận chuyển khoản" của Bán hàng
+  const BANKS = [['970436', 'Vietcombank'], ['970415', 'VietinBank'], ['970418', 'BIDV'], ['970405', 'Agribank'], ['970407', 'Techcombank'], ['970422', 'MB Bank'], ['970416', 'ACB'], ['970432', 'VPBank'], ['970423', 'TPBank'], ['970403', 'Sacombank'], ['970441', 'VIB'], ['970437', 'HDBank'], ['970443', 'SHB'],
+    ['970448', 'OCB'], ['970426', 'MSB'], ['970440', 'SeABank'], ['970449', 'LPBank'], ['970431', 'Eximbank'], ['970428', 'Nam A Bank'], ['970425', 'ABBANK'], ['970412', 'PVcomBank'], ['970409', 'Bac A Bank'], ['970452', 'Kienlongbank'], ['970438', 'BaoViet Bank'], ['970429', 'SCB']];
+  const bankName = bin => (BANKS.find(b => b[0] === bin) || [, bin ? 'Mã NH ' + bin : ''])[1];
+  // Tên chủ tài khoản theo kiểu ngân hàng: in hoa, không dấu (VD "Bệnh viện Vinmec" → "BENH VIEN VINMEC")
+  const bankOwner = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase().replace(/\s+/g, ' ').trim();
+  // Nội dung chuyển khoản: mã đơn bỏ ký tự đặc biệt (ORD-20261119-Q1-0001 → ORD20261119Q10001) vì nhiều ngân hàng tự bỏ dấu "-"
+  const payMemo = code => String(code || '').replace(/[^A-Za-z0-9]/g, '');
+
   function seedProducts() {
     const P = (code, sap, name, ingredient, category, group, units, defaultUnit, stock, lot, expiry, minStock = 20) =>
       ({ id: VM.uid('p_'), code, sap, name, ingredient, category, group, store: 'Y001', units, defaultUnit, stock, lot, expiry, minStock, active: true, image: '', updatedAt: VM.iso() });
@@ -480,6 +489,6 @@
     get state() { return state; }, save, replace, onChange, log, currentUser, setUser, isAdmin, seedState,
     orderCode, loanCode, storeName, product, baseUnit, stockText, productIssue, sellable, matchScan, productFreq, topProducts, peopleFreq,
     loanStatus, loanRemaining, loanOverdue, loanStores, LOAN_STORES, loanGroup, loanVouchers, voucherStatus, voucherOpen, calcInvoice, invoiceOverdue,
-    CATEGORIES, catOf, INVOICE_STATUS, KEY, SCHEMA, get saveErr() { return saveErr; },
+    CATEGORIES, catOf, BANKS, bankName, bankOwner, payMemo, INVOICE_STATUS, KEY, SCHEMA, get saveErr() { return saveErr; },
   };
 })(window.VM);

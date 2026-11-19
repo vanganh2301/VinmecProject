@@ -3,7 +3,7 @@
 (function (VM) {
   const { $, $$, esc, icon } = VM;
   const S = () => VM.store.state;
-  const BANKS = [['970436', 'Vietcombank'], ['970415', 'VietinBank'], ['970418', 'BIDV'], ['970405', 'Agribank'], ['970407', 'Techcombank'], ['970422', 'MB Bank'], ['970416', 'ACB'], ['970432', 'VPBank'], ['970423', 'TPBank'], ['970403', 'Sacombank'], ['970441', 'VIB'], ['970437', 'HDBank'], ['970443', 'SHB']];
+  const BANKS = VM.store.BANKS;
   const ROLES = ['Dược sĩ nhà thuốc', 'Dược sĩ kho nội trú', 'Nghiệp vụ dược', 'Quản lý / Trưởng khoa', 'Thu ngân'];
   let draft = null, dirty = false;
 
@@ -193,6 +193,7 @@
     if (st.bank.bin && !/^\d{6,20}$/.test(st.bank.account || '')) errs.push('Số tài khoản ngân hàng chỉ gồm chữ số');
     ['sttUrl', 'ocrUrl'].forEach(k => { const u = st.ai[k]; if (u && !/^https?:\/\//.test(u)) errs.push('Địa chỉ máy chủ AI phải bắt đầu bằng http:// hoặc https://'); });
     if (errs.length) return VM.ui.toast(errs.join(' · '), 'bad', 6000);
+    st.bank.owner = VM.store.bankOwner(st.bank.owner);
     draft.staff.forEach(s => delete s._new);
     S().settings = Object.assign(S().settings, st);
     S().staff = draft.staff;

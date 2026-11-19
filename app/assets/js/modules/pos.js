@@ -47,6 +47,7 @@
         </section>
         <aside class="card cart" aria-label="Giỏ hàng">
           <div class="cart-h"><h3>Giỏ hàng</h3><span class="pill pri" id="cartCount"></span><span class="order-code xd" id="orderCode" title="Mã đơn"></span>
+            <button type="button" class="pill warn low-btn hidden" id="bankBtn" title="Chưa có tài khoản nhận chuyển khoản – bấm để nhập">${icon('qr', 's')} Chưa có TK QR</button>
             <button type="button" class="pill warn low-btn hidden" id="lowBtn"></button>
             <button class="btn ghost icon sm cart-clear" id="clearCart" title="Xóa giỏ" aria-label="Xóa giỏ">${icon('trash', 's')}</button></div>
           <div class="cart-items" id="cartItems"></div>
@@ -88,6 +89,8 @@
     $('#payQr').onclick = () => openPay('qr');
     $('#payCash').onclick = () => openPay('cash');
     $('#lowBtn').onclick = openLow;
+    $('#bankBtn').onclick = () => openBank(drawBankBtn);
+    drawBankBtn();
 
     keyHandler = e => {
       if (document.querySelector('.overlay')) return;
@@ -295,24 +298,60 @@
     $('#custBox').open = false; renderCart(); $('#posSearch').focus();
   }
 
+  // ---------- tài khoản nhận chuyển khoản (VietQR) ----------
+  // Gộp từ bản POS của nhánh main: sửa tài khoản ngay tại quầy, chép nội dung CK, nội dung CK không dấu "-", báo mất mạng
+  const bankOk = () => { const b = S().settings.bank || {}; return !!(b.bin && b.account); };
+  const qrSrc = (b, amount, memo) => `https://img.vietqr.io/image/${encodeURIComponent(b.bin)}-${encodeURIComponent(b.account)}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(memo)}&accountName=${encodeURIComponent(b.owner || '')}`;
+  function drawBankBtn() { const b = $('#bankBtn'); if (b) b.classList.toggle('hidden', bankOk()); }
+
+  // Chỉ Quản lý được đổi (đổi tài khoản = đổi nơi nhận tiền của khách), mọi lần đổi ghi nhật ký
+  function openBank(onSaved) {
+    const admin = VM.store.isAdmin(), b = S().settings.bank || {};
+    VM.ui.modal({
+      title: 'Tài khoản nhận chuyển khoản', sub: 'Dùng để tạo mã VietQR kèm số tiền và mã đơn', ic: 'qr',
+      body: `${admin ? '' : `<div class="alert warn" style="margin-bottom:14px">${icon('info', 's')}<span>Chỉ <b>Quản lý</b> được đổi tài khoản nhận tiền. Nhờ quản lý vào ca để nhập, trong lúc chờ hãy thu tiền mặt.</span></div>`}
+        <fieldset ${admin ? '' : 'disabled'} style="border:0;padding:0;margin:0"><div class="form-grid">
+          <div class="field c6"><label for="bkBin">Ngân hàng <span class="req">*</span></label><select class="select" id="bkBin" name="bin"><option value="">— Chọn ngân hàng —</option>${VM.store.BANKS.map(([v, n]) => `<option value="${v}" ${b.bin === v ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>
+          <div class="field c6"><label for="bkAcc">Số tài khoản <span class="req">*</span></label><input class="input mono" id="bkAcc" name="account" inputmode="numeric" autocomplete="off" value="${esc(b.account || '')}" placeholder="VD: 1122334455"></div>
+          <div class="field c12"><label for="bkOwn">Chủ tài khoản <span class="req">*</span></label><input class="input" id="bkOwn" name="owner" autocomplete="off" value="${esc(b.owner || '')}" placeholder="BENH VIEN DA KHOA QUOC TE VINMEC"><span class="hint">Tự chuyển thành in hoa không dấu, giống tên hiện trên ứng dụng ngân hàng của khách.</span></div>
+        </div></fieldset><div class="err hidden" id="bkErr" style="margin-top:10px"></div>`,
+      foot: admin ? `<button class="btn" data-x>Hủy</button><button class="btn primary" data-ok>${icon('check')} Lưu tài khoản</button>` : '<button class="btn" data-x>Đóng</button>',
+      onMount(el, close) {
+        el.querySelector('[data-x]').onclick = () => close();
+        const ok = el.querySelector('[data-ok]');
+        if (!ok) return;
+        const own = el.querySelector('#bkOwn');
+        own.onblur = () => { own.value = VM.store.bankOwner(own.value); };
+        el.querySelectorAll('input').forEach(i => { i.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); ok.click(); } }; });
+        ok.onclick = () => {
+          const d = VM.ui.formData(el), nb = { bin: d.bin, account: d.account.replace(/[\s.-]/g, ''), owner: VM.store.bankOwner(d.owner) };
+          const err = !nb.bin ? 'Chọn ngân hàng' : !/^\d{6,20}$/.test(nb.account) ? 'Số tài khoản gồm 6–20 chữ số' : !nb.owner ? 'Nhập tên chủ tài khoản' : '';
+          const e = el.querySelector('#bkErr');
+          if (err) { e.textContent = err; e.classList.remove('hidden'); return; }
+          const old = S().settings.bank || {}, name = x => x.account ? `${VM.store.bankName(x.bin)} ${x.account}` : '(chưa có)';
+          S().settings.bank = nb;
+          VM.store.log('Đổi tài khoản nhận CK', 'Cài đặt', `${name(old)} → ${name(nb)} · ${nb.owner}`);
+          VM.store.save('settings');
+          close();
+          VM.ui.done('Đã lưu tài khoản nhận tiền', `${VM.store.bankName(nb.bin)} · ${nb.account}`);
+          if (onSaved) onSaved();
+        };
+      },
+    });
+  }
+
   // ---------- payment ----------
   function openPay(mode) {
     const issue = cartIssue();
     if (issue) { VM.ui.toast(issue, 'warn'); return; }
-    const t = total(), code = VM.store.orderCode(true), bank = S().settings.bank;
-    const hasBank = bank.bin && bank.account;
-    const qrUrl = hasBank ? `https://img.vietqr.io/image/${encodeURIComponent(bank.bin)}-${encodeURIComponent(bank.account)}-compact2.png?amount=${t}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(bank.owner || '')}` : '';
+    const t = total(), code = VM.store.orderCode(true), memo = VM.store.payMemo(code), admin = VM.store.isAdmin();
+    let hasBank = bankOk(), unbind = null;
     const cashQuick = [...new Set([t, Math.ceil(t / 10000) * 10000, Math.ceil(t / 50000) * 50000, Math.ceil(t / 100000) * 100000, Math.ceil(t / 200000) * 200000, Math.ceil(t / 500000) * 500000])].filter(v => v >= t).slice(0, 4);
     VM.ui.modal({
       title: 'Thanh toán', sub: `Đơn <b class="mono">${esc(code)}</b> · ${draft.items.length} mặt hàng`, ic: mode === 'qr' ? 'qr' : 'cash', size: 'lg',
+      onClose: () => { if (unbind) unbind(); },
       body: `<div class="seg" style="margin-bottom:16px"><button data-m="qr" class="${mode === 'qr' ? 'active' : ''}">${icon('qr', 's')} Chuyển khoản QR</button><button data-m="cash" class="${mode === 'cash' ? 'active' : ''}">${icon('cash', 's')} Tiền mặt</button></div>
-        <div data-pane="qr" class="${mode === 'qr' ? '' : 'hidden'}">
-          ${hasBank ? `<div class="pay-panel"><div class="qr-box" id="qrBox"><span class="muted small">Đang tải mã QR…</span></div>
-            <div><div class="muted small">Số tiền cần chuyển</div><div class="amount-big">${money(t)}</div>
-            <dl class="kv" style="margin-top:14px"><dt>Nội dung CK</dt><dd class="mono">${esc(code)}</dd><dt>Tài khoản</dt><dd>${esc(bank.account)}</dd><dt>Chủ TK</dt><dd>${esc(bank.owner || '')}</dd></dl>
-            <div class="alert info" style="margin-top:14px">${icon('info', 's')}<span>Chỉ bấm hoàn tất <b>sau khi đã kiểm tra tiền vào tài khoản</b>.</span></div></div></div>`
-          : `<div class="alert warn">${icon('alert', 's')}<span>Chưa cấu hình tài khoản nhận chuyển khoản. Vào <b>Cài đặt → Thanh toán QR</b> để nhập ngân hàng và số tài khoản, hoặc chọn Tiền mặt.</span></div>`}
-        </div>
+        <div data-pane="qr" id="qrPane" class="${mode === 'qr' ? '' : 'hidden'}"></div>
         <div data-pane="cash" class="${mode === 'cash' ? '' : 'hidden'}">
           <div class="muted small">Tổng cần thu</div><div class="amount-big" style="margin-bottom:14px">${money(t)}</div>
           <div class="field"><label for="given">Khách đưa (đ)</label><input class="input" id="given" inputmode="numeric" placeholder="${num(t)}" style="font-size:20px;min-height:54px;font-weight:700"></div>
@@ -339,12 +378,42 @@
             el.querySelector('#completeLbl').textContent = 'Đã thu tiền – Hoàn tất';
           }
         };
-        if (hasBank) {
-          const img = new Image(); img.alt = 'Mã QR thanh toán ' + money(t);
-          img.onload = () => { const b = el.querySelector('#qrBox'); if (b) { b.innerHTML = ''; b.appendChild(img); } };
-          img.onerror = () => { const b = el.querySelector('#qrBox'); if (b) b.innerHTML = `<div class="alert warn">${icon('alert', 's')}<span>Không tải được QR (mất mạng?). Khách có thể chuyển khoản thủ công theo thông tin bên cạnh, hoặc thu tiền mặt.</span></div>`; };
-          img.src = qrUrl;
-        }
+        // Mã QR là ảnh của img.vietqr.io nên cần Internet. Mất mạng: báo ngay, có mạng lại thì tự tải lại
+        const loadQr = () => {
+          const box = el.querySelector('#qrBox');
+          if (!box) return;
+          const fail = msg => { box.innerHTML = `<div class="qr-fail">${icon('alert')}<b>${msg}</b><span>Khách chuyển khoản thủ công theo thông tin bên cạnh, hoặc thu tiền mặt.</span><button type="button" class="btn sm" data-retry>${icon('refresh', 's')} Thử lại</button></div>`; box.querySelector('[data-retry]').onclick = loadQr; };
+          if (navigator.onLine === false) { fail('Đang mất mạng – chưa tạo được mã QR'); return; }
+          box.innerHTML = '<span class="muted small">Đang tải mã QR…</span>';
+          const img = new Image(); img.alt = 'Mã VietQR thanh toán ' + money(t);
+          img.onload = () => { if (box.isConnected) { box.innerHTML = ''; box.appendChild(img); } };
+          img.onerror = () => { if (box.isConnected) fail('Không tải được mã QR'); };
+          img.src = qrSrc(S().settings.bank, t, memo);
+        };
+        const drawQr = () => {
+          const pane = el.querySelector('#qrPane'), b = S().settings.bank || {};
+          hasBank = bankOk();
+          pane.innerHTML = !hasBank
+            ? `<div class="alert warn">${icon('alert', 's')}<span>Chưa có tài khoản nhận chuyển khoản nên chưa tạo được mã QR. ${admin ? 'Nhập tài khoản ngay tại đây' : 'Nhờ <b>Quản lý</b> nhập tài khoản'}, hoặc chọn <b>Tiền mặt</b>.</span></div>
+              ${admin ? `<button type="button" class="btn primary" data-bank style="margin-top:12px">${icon('qr', 's')} Nhập tài khoản nhận tiền</button>` : ''}`
+            : `<div class="pay-panel"><div class="qr-box" id="qrBox"></div>
+              <div><div class="muted small">Số tiền cần chuyển</div><div class="amount-big">${money(t)}</div>
+              <dl class="kv pay-kv"><dt>Ngân hàng</dt><dd>${esc(VM.store.bankName(b.bin))}</dd>
+                <dt>Số tài khoản</dt><dd><span class="mono">${esc(b.account)}</span><button type="button" class="btn ghost sm" data-copy="${esc(b.account)}" title="Chép số tài khoản">${icon('copy', 's')} Chép</button></dd>
+                <dt>Chủ TK</dt><dd>${esc(b.owner || '')}</dd>
+                <dt>Nội dung CK</dt><dd><span class="mono memo">${esc(memo)}</span><button type="button" class="btn ghost sm" data-copy="${esc(memo)}" title="Chép nội dung chuyển khoản">${icon('copy', 's')} Chép</button></dd></dl>
+              <div class="alert info" style="margin-top:12px">${icon('info', 's')}<span>Chỉ bấm hoàn tất <b>sau khi đã kiểm tra biến động số dư</b>: đúng số tiền, đúng nội dung CK.</span></div>
+              ${admin ? `<button type="button" class="btn ghost sm" data-bank style="margin-top:8px">${icon('edit', 's')} Đổi tài khoản nhận tiền</button>` : ''}</div></div>`;
+          pane.querySelectorAll('[data-bank]').forEach(x => { x.onclick = () => openBank(() => { drawQr(); upd(); drawBankBtn(); }); });
+          pane.querySelectorAll('[data-copy]').forEach(x => {
+            x.onclick = async () => { const v = x.dataset.copy, ok = await VM.copyText(v); VM.ui.toast(ok ? 'Đã chép: ' + v : 'Không chép được, đọc cho khách: ' + v, ok ? 'ok' : 'warn'); };
+          });
+          if (hasBank) loadQr();
+        };
+        const onOnline = () => { const box = el.querySelector('#qrBox'); if (box && !box.querySelector('img')) loadQr(); };
+        window.addEventListener('online', onOnline);
+        unbind = () => window.removeEventListener('online', onOnline);
+        drawQr();
         el.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { m = b.dataset.m; upd(); if (m === 'cash') given.focus(); });
         el.querySelectorAll('[data-cash]').forEach(b => b.onclick = () => { given.value = num(+b.dataset.cash); upd(); });
         given.oninput = upd;

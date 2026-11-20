@@ -25,7 +25,10 @@ const server = http.createServer(async (req, res) => {
       if (!h) { res.writeHead(404); res.end('{"error":"Không có API này"}'); return; }
       const chunks = []; for await (const c of req) chunks.push(c);
       const t = Date.now();
-      const out = await h(new Request('http://' + req.headers.host + req.url, { method: req.method, headers: req.headers, body: ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(chunks) }));
+      // IP lấy từ kết nối thật (dùng để chặn dò mật khẩu) – bỏ header do trình duyệt tự gửi để không giả mạo được
+      const headers = Object.assign({}, req.headers, { 'x-real-ip': req.socket.remoteAddress || 'local' });
+      delete headers['x-forwarded-for']; delete headers['x-forwarded-proto'];
+      const out = await h(new Request('http://' + req.headers.host + req.url, { method: req.method, headers, body: ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(chunks) }));
       const buf = Buffer.from(await out.arrayBuffer());
       if (u.pathname !== '/api/health') console.log(`${new Date().toLocaleTimeString('vi-VN')}  ${req.method} ${u.pathname} → ${out.status}  ${Date.now() - t} ms${out.status >= 400 ? '  ' + buf.toString().slice(0, 200) : ''}`);
       res.writeHead(out.status, Object.fromEntries(out.headers)); res.end(buf); return;
@@ -35,12 +38,16 @@ const server = http.createServer(async (req, res) => {
     let data = fs.readFileSync(file);
     // Báo cho app biết có máy chủ AI cùng địa chỉ → mặc định dùng "AI của app" như bản Vercel
     if (file.endsWith('index.html')) data = Buffer.from(data.toString('utf8').replace('<head>', '<head><script>window.VM_APP_API = true;</script>'));
-    res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
+    res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store', 'X-Frame-Options': 'SAMEORIGIN', 'X-Content-Type-Options': 'nosniff' });
     res.end(data);
   } catch (e) { console.error(e); res.writeHead(500); res.end(String(e.message || e)); }
 });
 
 const { summary } = await import(pathToFileURL(path.join(ROOT, 'api', '_providers.js')).href);
+const { db } = await import(pathToFileURL(path.join(ROOT, 'api', '_db.js')).href);
+let dbInfo;
+try { const d = await db(); dbInfo = d.kind === 'sqlite' ? 'SQLite ' + path.relative(ROOT, d.file) : 'Postgres (DATABASE_URL – dùng chung với bản Vercel)'; }
+catch (e) { dbInfo = 'LỖI: ' + e.message; }
 function listen() {
   server.once('error', e => { if (e.code === 'EADDRINUSE' && port < 8115) { console.log(`Cổng ${port} đang bận, thử ${port + 1}…`); port++; listen(); } else throw e; });
   server.listen(port, '127.0.0.1', () => {
@@ -50,6 +57,8 @@ function listen() {
     console.log('   Mở: ' + url);
     for (const [id, p] of Object.entries(s.providers)) console.log(`   ${p.ready ? '✓' : '·'} ${p.label.padEnd(28)} ${p.ready ? `OCR: ${p.ocr.join(', ') || '—'} · giọng nói: ${p.stt.join(', ') || '—'}` : 'chưa có khóa'}`);
     console.log(`   Mặc định: OCR → ${s.defaults.ocr || 'KHÔNG CÓ'}, giọng nói → ${s.defaults.stt || 'KHÔNG CÓ'}`);
+    console.log(`   Cơ sở dữ liệu (tài khoản + danh mục thuốc): ${dbInfo}`);
+    console.log('   Tạo tài khoản dược sĩ: npm run users -- help');
     console.log(' Dừng: Ctrl + C');
     console.log('='.repeat(64));
     if (!args.includes('--no-open')) exec((process.platform === 'win32' ? 'start "" ' : process.platform === 'darwin' ? 'open ' : 'xdg-open ') + url);

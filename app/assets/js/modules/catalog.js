@@ -1,4 +1,6 @@
-/* Danh mục hàng – thêm/sửa/ngừng bán, quy đổi ĐVT, điều chỉnh tồn, nhập/xuất Excel */
+/* Danh mục hàng – thêm/sửa/ngừng bán, quy đổi ĐVT, điều chỉnh tồn, nhập/xuất Excel.
+   Thông tin gốc của thuốc (mã, tên, nhóm, ĐVT, giá, mã SAP…) nằm ở danh mục hệ thống (VM.drugs, máy chủ): chỉ Trưởng khoa thêm / sửa.
+   Mọi dược sĩ vẫn điều chỉnh được tồn kho, số lô, HSD, tồn tối thiểu của nhà thuốc mình. */
 'use strict';
 (function (VM) {
   const { $, $$, esc, icon, money, num } = VM;
@@ -6,6 +8,9 @@
   const CAT = VM.store.CATEGORIES;
   const f = { q: '', cat: '', state: 'active' };
   let bar = null;
+  const head = () => VM.drugs.isHead();
+  const ONLY_HEAD = 'Chỉ Trưởng khoa được thêm thuốc mới vào danh mục hệ thống';
+  const LOCAL_NAMES = ['expiry', 'lot', 'minStock']; // dược sĩ sửa được (riêng nhà thuốc này)
 
   // File mẫu: đúng 10 cột theo mẫu của khoa. Số lượng tồn tính theo "Đơn vị tính" của dòng.
   const HEAD = ['Mã hàng', 'Tên hàng', 'Nhóm hàng', 'Hàm lượng', 'Kho', 'Đơn vị tính', 'Giá bán', 'Số lượng tồn', 'Hạn sử dụng', 'Số lô'];
@@ -64,8 +69,8 @@
       <button class="btn hide-m" id="tplBtn" title="Tải file Excel mẫu (10 cột)">${icon('sheet')}<span class="label">File mẫu</span></button>
       <button class="btn hide-m" id="impBtn">${icon('upload')}<span class="label">Nhập Excel</span></button>
       <button class="btn" id="expBtn">${icon('download')}<span class="label">Xuất Excel</span></button>
-      <button class="btn primary" id="addBtn">${icon('plus')}<span class="label">Thêm mặt hàng</span></button>`;
-    view.innerHTML = `<div class="card ct-card">
+      <button class="btn primary" id="addBtn" ${head() ? '' : `disabled title="${esc(ONLY_HEAD)}"`}>${icon('plus')}<span class="label">Thêm mặt hàng</span></button>`;
+    view.innerHTML = `<div id="cSys"></div><div class="card ct-card">
         <div class="toolbar">
           <div class="input-icon grow">${icon('search')}<input class="input" id="cQ" type="search" placeholder="Tên, hàm lượng, mã hàng, mã SAP, mã vạch…" value="${esc(f.q)}"></div>
           <div class="seg" id="cState"><button data-s="active">Đang bán</button><button data-s="alert">${icon('alert', 's')}Cần chú ý</button><button data-s="inactive">Ngừng bán</button><button data-s="all">Tất cả</button></div>
@@ -87,11 +92,37 @@
     draw();
   }
 
+  // Mặt hàng chỉ có trên máy này (dữ liệu cũ / dữ liệu mẫu): Trưởng khoa đưa lên danh mục hệ thống, người khác chỉ thấy thông báo
+  function drawSys() {
+    const box = $('#cSys');
+    if (!box) return;
+    const n = VM.drugs.localOnly().length;
+    if (!n) { box.innerHTML = ''; return; }
+    box.innerHTML = `<div class="alert ${head() ? 'warn' : 'info'}" style="margin-bottom:12px">${icon('info', 's')}<div style="flex:1"><b>${num(n)} mặt hàng chỉ có trên máy này</b>, chưa có trong danh mục thuốc chung của hệ thống. ${head() ? 'Đưa lên để mọi máy, mọi dược sĩ dùng chung (tồn kho / lô / HSD vẫn giữ riêng ở máy này).' : 'Trưởng khoa cần đưa các mặt hàng này lên danh mục hệ thống.'}</div>${head() ? `<button class="btn primary sm" id="cPush">${icon('upload', 's')} Đưa lên hệ thống</button>` : ''}</div>`;
+    const b = $('#cPush');
+    if (b) b.onclick = pushLocal;
+  }
+  async function pushLocal() {
+    const b = $('#cPush');
+    if (b) b.disabled = true;
+    await VM.drugs.sync(); // khớp trước theo mã với danh mục đã có trên máy chủ, tránh ghi đè bản mới hơn bằng dữ liệu cũ trên máy
+    const list = VM.drugs.localOnly();
+    if (!list.length) { drawSys(); return; }
+    const ok = await VM.ui.confirm({ title: 'Đưa lên danh mục hệ thống', message: `Thêm ${list.length} mặt hàng trên máy này vào danh mục thuốc chung. Mọi cơ sở, mọi dược sĩ sẽ thấy các thuốc này.`, ok: 'Đưa lên' });
+    if (!ok) { if (b) b.disabled = false; return; }
+    const r = await VM.drugs.bulk(list);
+    if (r.created || r.updated) { VM.store.log('Đưa danh mục lên hệ thống', 'Danh mục', `${r.created} thuốc mới, ${r.updated} cập nhật`); VM.store.save('drugs'); }
+    if (!r.ok) { VM.ui.toast(r.error + (r.errors ? ' ' + r.errors.slice(0, 3).map(x => x.error).join(' · ') : ''), 'bad', 8000); }
+    else VM.ui.done('Đã đưa lên danh mục hệ thống', `${r.created} thuốc mới, ${r.updated} cập nhật`);
+    draw();
+  }
+
   function draw() {
     $$('#cState [data-s]').forEach(b => b.classList.toggle('active', b.dataset.s === f.state));
     if (bar) bar.refresh();
+    drawSys();
     const l = list();
-    if (!l.length) { $('#cTable').innerHTML = VM.ui.empty('package', 'Không có mặt hàng', f.cat ? `Nhóm “${esc(CAT[f.cat].label)}” chưa có mặt hàng phù hợp.` : 'Thêm mặt hàng mới hoặc nhập từ file Excel.', `<button class="btn primary" onclick="VM.catalog.openEditor()">${icon('plus', 's')} Thêm mặt hàng</button>`); return; }
+    if (!l.length) { $('#cTable').innerHTML = VM.ui.empty('package', 'Không có mặt hàng', f.cat ? `Nhóm “${esc(CAT[f.cat].label)}” chưa có mặt hàng phù hợp.` : head() ? 'Thêm mặt hàng mới hoặc nhập từ file Excel.' : 'Danh mục thuốc do Trưởng khoa thêm.', head() ? `<button class="btn primary" onclick="VM.catalog.openEditor()">${icon('plus', 's')} Thêm mặt hàng</button>` : ''); return; }
     const warnDays = S().settings.expiryWarnDays;
     $('#cTable').innerHTML = `<table class="t ct"><thead><tr>
         <th class="ct-code">Mã hàng</th><th class="ct-name">Tên hàng</th><th class="ct-cat">Nhóm</th><th class="ct-str xd">Hàm lượng</th><th class="ct-kho xd">Kho</th>
@@ -129,12 +160,13 @@
 
   // Form thêm / sửa: 10 trường như file mẫu; mã SAP, mã vạch, quy đổi ĐVT… gom trong "Thông tin thêm"
   function openEditor(id) {
-    const p = id ? VM.store.product(id) : null;
+    const p = id ? VM.store.product(id) : null, lock = !head();
+    if (!p && lock) { VM.ui.toast(ONLY_HEAD, 'warn'); return; }
     const d = p || { code: '', sap: '', gtin: '', name: '', strength: '', ingredient: '', category: f.cat || 'otc', group: '', store: 'Y001', units: [{ name: 'Viên', factor: 1, price: '' }], defaultUnit: '', stock: '', minStock: 10, lot: '', expiry: '', active: true, image: '' };
     const us = sortUnits(d.units), main = us[0], extra = us.slice(1);
     VM.ui.modal({
       title: p ? 'Sửa mặt hàng' : 'Thêm mặt hàng', sub: p ? `<span class="mono">${esc(p.code)}</span> · cập nhật lần cuối ${VM.fmtDT(p.updatedAt)}` : 'Điền 10 thông tin giống file Excel mẫu. Dấu <span class="req">*</span> là bắt buộc.', ic: 'package', size: 'lg',
-      body: `<div class="form-grid pe-grid">
+      body: `${lock ? `<div class="alert info" style="margin-bottom:12px">${icon('shield', 's')}<span>Tên, mã, nhóm, ĐVT, giá… thuộc <b>danh mục hệ thống</b>, chỉ Trưởng khoa sửa được. Bạn cập nhật được <b>hạn sử dụng, số lô, tồn tối thiểu</b> và điều chỉnh tồn của nhà thuốc này.</span></div>` : ''}<div class="form-grid pe-grid">
         <div class="field c8"><label>Tên hàng <span class="req">*</span></label><input class="input" name="name" value="${esc(d.name)}" placeholder="VD: Paracetamol 500mg viên nén"></div>
         <div class="field c4"><label>Mã hàng <span class="req">*</span></label><input class="input mono" name="code" value="${esc(d.code)}" placeholder="VD: SAP011"></div>
         <div class="field c4 half"><label>Nhóm hàng <span class="req">*</span></label><select class="select" name="category">${Object.entries(CAT).map(([k, v]) => `<option value="${k}" ${d.category === k ? 'selected' : ''}>${v.label}</option>`).join('')}</select></div>
@@ -174,8 +206,32 @@
         unitIn.oninput = syncDef;
         bindRows(); syncDef();
         if (!p) setTimeout(() => el.querySelector('[name=name]').focus(), 30);
+        const errBox = el.querySelector('#pErr');
+        const showErr = list => { errBox.innerHTML = icon('alert', 's') + '<span>' + list.map(esc).join(' · ') + '</span>'; errBox.classList.remove('hidden'); };
+        if (lock) {
+          // Khóa thông tin gốc: chỉ để lại HSD, số lô, tồn tối thiểu (+ nút Điều chỉnh tồn)
+          $$('.pe-grid input, .pe-grid select, .pe-grid button', el).forEach(x => { if (!LOCAL_NAMES.includes(x.name) && x.id !== 'pAdj') { x.disabled = true; x.title = 'Chỉ Trưởng khoa sửa được'; } });
+          setTimeout(() => el.querySelector('[name=expiry]').focus(), 30);
+        }
         el.querySelector('[data-x]').onclick = () => close();
-        el.querySelector('[data-ok]').onclick = () => {
+        const okBtn = el.querySelector('[data-ok]');
+        // Lưu phần riêng của nhà thuốc này (không qua máy chủ)
+        const saveLocal = (obj, v, isNew) => {
+          Object.assign(obj, { minStock: Math.max(0, Math.floor(VM.parseNum(v.minStock))), lot: v.lot, expiry: v.expiry, updatedAt: VM.iso() });
+          if (isNew) obj.stock = Math.max(0, Math.floor(VM.parseNum(v.stock)));
+        };
+        if (lock) {
+          okBtn.onclick = () => {
+            const v = VM.ui.formData(el);
+            if (!v.expiry) return showErr(['Nhập hạn sử dụng']);
+            const before = `HSD ${VM.fmtDate(p.expiry)} · lô ${p.lot || '—'} · tối thiểu ${p.minStock}`;
+            saveLocal(p, v, false);
+            VM.store.log('Sửa HSD / lô / tồn tối thiểu', 'Danh mục', `${p.name}: ${before} → HSD ${VM.fmtDate(p.expiry)} · lô ${p.lot || '—'} · tối thiểu ${p.minStock}`, p.code);
+            VM.store.save('product'); close(); draw(); VM.ui.done('Đã lưu mặt hàng', p.name);
+          };
+          return;
+        }
+        okBtn.onclick = async () => {
           const v = VM.ui.formData(el), errs = [];
           const mainU = { name: String(v.unit || '').trim(), factor: 1, price: Math.round(VM.parseNum(v.price)) };
           const ex = extras(), units = [mainU, ...ex];
@@ -197,17 +253,29 @@
             else if (S().products.some(x => x !== p && x.gtin && VM.gtinKey(x.gtin) === VM.gtinKey(v.gtin))) errs.push('Mã vạch đã gắn cho mặt hàng khác');
           }
           if (errs.length) {
-            const e = el.querySelector('#pErr'); e.innerHTML = icon('alert', 's') + '<span>' + errs.map(esc).join(' · ') + '</span>'; e.classList.remove('hidden');
+            showErr(errs);
             if (errs.some(x => /SAP|vạch|đơn vị lớn|Hệ số|mọi đơn vị|trùng/.test(x))) el.querySelector('.pe-more').open = true;
             return;
           }
-          const obj = p || { id: VM.uid('p_'), group: '', image: '' };
           const sorted = sortUnits(units);
           const priceChanged = p && JSON.stringify(sortUnits(p.units).map(u => [u.name, u.price])) !== JSON.stringify(sorted.map(u => [u.name, u.price]));
-          Object.assign(obj, { code: v.code, sap: v.sap || '', gtin: v.gtin, name: v.name, strength: v.strength || '', ingredient: v.ingredient || '', category: v.category, store: v.store, units: sorted, defaultUnit: sorted.some(u => u.name === v.defaultUnit) ? v.defaultUnit : mainU.name, minStock: Math.max(0, Math.floor(VM.parseNum(v.minStock))), lot: v.lot, expiry: v.expiry, active: p ? v.active : true, updatedAt: VM.iso() });
-          if (!p) { obj.stock = Math.max(0, Math.floor(VM.parseNum(v.stock))); S().products.push(obj); VM.store.log('Thêm mặt hàng', 'Danh mục', obj.name, obj.code); }
+          const draft = { code: v.code, sap: v.sap || '', gtin: v.gtin, name: v.name, strength: v.strength || '', ingredient: v.ingredient || '', category: v.category, group: p ? p.group || '' : '', store: v.store, units: sorted, defaultUnit: sorted.some(u => u.name === v.defaultUnit) ? v.defaultUnit : mainU.name, active: p ? v.active : true };
+          // Thông tin gốc đổi (hoặc thuốc mới / chưa có trên hệ thống) → ghi lên danh mục hệ thống trước; mọi máy sẽ nhận bản mới
+          let obj = p;
+          if (!p || !p.drugId || JSON.stringify(VM.drugs.payload(p)) !== JSON.stringify(VM.drugs.payload(draft))) {
+            okBtn.disabled = true;
+            const r = await VM.drugs.save(p, draft);
+            okBtn.disabled = false;
+            if (!r.ok) {
+              showErr([r.status === 409 && p ? r.error + ' Đóng hộp này và mở lại để sửa trên bản mới nhất.' : r.error]);
+              return;
+            }
+            obj = r.product;
+          }
+          saveLocal(obj, v, !p);
+          if (!p) VM.store.log('Thêm mặt hàng', 'Danh mục', obj.name + ' (danh mục hệ thống)', obj.code);
           else VM.store.log(priceChanged ? 'Sửa mặt hàng (đổi giá)' : 'Sửa mặt hàng', 'Danh mục', priceChanged ? sorted.map(u => `${u.name}: ${money(u.price)}`).join(', ') : obj.name, obj.code);
-          VM.store.save('product'); close(); draw(); VM.ui.done('Đã lưu mặt hàng', obj.name);
+          VM.store.save('product'); close(); draw(); VM.ui.done(p ? 'Đã lưu mặt hàng' : 'Đã thêm vào danh mục hệ thống', obj.name);
         };
       },
     });
@@ -290,6 +358,7 @@
       const o = {}; keys.forEach((k, j) => { if (k && o[k] === undefined) o[k] = typeof r[j] === 'string' ? r[j].trim() : r[j]; });
       return parseRow(o, i + 2);
     });
+    if (!head()) parsed.forEach(x => { if (!x.exists) x.errs.unshift('mã mới – chỉ Trưởng khoa được thêm thuốc mới'); });
     const ok = parsed.filter(x => !x.errs.length), bad = parsed.filter(x => x.errs.length);
     VM.ui.modal({
       title: 'Xem trước dữ liệu nhập', sub: esc(file.name), ic: 'upload', size: 'xl',
@@ -298,35 +367,52 @@
         ${ok.length ? `<div class="table-wrap imp-prev"><table class="t"><thead><tr><th></th><th>Mã hàng</th><th>Tên hàng</th><th>Nhóm</th><th>Hàm lượng</th><th>Kho</th><th>ĐVT</th><th class="num">Giá bán</th><th class="num">Tồn</th><th>HSD</th><th>Số lô</th></tr></thead><tbody>
           ${ok.slice(0, 12).map(x => { const c = x.cat || (x.exists && x.exists.category) || 'other', u = x.units[0]; return `<tr><td>${x.exists ? VM.ui.pill('info', 'Cập nhật', 'refresh') : VM.ui.pill('ok', 'Mới', 'plus')}</td><td class="mono">${esc(x.o.code)}</td><td><b>${esc(x.o.name)}</b></td><td><span class="tag ${c}">${esc(CAT[c].short)}</span></td><td>${esc(x.o.strength ?? (x.exists && x.exists.strength) ?? '')}</td><td>${esc(storeLabel(storeFrom(x.o.store) || (x.exists && x.exists.store) || 'Y001'))}</td><td>${esc(u.name)}</td><td class="num">${money(u.price)}</td><td class="num">${x.stock === undefined ? '<span class="muted">giữ nguyên</span>' : num(x.stock)}</td><td>${VM.fmtDate(x.expiry)}</td><td class="mono">${esc(x.o.lot ?? '')}</td></tr>`; }).join('')}
           ${ok.length > 12 ? `<tr><td colspan="11" class="muted small">… và ${ok.length - 12} dòng nữa</td></tr>` : ''}</tbody></table></div>` : ''}
-        <label class="check"><input type="checkbox" id="impStock" checked> Cập nhật cả số lượng tồn từ file (bỏ chọn để chỉ cập nhật thông tin & giá)</label>
-        <div class="alert info">${icon('shield', 's')}<span>Hệ thống sẽ tự tạo bản sao lưu trước khi nhập.</span></div>`,
+        <label class="check"><input type="checkbox" id="impStock" checked> Cập nhật cả số lượng tồn từ file (bỏ chọn để chỉ cập nhật ${head() ? 'thông tin & giá' : 'lô, HSD, tồn tối thiểu'})</label>
+        <div class="alert info">${icon('shield', 's')}<span>${head() ? 'Tên, nhóm, ĐVT, giá, mã SAP… được ghi lên <b>danh mục hệ thống</b> (mọi máy dùng chung); tồn, lô, HSD giữ riêng ở nhà thuốc này.' : 'Bạn không phải Trưởng khoa: chỉ <b>tồn, lô, HSD, tồn tối thiểu</b> được cập nhật, tên / giá / ĐVT trong file được bỏ qua.'} Hệ thống tự tạo bản sao lưu trước khi nhập.</span></div>
+        <div class="alert bad hidden" id="impErr" style="margin-top:12px"></div>`,
       foot: `<button class="btn" data-x>Hủy</button><button class="btn primary" data-ok ${ok.length ? '' : 'disabled'}>${icon('check', 's')} Nhập ${ok.length} dòng</button>`,
       onMount(el, close) {
         el.querySelector('[data-x]').onclick = () => close();
-        el.querySelector('[data-ok]').onclick = async () => {
+        const btn = el.querySelector('[data-ok]'), errBox = el.querySelector('#impErr');
+        const has = (o, k) => o[k] !== undefined && o[k] !== null && String(o[k]).trim() !== '';
+        // Thông tin gốc của 1 dòng (gộp với mặt hàng đã có: ô trống thì giữ giá trị cũ)
+        const master = ({ o, units, exists, cat }) => {
+          const p = exists || {}, sorted = sortUnits(units), st = VM.normalize(String(o.status || '')).replace(/\s+/g, '');
+          return {
+            code: String(o.code).trim(), name: String(o.name).trim(), category: cat || p.category || 'other',
+            strength: has(o, 'strength') ? String(o.strength).trim() : (p.strength || ''),
+            store: (has(o, 'store') && storeFrom(o.store)) || p.store || 'Y001',
+            sap: has(o, 'sap') ? String(o.sap).trim() : (p.sap || ''), gtin: has(o, 'gtin') ? String(o.gtin).replace(/\D/g, '') : (p.gtin || ''),
+            ingredient: has(o, 'ingredient') ? String(o.ingredient).trim() : (p.ingredient || ''), group: has(o, 'group') ? String(o.group).trim() : (p.group || ''),
+            units: sorted, defaultUnit: sorted.find(u => u.name === String(o.defaultUnit || '')) ? String(o.defaultUnit) : sorted.find(u => u.name === p.defaultUnit) ? p.defaultUnit : sorted[0].name,
+            active: /ngung/.test(st) ? false : /dangban/.test(st) ? true : p.active !== false,
+          };
+        };
+        btn.onclick = async () => {
           const withStock = el.querySelector('#impStock').checked;
+          btn.disabled = true; errBox.classList.add('hidden');
           await VM.backup.snapshot('Trước khi nhập Excel danh mục');
-          ok.forEach(({ o, units, stock, expiry, exists, cat }) => {
-            const p = exists || { id: VM.uid('p_'), stock: 0, active: true, image: '', group: '', minStock: 10 };
-            const has = k => o[k] !== undefined && o[k] !== null && String(o[k]).trim() !== '';
-            const sorted = sortUnits(units);
-            const st = String(o.status || '');
-            Object.assign(p, {
-              code: String(o.code).trim(), name: String(o.name).trim(),
-              category: cat || p.category || 'other',
-              strength: has('strength') ? String(o.strength).trim() : (p.strength || ''),
-              store: (has('store') && storeFrom(o.store)) || p.store || 'Y001',
-              sap: has('sap') ? String(o.sap).trim() : (p.sap || ''), gtin: has('gtin') ? String(o.gtin).replace(/\D/g, '') : (p.gtin || ''),
-              ingredient: has('ingredient') ? String(o.ingredient).trim() : (p.ingredient || ''), group: has('group') ? String(o.group).trim() : (p.group || ''),
-              units: sorted, defaultUnit: sorted.find(u => u.name === String(o.defaultUnit || '')) ? String(o.defaultUnit) : sorted.find(u => u.name === p.defaultUnit) ? p.defaultUnit : sorted[0].name,
-              minStock: has('minStock') ? Math.floor(VM.parseNum(o.minStock)) : (p.minStock ?? 10),
-              lot: has('lot') ? String(o.lot).trim() : (p.lot || ''), expiry, updatedAt: VM.iso(),
-            });
-            if (/ngung/.test(VM.normalize(st))) p.active = false; else if (/dangban/.test(VM.normalize(st).replace(/\s+/g, ''))) p.active = true;
+          if (head()) {
+            // 1) Thông tin gốc → danh mục hệ thống. Lỗi ở 1 dòng thì cả nhóm 500 dòng đó không được ghi.
+            const r = await VM.drugs.bulk(ok.map(master));
+            if (r.created || r.updated) VM.store.save('drugs');
+            if (!r.ok) {
+              btn.disabled = false;
+              const lines = (r.errors || []).slice(0, 8).map(x => `Dòng ${ok[(r.offset || 0) + x.i].line}: ${esc(x.error)}`);
+              errBox.innerHTML = `${icon('alert', 's')}<div>${esc(r.error || 'Không ghi được lên danh mục hệ thống.')}${lines.length ? '<br>' + lines.join('<br>') : ''}${r.created || r.updated ? `<br>Đã ghi trước đó: ${r.created} thuốc mới, ${r.updated} cập nhật.` : ''}</div>`;
+              errBox.classList.remove('hidden');
+              return;
+            }
+          }
+          // 2) Phần riêng của nhà thuốc này: tồn, lô, HSD, tồn tối thiểu
+          ok.forEach(x => {
+            const { o, stock, expiry, exists } = x, code = String(o.code).trim().toLowerCase();
+            const p = head() ? S().products.find(y => String(y.code).toLowerCase() === code) : exists;
+            if (!p) return;
+            Object.assign(p, { minStock: has(o, 'minStock') ? Math.floor(VM.parseNum(o.minStock)) : (p.minStock ?? 10), lot: has(o, 'lot') ? String(o.lot).trim() : (p.lot || ''), expiry, updatedAt: VM.iso() });
             if ((withStock || !exists) && stock !== undefined) p.stock = stock;
-            if (!exists) S().products.push(p);
           });
-          VM.store.log('Nhập Excel danh mục', 'Danh mục', `${file.name}: ${ok.length} dòng, ${bad.length} lỗi`);
+          VM.store.log('Nhập Excel danh mục', 'Danh mục', `${file.name}: ${ok.length} dòng, ${bad.length} lỗi${head() ? '' : ' (chỉ tồn / lô / HSD)'}`);
           VM.store.save('import'); close(); draw(); VM.ui.done('Nhập danh mục thành công', `${ok.length} mặt hàng`);
         };
       },

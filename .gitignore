@@ -23,6 +23,9 @@ vinmec-pharmacy-snapshot_*.json
 .env.*
 !.env.example
 
+# Cơ sở dữ liệu SQLite khi chạy trên máy (npm run dev): có băm mật khẩu + danh mục – không bao giờ commit
+data/
+
 # Bộ mẫu đánh giá AI (ảnh hóa đơn thật, ghi âm thật) và kết quả – có thể chứa dữ liệu kinh doanh
 eval/samples/
 eval/results/

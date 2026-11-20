@@ -2,10 +2,13 @@
 //   → { text, provider, model, ms }
 import { json, fail, check } from './_lib.js';
 import { pick } from './_providers.js';
+import { requireUser } from './_auth.js';
 
 export async function POST(req) {
   const bad = check(req, 4_400_000);
   if (bad) return bad;
+  const me = await requireUser(req); // chỉ dược sĩ đã đăng nhập mới dùng được AI (khóa AI tính tiền theo lần gọi)
+  if (me.res) return me.res;
   let form;
   try { form = await req.formData(); } catch { return fail(400, 'Dữ liệu gửi lên không phải multipart/form-data.'); }
   const file = form.get('file');

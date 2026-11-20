@@ -23,7 +23,7 @@
         return `<tr><td>${ocr ? 'OCR' : 'Giọng nói'}</td><td class="mono">${esc(tag)}</td><td class="num">${ocr ? `${x.docs} HĐ · ${x.fields} ô` : x.n}</td><td class="num"><b>${ocr ? VM.ai.pct(x.kept, x.fields) : VM.ai.pct(x.top1, x.n)}</b></td></tr>`;
       }).join('')}</tbody></table></div>`;
     };
-    view.innerHTML = `${admin ? '' : `<div class="alert warn" style="margin-bottom:16px">${icon('info', 's')}<span>Chỉ <b>Quản lý</b> được thay đổi cài đặt. Bạn đang xem ở chế độ chỉ đọc.</span></div>`}
+    view.innerHTML = `${admin ? '' : `<div class="alert warn" style="margin-bottom:16px">${icon('info', 's')}<span>Chỉ <b>Trưởng khoa</b> được thay đổi cài đặt. Bạn đang xem ở chế độ chỉ đọc.</span></div>`}
       <fieldset id="stForm" ${admin ? '' : 'disabled'} style="border:0;padding:0;margin:0"><div class="form-grid" style="gap:18px">
         <div class="card c6"><div class="card-h"><div class="kpi-ic" style="width:38px;height:38px">${icon('cross')}</div><div><h3>Nhà thuốc</h3><div class="sub">Hiển thị trên hóa đơn bán lẻ và sổ in</div></div></div>
           <div class="card-b form-grid">
@@ -38,7 +38,7 @@
           </div></div>
         <div class="card c12"><div class="card-h"><div class="kpi-ic" style="width:38px;height:38px">${icon('package')}</div><div style="flex:1"><h3>Kho &amp; mã SAP</h3><div class="sub">plans / Funds center dùng khi xuất file cho tool điều chuyển nội viện (cần Khoa Dược xác nhận)</div></div><button class="btn sm" id="stAddStore">${icon('plus', 's')} Thêm kho</button></div>
           <div class="table-wrap"><table class="t lines-tbl"><thead><tr><th>Mã kho</th><th>Tên kho</th><th>plans</th><th>Funds center</th><th></th></tr></thead><tbody id="stStores"></tbody></table></div></div>
-        <div class="card c12"><div class="card-h"><div class="kpi-ic" style="width:38px;height:38px">${icon('user')}</div><div style="flex:1"><h3>Nhân viên</h3><div class="sub">Danh sách chọn khi đăng nhập / ghi sổ. Quản lý được hủy đơn, sửa cài đặt, đặt lại dữ liệu.</div></div><button class="btn sm" id="stAddStaff">${icon('plus', 's')} Thêm nhân viên</button></div>
+        <div class="card c12"><div class="card-h"><div class="kpi-ic" style="width:38px;height:38px">${icon('user')}</div><div style="flex:1"><h3>Nhân viên</h3><div class="sub">Danh sách gợi ý tên khi ghi sổ (người vay / cho vay…). Tài khoản đăng nhập và mật khẩu do Trưởng khoa cấp trên máy chủ, không sửa ở đây.</div></div><button class="btn sm" id="stAddStaff">${icon('plus', 's')} Thêm nhân viên</button></div>
           <div class="table-wrap"><table class="t lines-tbl"><thead><tr><th>Mã NV</th><th>Họ tên</th><th>Vai trò</th><th>Kho</th><th>Quản lý</th><th></th></tr></thead><tbody id="stStaff"></tbody></table></div><datalist id="stRoles">${ROLES.map(r => `<option value="${r}">`).join('')}</datalist></div>
         <div class="card c6"><div class="card-h"><div class="kpi-ic" style="width:38px;height:38px">${icon('truck')}</div><div><h3>Nhà cung cấp</h3><div class="sub">Mỗi dòng một nhà cung cấp – gợi ý khi ghi hóa đơn</div></div></div>
           <div class="card-b"><textarea class="textarea" id="stSup" style="min-height:160px">${esc(st.suppliers.join('\n'))}</textarea></div></div>
@@ -196,8 +196,7 @@
     draft.staff.forEach(s => delete s._new);
     S().settings = Object.assign(S().settings, st);
     S().staff = draft.staff;
-    const me = VM.store.currentUser(), mine = draft.staff.find(s => s.id === (me || {}).id);
-    if (mine) { VM.store.setUser(Object.assign({}, me, { name: mine.name, role: mine.role, admin: mine.admin })); VM.ui.renderMe(); }
+    // Bảng nhân viên chỉ dùng cho gợi ý tên (sổ vay…). Quyền của người đang đăng nhập do tài khoản trên máy chủ quyết định, không đổi ở đây.
     VM.store.log('Sửa cài đặt', 'Hệ thống', `AI: giọng nói=${st.ai.stt}/${st.ai.sttProvider || 'auto'}, OCR=${st.ai.ocr}/${st.ai.ocrProvider || 'auto'}, máy chủ ngoài=${st.ai.allowPublic ? 'CHO PHÉP' : 'chặn'}`);
     VM.store.save('settings');
     dirty = false; $('#stSave').disabled = true; $('#stUndo').disabled = true;

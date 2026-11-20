@@ -104,7 +104,7 @@
     $('#railMe').textContent = VM.initials(u.name);
     $('#railMe').title = u.name + ' – bấm để đổi ca / đăng xuất';
     $('#me').innerHTML = `<div class="avatar" title="${esc(u.name)}">${esc(VM.initials(u.name))}</div>
-      <div class="me-text"><b>${esc(u.name)}</b><small>${esc(u.role || '')}</small></div>
+      <div class="me-text"><b>${esc(u.name)}</b><small>${esc(u.role || '')}${u.facility ? ' · ' + esc(u.facility) : ''}</small></div>
       <button class="btn ghost icon sm" id="logoutBtn" title="Đổi ca / Đăng xuất" aria-label="Đăng xuất">${icon('logout', 's')}</button>`;
     $('#logoutBtn').onclick = () => VM.app.logout();
   }

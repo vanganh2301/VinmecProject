@@ -28,5 +28,9 @@ export function loadEnv(file = path.join(ROOT, '.env')) {
   return vars;
 }
 
+// node:sqlite (cơ sở dữ liệu khi chạy trên máy) còn gắn nhãn thử nghiệm ở Node 22 – không in cảnh báo đó ra màn hình
+process.removeAllListeners('warning');
+process.on('warning', w => { if (!(w.name === 'ExperimentalWarning' && /SQLite/i.test(w.message))) console.warn(`${w.name}: ${w.message}`); });
+
 // Console Windows: in tiếng Việt cho đúng
 try { process.stdout.setDefaultEncoding?.('utf8'); } catch { }

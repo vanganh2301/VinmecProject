@@ -15,7 +15,10 @@ import errno
 import functools
 import http.server
 import os
+import re
+import shutil
 import socket
+import subprocess
 import sys
 import threading
 import webbrowser
@@ -72,7 +75,33 @@ def main():
     ap.add_argument("--port", type=int, default=8090)
     ap.add_argument("--no-open", action="store_true")
     ap.add_argument("--lan", action="store_true")
+    ap.add_argument("--static", action="store_true", help="chỉ phục vụ trang tĩnh (không đăng nhập được)")
     a = ap.parse_args()
+
+    # App cần máy chủ để kiểm tra mật khẩu (api/auth) -> có Node.js >= 22.13 thì chạy tools/dev.mjs ở cùng cổng
+    # (cùng địa chỉ 127.0.0.1:8090 nên dữ liệu cũ trên máy vẫn còn). Không có Node thì app chỉ hiện màn "Cần máy chủ".
+    if not a.static:
+        node = shutil.which("node")
+        ver = ""
+        if node:
+            try:
+                ver = subprocess.run([node, "--version"], capture_output=True, text=True, timeout=10).stdout.strip()
+            except Exception:
+                ver = ""
+        nums = tuple(int(x) for x in re.findall(r"\d+", ver)[:2]) if ver else ()
+        if nums >= (22, 13):
+            if a.lan:
+                print("Lưu ý: chế độ đăng nhập chỉ mở trên máy này (bỏ qua --lan).")
+            cmd = [node, os.path.join(os.path.dirname(ROOT), "tools", "dev.mjs"), "--port", str(a.port)] + (["--no-open"] if a.no_open else [])
+            try:
+                sys.exit(subprocess.call(cmd))
+            except KeyboardInterrupt:
+                sys.exit(0)
+        print("=" * 60)
+        print(" CẢNH BÁO: không thấy Node.js >= 22.13" + (f" (đang có {ver})" if ver else ""))
+        print(" App cần máy chủ Node để đăng nhập. Cài Node.js LTS tại https://nodejs.org rồi chạy lại.")
+        print(" Đang chạy trang tĩnh: app sẽ chỉ hiện màn 'Cần mở app qua máy chủ'.")
+        print("=" * 60, flush=True)
 
     if not os.path.isfile(os.path.join(ROOT, "index.html")):
         sys.exit(f"Không thấy {ROOT}\\index.html - hãy để serve.py ở thư mục gốc repo (cạnh thư mục app).")

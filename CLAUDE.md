@@ -2,7 +2,15 @@
 
 ## ▶ Lệnh chạy nhanh trên máy (local)
 
-Không cần build, không cần `npm install`. Cần Python 3 (máy này có 3.12) hoặc Node.js.
+Không cần build, không cần `npm install`. Cần **Node.js ≥ 22.13** (máy này có 22.14): app có **đăng nhập**, mật khẩu kiểm tra trên máy chủ Node (`tools/dev.mjs` + `api/`), tài khoản và danh mục thuốc chung nằm trong file SQLite `data/vinmec.db` (không lên git). `chay.bat` và `serve.py` đều tự chạy máy chủ Node ở cổng 8090 (cùng địa chỉ cũ nên dữ liệu trên máy vẫn còn); không có Node thì app chỉ hiện màn "Cần mở app qua máy chủ".
+
+**Trước lần chạy đầu tiên – tạo tài khoản Trưởng khoa** (in mật khẩu tạm một lần, lần đăng nhập đầu app bắt đổi). Đứng ở thư mục repo:
+
+```
+npm run users -- add --facility OCP2 --user TK01 --name "Tên Trưởng khoa" --role head
+```
+
+Dược sĩ: bỏ `--role head`. Xem mọi lệnh (đặt lại mật khẩu, khóa tài khoản, bật cơ sở mới…): `npm run users -- help`. Đăng nhập: mã cơ sở `OCP2` → tên đăng nhập (VD `tk01`, không phân biệt hoa thường) → mật khẩu.
 
 **Cách 1 – không cần terminal:** nhấp đúp file **`chay.bat`** ở thư mục gốc repo. Cửa sổ đen hiện lên và trình duyệt tự mở app. Đóng cửa sổ đó là dừng app.
 
@@ -25,9 +33,9 @@ python serve.py
 | Dừng app                              | Bấm **Ctrl + C** trong cửa sổ đang chạy, hoặc đóng cửa sổ              |
 | Không tự mở trình duyệt           | thêm `--no-open` vào cuối lệnh                                                   |
 | Chọn cổng khác                      | thêm `--port 8095` vào cuối lệnh                                                 |
-| Cho máy khác cùng Wi-Fi mở được | thêm `--lan` (micro / giọng nói vẫn cần HTTPS, xem bản Vercel)                 |
-| Không có Python, dùng Node          | `npx serve "D:\55 Vinmec\VinmecProject\app" -l 8090` rồi mở http://127.0.0.1:8090/ |
-| Mở thẳng file, không server         | nhấp đúp `app\index.html` (dữ liệu tách riêng với bản chạy qua server)     |
+| Cho máy khác cùng Wi-Fi mở được | chưa hỗ trợ khi có đăng nhập (máy chủ chỉ nghe 127.0.0.1); dùng bản Vercel |
+| Không có Python, dùng Node          | `node "D:\55 Vinmec\VinmecProject\tools\dev.mjs" --port 8090`                   |
+| Chỉ trang tĩnh (không đăng nhập)  | `python serve.py --static` hoặc mở thẳng `app\index.html` → app chỉ hiện màn "Cần máy chủ" |
 
 Dừng server đang chiếm cổng 8090 khi đã lỡ đóng mất cửa sổ (PowerShell):
 
@@ -105,6 +113,8 @@ npx vercel login
 npx vercel link --yes
 ```
 
+**Cơ sở dữ liệu (bắt buộc từ 20/11/2026, cho đăng nhập + danh mục thuốc chung):** Vercel → project `vinmec-pharmacy` → Storage → Create → **Neon** (Postgres) → Connect to project. Vercel tự đặt biến `DATABASE_URL`; bảng tự tạo ở lần gọi đầu. Không có biến này thì `api/auth` trả 503 và không ai đăng nhập được. Tạo tài khoản trên cơ sở dữ liệu đó: dán chuỗi kết nối Neon vào `DATABASE_URL` trong `.env` (chỉ trên máy, `env:push` **không** đẩy biến này) rồi chạy `npm run users -- add …` như ở trên.
+
 Đưa khóa trong `.env` lên Vercel (không in giá trị khóa ra màn hình), rồi deploy:
 
 ```
@@ -126,7 +136,7 @@ Lệnh deploy in ra địa chỉ `https://….vercel.app`: mở trên điện th
 - Kiểm tra máy chủ AI: mở `https://<địa chỉ>/api/health` → `"ready": true`, trong `providers` nhà cung cấp nào có `"ready": true` là đã có khóa. Trong app: Khác → Cài đặt → thẻ AI hiện "Sẵn sàng · …".
 - Bản Vercel không gọi được Qwen tự cài trong mạng nội bộ (`LOCAL_AI_URL`); chỉ `npm run dev` / `npm run eval` dùng được.
 - Dữ liệu vẫn nằm trong localStorage **của từng điện thoại** (chưa đồng bộ giữa các máy – việc của Phase 3). Muốn mang dữ liệu từ máy bàn sang: tải file sao lưu ở máy bàn → mở trên điện thoại → Sao lưu & khôi phục → khôi phục từ file.
-- Địa chỉ Vercel là **công khai**, app chưa có mật khẩu (chọn tên là vào ca). Đừng nhập dữ liệu bệnh nhân thật lên bản này cho tới khi có đăng nhập (Phase 2). Đặt giới hạn chi tiêu cho từng khóa (OpenAI → Limits; Google AI Studio / Alibaba Model Studio → hạn mức dự án). Khóa Gemini **gói miễn phí** cho phép Google dùng dữ liệu để cải tiến sản phẩm: không dùng gói này cho hóa đơn thật.
+- Địa chỉ Vercel là **công khai** nhưng phải đăng nhập (mã cơ sở + tài khoản dược sĩ) mới vào được app và gọi được AI. Dữ liệu bán / vay / hóa đơn vẫn nằm trên từng máy (localStorage), chưa mã hóa: máy dùng chung phải kết thúc ca khi rời quầy. Đặt giới hạn chi tiêu cho từng khóa (OpenAI → Limits; Google AI Studio / Alibaba Model Studio → hạn mức dự án). Khóa Gemini **gói miễn phí** cho phép Google dùng dữ liệu để cải tiến sản phẩm: không dùng gói này cho hóa đơn thật.
 
 ---
 
@@ -142,11 +152,11 @@ Web app nội bộ cho **Nhà thuốc – Khoa Dược Vinmec**, thay sổ giấ
 
 Kèm theo: Tổng quan, Lịch sử bán (đối soát OH/SAP), Danh mục hàng, Sao lưu & khôi phục, Cài đặt.
 
-Đây là **Phase 1 (MVP)**: chạy hoàn toàn trên trình duyệt, chưa có backend, chưa đồng bộ giữa các máy.
+Đây là **Phase 1 (MVP)**: dữ liệu nghiệp vụ vẫn nằm trên trình duyệt, chưa đồng bộ giữa các máy. Từ 20/11/2026 có máy chủ nhỏ cho **đăng nhập** (mã cơ sở → tài khoản dược sĩ, mở rộng cho nhiều bệnh viện: OCP2 đang dùng, Times City / Central Park đã có mã nhưng chưa mở) và **danh mục thuốc chung** toàn hệ thống (chỉ Trưởng khoa thêm / sửa).
 
 ## 2. Chạy & kiểm tra
 
-- **Chạy:** xem bảng "Lệnh chạy nhanh" ở đầu file. Mở `app/index.html` bằng Chrome hoặc Edge cũng được, kể cả qua `file://`.
+- **Chạy:** xem bảng "Lệnh chạy nhanh" ở đầu file. Từ 20/11/2026 mở qua `file://` / trang tĩnh chỉ hiện màn "Cần máy chủ". Trang test `file://` cũ vẫn dùng được nếu gán sẵn `vmhub.session` **và** thay `VM.auth.me` bằng hàm giả trả `{status:200,data:{user:{…}}}` trước `app.js`; test đăng nhập thật thì chạy `SQLITE_FILE=<scratchpad>/t.db node tools/dev.mjs --port 8197 --no-open`, tạo tài khoản bằng `users.mjs` với cùng `SQLITE_FILE`, lái Chrome qua DevTools Protocol.
 - **Kiểm tra cú pháp:**
   ```bash
   for f in app/assets/js/core/*.js app/assets/js/modules/*.js app/assets/js/app.js; do node --check "$f"; done
@@ -170,7 +180,7 @@ Kèm theo: Tổng quan, Lịch sử bán (đối soát OH/SAP), Danh mục hàng
 ## 3. Kiến trúc & quy ước code
 
 - **HTML/CSS/JS thuần, không build, không thư viện ngoài.** Script thường (không phải ES module), dùng chung namespace `window.VM`. Lý do: phải chạy được qua `file://` và khi mất mạng.
-- **Thứ tự nạp** trong `index.html` là bắt buộc: `core/util` → `store` → `xlsx` → `backup` → `ai` → `ui` → `tour` → `modules/*` → `app.js`.
+- **Thứ tự nạp** trong `index.html` là bắt buộc: `core/util` → `store` → `xlsx` → `backup` → `auth` → `drugs` → `ai` → `ui` → `tour` → `modules/*` → `app.js`.
   - Module mới phải thêm `<script>` vào trước `app.js`.
   - Thứ tự các thẻ `<script>` cũng chính là thứ tự xuất hiện trên menu.
 - Mỗi file bọc trong `(function (VM) { 'use strict'; ... })(window.VM);`.
@@ -181,14 +191,17 @@ Kèm theo: Tổng quan, Lịch sử bán (đối soát OH/SAP), Danh mục hàng
 | `core/store.js`                                              | `VM.store`                                                                                                                                                                                                                                                                     | State duy nhất, lưu vào localStorage, nhật ký (audit), dữ liệu mẫu, quy tắc nghiệp vụ. Thêm `matchScan(raw)`, `productFreq()`, `topProducts(n)`, `peopleFreq()`, `LOAN_STORES` / `loanStores()` (chỉ Y001, Y003), `loanGroup(l)`, `loanVouchers(list?)`, `voucherStatus(lines)`, `voucherOpen(v)`, `loanCode(peek)`, `CATEGORIES` (otc / supp / device / other) + `catOf(p)` |
 | `core/xlsx.js`                                               | `VM.xlsx.exportXlsx(sheets, filename)`, `readTable(file)`                                                                                                                                                                                                                    | Tự ghi/đọc .xlsx (zip không nén) và CSV, không cần thư viện                                                                                                                                                                                                                                                                                                                                               |
 | `core/backup.js`                                             | `VM.backup`                                                                                                                                                                                                                                                                    | Snapshot IndexedDB, file JSON có checksum FNV-1a, ghi thư mục bằng File System Access API                                                                                                                                                                                                                                                                                                                       |
+| `core/auth.js` | `VM.auth = { me, facility, login, changePassword, logout, api, expired, toLocal, lastFacility, rememberFacility, onExpired, passwordProblem }` | Gọi `api/auth`. Mã phiên nằm trong cookie HttpOnly (JS không đọc được); `vmhub.session` chỉ để vẽ giao diện. `api()` gặp 401 → `expired()` → `app.js` đưa về màn đăng nhập. Trang tĩnh / `file://` → `noServer` |
+| `core/drugs.js` | `VM.drugs = { sync, save, bulk, apply, payload, localOnly, isHead, start, MASTER, lastAt }` | Danh mục thuốc chung (`api/drugs`). Đồng bộ khi vào ca, mỗi 5 phút, khi quay lại tab, khi có mạng. Mặt hàng trên máy nối với thuốc trên máy chủ qua `drugId` (lần đầu khớp theo mã hàng) + `drugVersion`. Chỉ ghi đè trường `MASTER`; tồn / lô / HSD / tồn tối thiểu giữ riêng |
 | `core/ai.js`                                                 | `VM.ai = { MODES, OCR_MODES, PROVIDERS, health, usesApp, listen, ocrInvoice, parseXmlInvoice, parseInvoiceCode, track, pct, ping, sttSupported }`                                                                                                                              | Giọng nói và OCR gọi máy chủ nội bộ (hàm `guard` chặn địa chỉ ngoài), hoặc **AI của app** (`api/stt`, `api/ocr` trên Vercel / `npm run dev` → OpenAI / Gemini / Qwen). Đọc XML hóa đơn điện tử và mã QR / chuỗi tra cứu HĐĐT (`parseInvoiceCode`). Đo độ chính xác thực tế vào `state.aiStats`                                                            |
 | `core/ui.js`                                                 | `VM.ui`                                                                                                                                                                                                                                                                        | Shell gồm thanh biểu tượng (rail) và rèm (curtain), hash router `#/<id>/<arg>`, modal, confirm, toast, `done` (thông báo hoàn thành), print, `register`, `suggest` (danh sách gợi ý thả nổi), `catBar` (tab nhóm hàng, dùng chung cho Bán hàng và Danh mục), `unitPick` / `bindUnitPick` (ô chọn ĐVT). Nút `#detailBtn` (Hiển thị tất cả / Thu gọn) và `#tourBtn` (?) trên thanh tiêu đề; `fitTop` thu gọn thanh tiêu đề khi tiêu đề bị che                       |
 | `core/tour.js`                                               | `VM.tour = { start, auto, has, reset, clearSession, prefs, active }`                                                                                                                                                                                                           | Hướng dẫn ban đầu dạng spotlight. Tự chạy lần đầu mở mỗi màn có `tour`; lần đầu tiên kèm các bước chung của khung (rail, rèm, sao lưu, kết thúc ca, nút ?)                                                                                                                                                                                                                           |
 | `modules/*.js`                                               | `VM.pos`, `VM.loans`, `VM.invoices`, `VM.catalog`                                                                                                                                                                                                                        | Mỗi màn là một module. `loan-stats.js` (id `loanstats`, nhóm `loans`) là màn Thống kê vay thuốc, nạp ngay sau `loans.js`                                                                                                                                                                                                                                                                         |
 | `api/*.js` (gốc repo, **không** nằm trong `app/`) | Vercel Functions (ES module, `export function GET/POST(Request)`): `ocr.js`, `stt.js`, `health.js`, dùng chung `_lib.js`, `_prompt.js` (prompt OCR), `_providers.js` (OpenAI / Gemini / Qwen / tự cài); file bắt đầu bằng `_` không thành đường dẫn | Máy chủ AI của bản Vercel và `npm run dev`. `package.json` có `"type":"module"` cho thư mục này                                                                                                                                                                                                                                                                                                      |
 | `tools/*.mjs`, `tools/prices.json`                         | `npm run dev`, `eval`, `eval:samples`, `env:push`                                                                                                                                                                                                                        | `dev.mjs` chạy app + `api/` ở cổng 8095 với khóa trong `.env`; `eval.mjs` chấm điểm các nhà cung cấp; `make-samples.mjs` sinh hóa đơn / câu nói mẫu hư cấu; `env-push.mjs` đẩy biến `.env` lên Vercel; `prices.json` giá tham khảo để tính chi phí                                                                                                                     |
+| `api/auth.js`, `api/drugs.js`, `api/_auth.js`, `api/_db.js`, `tools/users.mjs` | – | Đăng nhập và danh mục thuốc chung (xem §4 "Đăng nhập"). `_db.js`: Postgres (Neon, khi có `DATABASE_URL`) hoặc SQLite `data/vinmec.db` (`node:sqlite`), cùng một bộ SQL tham số `$1…`. `users.mjs`: tạo / đặt lại / khóa tài khoản, bật cơ sở |
 | `serve.py`, `chay.bat`                                     | –                                                                                                                                                                                                                                                                               | Chạy app ở máy local (xem đầu file)                                                                                                                                                                                                                                                                                                                                                                            |
-| `app.js`                                                     | `VM.app = { logout, start }`                                                                                                                                                                                                                                                   | Màn vào ca, khởi động, kết thúc ca                                                                                                                                                                                                                                                                                                                                                                           |
+| `app.js`                                                     | `VM.app = { logout, start, chooser, changePassword, boot }`                                                                                                                                                                                                                                                   | `boot()` hỏi máy chủ (`VM.auth.me`) → mã cơ sở → đăng nhập → đổi mật khẩu tạm → chọn nghiệp vụ; F5 khi đang trong ca thì vào thẳng màn đang dùng; kết thúc ca (xóa phiên trên máy chủ), đổi mật khẩu                                                                                                                                                                                                                                                                                                                                                                           |
 
 **Điều hướng:** rail bên trái có 3 biểu tượng nghiệp vụ là `retail` (Bán lẻ), `loans` (Sổ vay), `invoices` (Hóa đơn), cộng nút "Khác" (`system`: Tổng quan, Sao lưu, Cài đặt).
 
@@ -249,9 +262,10 @@ VM.ui.register({ id, title, group: 'retail'|'loans'|'invoices'|'system', icon,
 | Khóa                        | Nội dung                                                                                                                         |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `vmhub.state.v1`           | Toàn bộ state                                                                                                                   |
-| `vmhub.session`            | Người đang trong ca                                                                                                            |
+| `vmhub.session`            | Người đang trong ca (bản sao thông tin từ máy chủ: `id` = tên đăng nhập in hoa, `head`, `admin` = `head`, `facility`, `facilityName`). Chỉ để vẽ giao diện; quyền thật do máy chủ kiểm tra |
+| `vmhub.facility`           | Cơ sở nhập lần trước `{code, name}`, điền sẵn ở bước mã cơ sở |
 | `vmhub.draft.<userId>`     | Giỏ hàng POS đang dở                                                                                                          |
-| `vmhub.lastUser`           | Người đăng nhập gần nhất                                                                                                   |
+| `vmhub.lastUser`           | Tên đăng nhập gần nhất (điền sẵn, không lưu mật khẩu)                                                                                                   |
 | `vmhub.curtain`            | Rèm chức năng đang mở (`1`) hay thu gọn (`0`). Thay cho `vmhub.sidebarMini` cũ                                       |
 | `vmhub.lastDownload`       | Lần tải file sao lưu gần nhất                                                                                                |
 | `vmhub.folderWrite`        | Lần ghi thư mục sao lưu gần nhất                                                                                            |
@@ -483,10 +497,25 @@ Mức cảnh báo của `backup.status()`:
   - dữ liệu mẫu và nhân viên mẫu đều là **tên hư cấu**;
   - không đưa tên nhân viên thật, PID hay thông tin bệnh nhân vào code hoặc docs.
 - `.gitignore` đã chặn file sao lưu `*.json` và `*.xlsx` xuất ra, vì có thể chứa dữ liệu kinh doanh hoặc bệnh nhân. **Không commit các file đó.**
-- **Quyền quản lý** (`admin`): sửa cài đặt, đặt lại app, hủy mọi đơn. Nhân viên thường chỉ hủy được **đơn của chính mình, trong ngày**.
-- Chưa có mật khẩu hay PIN: chọn tên là vào ca. Phase 2 cần bổ sung.
+- **Quyền quản lý** (`admin`) = **Trưởng khoa** (`role: head` trên máy chủ): sửa cài đặt, đặt lại app, hủy mọi đơn, thêm / sửa thuốc trong danh mục chung. Dược sĩ chỉ hủy được **đơn của chính mình, trong ngày**. Bảng "Nhân viên" trong Cài đặt chỉ còn là danh sách gợi ý tên (sổ vay), không cấp quyền.
+- **Đăng nhập** (20/11/2026): chỉ người có tài khoản do Trưởng khoa cấp (`npm run users`) mới vào được, không có đăng ký tự do.
+  - Mật khẩu băm **scrypt** (N=32768, muối riêng), so sánh thời gian hằng; tên không tồn tại cũng tốn đúng thời gian và cùng câu báo lỗi (không dò được tên đăng nhập).
+  - Phiên: mã ngẫu nhiên 256 bit trong cookie `HttpOnly; SameSite=Strict` (`__Host-…; Secure` trên https), 12 giờ; máy chủ chỉ lưu SHA-256 của mã. Kết thúc ca xóa phiên trên máy chủ.
+  - Sai 5 lần → khóa tài khoản 15 phút; 20 lần sai từ một IP trong 15 phút → chặn IP. Mật khẩu ≥ 8 ký tự, có chữ và số, không chứa tên đăng nhập.
+  - Tài khoản mới / đặt lại có mật khẩu tạm, `must_change`: chưa đổi thì mọi API khác trả 403. Đổi mật khẩu, đặt lại, khóa tài khoản, tắt cơ sở → các phiên khác chết ngay.
+  - `api/ocr`, `api/stt`, `api/drugs` đều đòi đăng nhập (`requireUser`); thêm / sửa thuốc đòi `head` **trên máy chủ** (sửa localStorage giả làm Trưởng khoa vẫn bị 403). Mọi POST bắt buộc `Content-Type: application/json` + kiểm tra `Origin` (chống CSRF).
+  - Giới hạn còn lại: dữ liệu nghiệp vụ trên máy (localStorage) không mã hóa – ai dùng được trình duyệt của máy đó vẫn đọc được bằng DevTools; các quyền trong giao diện (Cài đặt, hủy đơn) chỉ kiểm tra phía trình duyệt cho tới khi có backend chung (Phase 3).
 
 ## 8. Nhật ký thay đổi
+
+### 20/11/2026 – Đăng nhập theo cơ sở + tài khoản dược sĩ, danh mục thuốc chung (nhánh `Duy`)
+
+- **Mở rộng nhiều bệnh viện:** màn đầu là **mã cơ sở** (không phân biệt hoa thường / dấu cách / gạch: `ocp-2`, `Times City` đều được). OCP2 dùng được; `TIMESCITY`, `CENTRALPARK` báo "chưa được đưa vào sử dụng" cho tới khi bật (`npm run users -- facility --code TIMESCITY --enable`).
+- **Đăng nhập từng dược sĩ** bằng mật khẩu, kiểm tra trên máy chủ (§7). Bỏ danh sách chọn tên và ô "nhập tên tự do". Lần đầu bắt đổi mật khẩu tạm. Hộp kết thúc ca có nút **Đổi mật khẩu**. Phiên hết hạn / bị thu hồi → về màn đăng nhập, dữ liệu trên máy giữ nguyên.
+- **Cơ sở dữ liệu có cấu trúc** (`api/_db.js`): `facilities`, `users`, `sessions`, `drugs` (mã, tên, hàm lượng, hoạt chất, nhóm, kho, mã SAP, GTIN, ĐVT mặc định, đang bán, `version`), `drug_units` (ĐVT / hệ số / giá), `drug_log` (ai thêm / sửa thuốc nào, từ cơ sở nào), `throttle`. Neon Postgres trên Vercel, SQLite trên máy.
+- **Danh mục thuốc chung:** chỉ Trưởng khoa thêm / sửa (form, nhập Excel theo lô ≤ 500 dòng / lần, nút "Đưa lên hệ thống" cho mặt hàng chỉ có trên máy); mọi máy tự nhận bản mới. Sửa đồng thời: máy chủ so `version`, bản cũ bị từ chối (409) và tải bản mới. Dược sĩ: nút Thêm mặt hàng khóa, form sửa chỉ mở HSD / số lô / tồn tối thiểu + Điều chỉnh tồn; nhập Excel chỉ cập nhật tồn / lô / HSD, dòng mã mới bị chặn.
+- `chay.bat`, `serve.py` chạy máy chủ Node ở cổng 8090. `api/ocr`, `api/stt` đòi đăng nhập (khóa AI tính tiền theo lần gọi). Cài đặt không còn đổi quyền của người đang đăng nhập.
+- Kiểm tra: máy chủ 49/49 (mã cơ sở, cookie, khóa tài khoản 423, chặn IP 429, Origin 403, Content-Type 415, đổi mật khẩu bắt buộc, thu hồi phiên, kiểm tra thuốc / GTIN / ĐVT, trùng mã 409, xung đột `version`, bulk tất cả hoặc không, nhật ký, hash trong DB); trình duyệt 49/49 + 10/10 (Chrome headless qua DevTools Protocol trên `dev.mjs` với SQLite tạm: 3 mã cơ sở, sai mật khẩu, đổi mật khẩu tạm, F5 trong ca, kết thúc ca, Trưởng khoa đưa 41 mặt hàng mẫu lên + thêm / sửa giá, dược sĩ máy khác nhận qua đồng bộ, form khóa, gọi thẳng API / sửa localStorage → 403, đặt lại mật khẩu → bị đẩy ra, nhập Excel 2 vai trò, `file://` → màn cần máy chủ); không lỗi JS.
 
 ### 19/11/2026 – Góp ý của khoa: ĐVT mặc định Viên, khóa giá trong giỏ, sửa lệch / cắt chữ, kiểm tra trên điện thoại (nhánh `Duy`)
 
@@ -666,7 +695,7 @@ Mức cảnh báo của `backup.status()`:
 
 **Phase 2 – thử nghiệm tại khoa:**
 
-- PIN cho từng nhân viên;
+- quản lý tài khoản ngay trong app (hiện dùng `npm run users` trên máy có quyền vào cơ sở dữ liệu); đăng nhập khi mất mạng;
 - dùng giá hợp đồng để cảnh báo lệch giá;
 - in mã QR cho kệ hoặc lô hàng;
 - kiểm kê.

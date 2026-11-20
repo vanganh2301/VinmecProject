@@ -3,10 +3,13 @@
 // Prompt cố định ở máy chủ (_prompt.js): endpoint chỉ đọc hóa đơn, không dùng được làm chatbot tự do.
 import { json, fail, check } from './_lib.js';
 import { pick } from './_providers.js';
+import { requireUser } from './_auth.js';
 
 export async function POST(req) {
   const bad = check(req, 4_400_000); // Vercel giới hạn thân request 4,5 MB
   if (bad) return bad;
+  const me = await requireUser(req); // chỉ dược sĩ đã đăng nhập mới dùng được AI (khóa AI tính tiền theo lần gọi)
+  if (me.res) return me.res;
   let body;
   try { body = await req.json(); } catch { return fail(400, 'Dữ liệu gửi lên không phải JSON.'); }
   const { image, provider } = body || {};

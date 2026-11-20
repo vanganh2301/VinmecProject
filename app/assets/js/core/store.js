@@ -372,7 +372,9 @@
   // ---------- session ----------
   function currentUser() { try { return JSON.parse(localStorage.getItem(SESSION) || 'null'); } catch { return null; } }
   function setUser(u) { if (u) localStorage.setItem(SESSION, JSON.stringify(u)); else localStorage.removeItem(SESSION); }
+  // Quyền lấy từ máy chủ lúc đăng nhập (api/auth); máy chủ kiểm tra lại ở mọi thao tác ghi lên danh mục chung
   const isAdmin = () => !!(currentUser() || {}).admin;
+  const isHead = () => !!(currentUser() || {}).head; // Trưởng khoa: thêm / sửa thuốc trong danh mục chung toàn hệ thống
 
   // ---------- audit ----------
   function log(action, entity, detail = '', ref = '') {
@@ -494,7 +496,7 @@
   load();
 
   VM.store = {
-    get state() { return state; }, save, replace, onChange, log, currentUser, setUser, isAdmin, seedState,
+    get state() { return state; }, save, replace, onChange, log, currentUser, setUser, isAdmin, isHead, seedState,
     orderCode, loanCode, storeName, product, baseUnit, stockText, productIssue, sellable, matchScan, productFreq, topProducts, peopleFreq,
     loanStatus, loanRemaining, loanOverdue, loanStores, LOAN_STORES, loanGroup, loanVouchers, voucherStatus, voucherOpen, calcInvoice,
     CATEGORIES, catOf, BANKS, DEFAULT_BANK, bankName, bankOwner, payMemo, INVOICE_STATUS, KEY, SCHEMA, get saveErr() { return saveErr; },

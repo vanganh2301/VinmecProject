@@ -1,15 +1,21 @@
 {
   "name": "vinmec-pharmacy-hub",
   "private": true,
-  "description": "Vinmec Pharmacy Hub – app tĩnh trong app/, Vercel Functions trong api/ (OCR + giọng nói qua OpenAI / Gemini / Qwen). Không có bước build, không có thư viện.",
+  "description": "Vinmec Pharmacy Hub – app tĩnh trong app/, Vercel Functions trong api/ (OCR + giọng nói, đăng nhập, danh mục thuốc chung). Không có bước build. Thư viện duy nhất: @neondatabase/serverless (Postgres trên Vercel).",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "python serve.py",
     "dev": "node tools/dev.mjs",
     "eval": "node tools/eval.mjs",
     "eval:samples": "node tools/make-samples.mjs",
     "env:push": "node tools/env-push.mjs",
+    "users": "node tools/users.mjs",
     "deploy": "npx --yes vercel deploy --prod"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "1.2.1"
   }
 }

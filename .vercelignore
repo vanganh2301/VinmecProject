@@ -10,4 +10,5 @@ vinmec-pharmacy-snapshot_*.json
 .env
 .env.*
 tools/
+data/
 eval/

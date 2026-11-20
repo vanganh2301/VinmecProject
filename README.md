@@ -12,12 +12,17 @@ Web app cho **Nhà thuốc – Khoa Dược**, gom 3 việc đang làm bằng s�
 
 ## Chạy thử
 
-Không cần cài đặt hay build. Mở **`app/index.html`** bằng **Chrome** hoặc **Edge** (bấm đúp file là được).
+Không cần build. Cần **Node.js ≥ 22.13** (máy chủ đăng nhập + danh mục thuốc), mở bằng **Chrome** hoặc **Edge**.
 
+1. Tạo tài khoản Trưởng khoa đầu tiên (in ra mật khẩu tạm một lần):
+   `npm run users -- add --facility OCP2 --user TK01 --name "Tên Trưởng khoa" --role head`
+2. Nhấp đúp **`chay.bat`** (hoặc `npm run dev`). Trình duyệt tự mở.
+3. Nhập **mã cơ sở** `OCP2` → tên đăng nhập + mật khẩu tạm → đặt mật khẩu riêng → chọn nghiệp vụ.
+
+- Đăng nhập 2 bước: **mã cơ sở** (OCP2 đang dùng; Times City `TIMESCITY`, Central Park `CENTRALPARK` đã có mã nhưng chưa mở) rồi **tài khoản dược sĩ**. Không có đăng ký tự do: tài khoản do Trưởng khoa cấp bằng `npm run users`. Mở thẳng `app/index.html` không đăng nhập được.
+- **Danh mục thuốc chung** lưu trong cơ sở dữ liệu trên máy chủ: chỉ **Trưởng khoa** thêm / sửa thuốc, mọi máy tự nhận bản mới. Tồn kho, số lô, HSD vẫn riêng từng nhà thuốc.
 - Lần đầu, ứng dụng tạo **dữ liệu mẫu** (khoảng 30 ngày bán hàng, 4 phiếu vay, 4 hóa đơn) để xem thử. Xóa chúng ở *Sao lưu & khôi phục → Vùng nguy hiểm → Xóa dữ liệu mẫu*.
-- Chọn nhân viên để vào ca. Tài khoản **DS. Phạm Thanh Mai** có quyền quản lý: sửa cài đặt, hủy đơn bất kỳ, đặt lại dữ liệu.
-- Ứng dụng chạy offline. Chỉ ảnh QR (VietQR) và font chữ cần có mạng.
-- Chạy qua server: nhấp đúp `chay.bat`, hoặc gõ `python serve.py` ở thư mục repo (tự mở trình duyệt, tự chọn cổng trống). Chi tiết ở đầu [CLAUDE.md](CLAUDE.md).
+- Ảnh QR (VietQR) và font chữ cần có mạng; đăng nhập cần kết nối tới máy chủ. Chi tiết ở đầu [CLAUDE.md](CLAUDE.md).
 
 ## Dùng trên điện thoại (bản Vercel)
 
@@ -49,8 +54,9 @@ Dữ liệu được lưu **trên trình duyệt của máy đang dùng** (local
 ```
 docs/      PLAN.md (kế hoạch, đặc tả, lộ trình) · Khaosat.md (tổng hợp khảo sát) · PRD
 app/       index.html · assets/css/app.css · assets/js/{core,modules}/*.js · app.js
-api/       máy chủ AI (Vercel Functions): ocr.js · stt.js · health.js · _providers.js (OpenAI / Gemini / Qwen)
-tools/     dev.mjs · eval.mjs · make-samples.mjs · env-push.mjs · prices.json
+api/       máy chủ (Vercel Functions): auth.js (đăng nhập) · drugs.js (danh mục thuốc chung) · _db.js (Postgres / SQLite)
+           · ocr.js · stt.js · health.js · _providers.js (OpenAI / Gemini / Qwen)
+tools/     dev.mjs · users.mjs (tài khoản, cơ sở) · eval.mjs · make-samples.mjs · env-push.mjs · prices.json
 legacy/    prototype HTML cũ (tham chiếu): vinmec_retail_pharmacy.html, vinmec_ocp2_v1.html (gộp từ nhánh main)
 ```
 

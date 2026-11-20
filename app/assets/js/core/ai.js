@@ -103,6 +103,7 @@
           if (cfg().sttModel) fd.append('model', cfg().sttModel);
         }
         const res = await fetchT(url, { method: 'POST', body: fd }, 60000);
+        if (res.status === 401 && app && VM.auth) VM.auth.expired(); // phiên đăng nhập hết hạn → về màn đăng nhập
         if (!res.ok) throw new Error((await errOf(res)) || `Máy chủ trả lỗi ${res.status}${app ? appHint() : ''}`);
         const j = await res.json();
         last.voice = app ? tagOf(j) : 'lan';
@@ -175,6 +176,7 @@ Quy tắc:
     let image = await imageToDataUrl(file, 2000, 0.85);
     if (image.length > 3800000) image = await imageToDataUrl(file, 1600, 0.75); // Vercel nhận tối đa 4,5 MB
     const res = await fetchT(API.ocr, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image, provider: cfg().ocrProvider || 'auto' }) }, 130000);
+    if (res.status === 401 && VM.auth) VM.auth.expired();
     if (!res.ok) throw new Error((await errOf(res)) || `Máy chủ OCR trả lỗi ${res.status}${appHint()}`);
     const j = await res.json();
     last.ocr = tagOf(j);

@@ -12,7 +12,7 @@ export function check(req, maxBytes) {
   const origin = req.headers.get('origin');
   if (origin) {
     let o; try { o = new URL(origin).host; } catch { o = ''; }
-    if (o !== req.headers.get('host')) return fail(403, 'Chỉ app Vinmec Pharmacy được gọi API này.');
+    if (o !== req.headers.get('host')) return fail(403, 'Chỉ app V-Pharma Hub được gọi API này.');
   }
   const len = +req.headers.get('content-length') || 0;
   if (len > maxBytes) return fail(413, `Dữ liệu quá lớn (${Math.round(len / 1e6 * 10) / 10} MB).`);

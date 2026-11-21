@@ -1,5 +1,5 @@
 @echo off
-rem Nhap dup file nay de chay Vinmec Pharmacy Hub (khong can mo terminal).
+rem Nhap dup file nay de chay V-Pharma Hub (khong can mo terminal).
 rem App can may chu Node.js (>= 22.13) de dang nhap bang mat khau.
 cd /d "%~dp0"
 where node >nul 2>nul && (node tools\dev.mjs --port 8090 %* & goto :end)

@@ -10,7 +10,7 @@
   function gate(card) {
     $('#root').innerHTML = `<div class="login">
       <section class="login-art">
-        <div style="display:flex;align-items:center;gap:12px;position:relative;z-index:1"><div class="brand-mark" style="background:rgba(255,255,255,.16);color:#fff">${icon('cross')}</div><div><b style="font-size:17px">Pharmacy Hub</b><div style="opacity:.75;font-size:12px;letter-spacing:.08em">VINMEC · KHOA DƯỢC</div></div></div>
+        <div style="display:flex;align-items:center;gap:12px;position:relative;z-index:1"><div class="brand-mark"><img src="assets/img/logo-mark.png" alt=""></div><div><b style="font-size:17px">V-Pharma Hub</b><div style="opacity:.75;font-size:12px;letter-spacing:.08em">VINMEC · KHOA DƯỢC</div></div></div>
         <div style="position:relative;z-index:1">
           <h2>Bán lẻ, sổ vay và sổ hóa đơn – trên một màn hình.</h2>
           <p>Thay sổ giấy và file Excel rời rạc: ghi nhanh, tự cảnh báo, xuất đúng định dạng SAP.</p>
@@ -47,7 +47,7 @@
 
   function renderFacility(msg) {
     const last = VM.auth.lastFacility();
-    document.title = 'Mã cơ sở · Vinmec Pharmacy Hub';
+    document.title = 'Mã cơ sở · V-Pharma Hub';
     const el = gate(`<div class="lg-step">Bước 1 / 2</div>
       <h1>Mã cơ sở</h1>
       <p class="muted" style="margin:0">Nhập mã cơ sở Vinmec nơi bạn làm việc để vào đúng dữ liệu của cơ sở đó. Mã do Trưởng khoa cung cấp.</p>
@@ -73,7 +73,7 @@
   }
 
   function renderLogin(f, msg) {
-    document.title = 'Đăng nhập · Vinmec Pharmacy Hub';
+    document.title = 'Đăng nhập · V-Pharma Hub';
     const last = localStorage.getItem(LAST) || '';
     const el = gate(`<div class="lg-step">Bước 2 / 2</div>
       <div class="lg-fac">${icon('cross', 's')}<span><b>${esc(f.name)}</b><small>Mã cơ sở <span class="mono">${esc(f.code)}</span></small></span><button type="button" class="linkbtn" id="lgChange">Đổi cơ sở</button></div>
@@ -105,7 +105,7 @@
 
   // Bắt buộc đổi mật khẩu tạm. current: mật khẩu vừa gõ ở bước đăng nhập (không cần gõ lại); trống nếu tải lại trang giữa chừng
   function renderPassword(user, current) {
-    document.title = 'Đặt mật khẩu mới · Vinmec Pharmacy Hub';
+    document.title = 'Đặt mật khẩu mới · V-Pharma Hub';
     const el = gate(`<div class="lg-fac">${icon('user', 's')}<span><b>${esc(user.name)}</b><small>${esc(user.facilityName || user.facility)} · ${esc(user.username)}</small></span><button type="button" class="linkbtn" id="lgOut">Đăng xuất</button></div>
       <h1>Đặt mật khẩu mới</h1>
       <p class="muted" style="margin:0">Bạn đang dùng mật khẩu tạm do Trưởng khoa cấp. Hãy đặt mật khẩu riêng – chỉ bạn biết, không chia sẻ cho người khác.</p>
@@ -135,7 +135,7 @@
   }
 
   function renderNoServer() {
-    document.title = 'Cần máy chủ · Vinmec Pharmacy Hub';
+    document.title = 'Cần máy chủ · V-Pharma Hub';
     const el = gate(`<h1>Cần mở app qua máy chủ</h1>
       <p class="muted">App đã có đăng nhập bằng mật khẩu, mật khẩu được kiểm tra trên máy chủ. Cách mở hiện tại (mở thẳng file / <span class="mono">serve.py</span>) chỉ là trang tĩnh, không có máy chủ nên không đăng nhập được.</p>
       <div class="alert info">${icon('info', 's')}<div>Mở lại bằng một trong các cách:<br>• nhấp đúp <b>chay.bat</b> trong thư mục app (cần Node.js);<br>• hoặc chạy <span class="mono">npm run dev</span>;<br>• hoặc dùng bản trên Vercel.</div></div>
@@ -231,10 +231,10 @@
       { home: 'loans', ic: 'swap', tone: 'info', title: 'Sổ vay thuốc', desc: 'Tạo mã vay nhiều thuốc một lần giữa Nhà thuốc Y001 và Kho nội trú Y003. Gạch sổ, file điều chuyển SAP.', stat: `${openLoans.length} mã vay chưa gạch`, warn: odLoans ? `${odLoans} quá hạn` : '' },
       { home: 'invoices', ic: 'file', tone: 'device', title: 'Sổ hóa đơn', desc: 'Ngoại trú / nội trú: hàng về → nhận HĐ → bàn giao NVD → nhập hệ thống.', stat: `${pendInv.length} hóa đơn chưa xong`, warn: noInv ? `${noInv} chưa có HĐ` : '' },
     ];
-    document.title = 'Chọn nghiệp vụ · Vinmec Pharmacy Hub';
+    document.title = 'Chọn nghiệp vụ · V-Pharma Hub';
     $('#root').innerHTML = `<div class="chooser">
       <header class="ch-top">
-        <div class="ch-brand"><div class="brand-mark">${icon('cross')}</div><div><b>Pharmacy Hub</b><small>VINMEC · KHOA DƯỢC</small></div></div>
+        <div class="ch-brand"><div class="brand-mark"><img src="assets/img/logo-mark.png" alt=""></div><div><b>V-Pharma Hub</b><small>VINMEC · KHOA DƯỢC</small></div></div>
         <div class="ch-me"><span class="avatar">${esc(VM.initials(u.name))}</span><div class="ch-me-t"><b>${esc(u.name)}</b><small>${esc(u.role || '')}${u.facilityName ? ' · ' + esc(u.facilityName) : ''}</small></div>
           <button class="btn ghost sm" id="chBack" title="Đăng xuất để người khác đăng nhập">${icon('logout', 's')} Đăng xuất</button></div>
       </header>

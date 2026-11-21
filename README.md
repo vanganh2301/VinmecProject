@@ -1,4 +1,4 @@
-# Vinmec Pharmacy Hub
+# V-Pharma Hub
 
 Web app cho **Nhà thuốc – Khoa Dược**, gom 3 việc đang làm bằng sổ giấy / Excel vào một màn hình. Điều hướng nằm ở **thanh bên trái**.
 

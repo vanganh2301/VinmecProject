@@ -53,7 +53,7 @@ function listen() {
   server.listen(port, '127.0.0.1', () => {
     const url = `http://127.0.0.1:${port}/`, s = summary();
     console.log('='.repeat(64));
-    console.log(' Vinmec Pharmacy Hub + AI (chế độ dev, đọc khóa từ .env)');
+    console.log(' V-Pharma Hub + AI (chế độ dev, đọc khóa từ .env)');
     console.log('   Mở: ' + url);
     for (const [id, p] of Object.entries(s.providers)) console.log(`   ${p.ready ? '✓' : '·'} ${p.label.padEnd(28)} ${p.ready ? `OCR: ${p.ocr.join(', ') || '—'} · giọng nói: ${p.stt.join(', ') || '—'}` : 'chưa có khóa'}`);
     console.log(`   Mặc định: OCR → ${s.defaults.ocr || 'KHÔNG CÓ'}, giọng nói → ${s.defaults.stt || 'KHÔNG CÓ'}`);

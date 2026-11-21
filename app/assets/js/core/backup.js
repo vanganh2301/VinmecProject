@@ -19,7 +19,7 @@
         if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv');
       };
       // Tab khác còn mở bản cũ (IndexedDB v1) thì việc nâng cấp phải chờ tab đó đóng
-      rq.onblocked = () => { if (VM.ui && VM.ui.toast) VM.ui.toast('Đóng các tab Pharmacy Hub khác để hoàn tất nâng cấp kho sao lưu', 'warn', 8000); };
+      rq.onblocked = () => { if (VM.ui && VM.ui.toast) VM.ui.toast('Đóng các tab V-Pharma Hub khác để hoàn tất nâng cấp kho sao lưu', 'warn', 8000); };
       rq.onsuccess = () => { const d = rq.result; d.onversionchange = () => { d.close(); db = null; }; res(d); };
       rq.onerror = () => rej(rq.error);
     });
@@ -84,7 +84,7 @@
     let obj;
     try { obj = JSON.parse(await file.text()); } catch { throw new Error('File không phải định dạng sao lưu (.json) hợp lệ.'); }
     const data = obj && obj.app === APP_ID ? obj.data : (obj && obj.products && obj.sales ? obj : null);
-    if (!data || !Array.isArray(data.products)) throw new Error('File không phải bản sao lưu của Vinmec Pharmacy Hub.');
+    if (!data || !Array.isArray(data.products)) throw new Error('File không phải bản sao lưu của V-Pharma Hub.');
     const okSum = obj.checksum ? checksum(JSON.stringify(data)) === obj.checksum : null;
     return { data, info: { exportedAt: obj.exportedAt || '', exportedBy: obj.exportedBy || '', counts: counts(migrateLike(data)), checksumOk: okSum } };
   }

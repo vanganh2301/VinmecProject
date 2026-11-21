@@ -11,7 +11,7 @@ const { db, now, newId } = await imp('_db.js');
 const { hashPassword, tempPassword, normCode, normUser } = await imp('_auth.js');
 
 const HELP = `
-Quản lý tài khoản Vinmec Pharmacy Hub
+Quản lý tài khoản V-Pharma Hub
   npm run users -- list [--facility OCP2]
   npm run users -- add --facility OCP2 --user DS01 --name "DS. Nguyễn Văn A" [--role pharmacist|head] [--title "Dược sĩ nhà thuốc"] [--store Y001]
   npm run users -- reset   --facility OCP2 --user DS01     cấp mật khẩu tạm mới, mở khóa, đăng xuất mọi máy

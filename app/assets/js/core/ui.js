@@ -21,7 +21,7 @@
     $('#root').innerHTML = `
       <div class="app ${curtainOpen() ? 'cur-open' : ''}" id="app">
         <nav class="rail" aria-label="Nghiệp vụ chính">
-          <div class="rail-brand" title="Vinmec Pharmacy Hub">${icon('cross')}</div>
+          <div class="rail-brand" title="V-Pharma Hub"><img src="assets/img/logo-mark.png" alt="V-Pharma Hub"></div>
           <div class="rail-main" id="rail"></div>
           <div class="rail-foot">
             <button class="rail-btn" data-g="system" id="railSys" title="Tổng quan, sao lưu, cài đặt">${icon('grid')}<span>Khác</span></button>
@@ -162,7 +162,7 @@
     $('#app').dataset.area = m.group || 'system';
     $('#app').classList.toggle('no-cur', !!(GROUPS[m.group] || {}).noCur);
     $('#detailBtn').classList.toggle('hidden', !m.detail);
-    document.title = m.title + ' · Vinmec Pharmacy Hub';
+    document.title = m.title + ' · V-Pharma Hub';
     $('#topActions').innerHTML = '';
     const view = $('#view');
     view.innerHTML = '';

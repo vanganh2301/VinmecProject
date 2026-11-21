@@ -1,4 +1,4 @@
-# CLAUDE.md – Vinmec Pharmacy Hub
+# CLAUDE.md – V-Pharma Hub (Vinmec)
 
 ## ▶ Lệnh chạy nhanh trên máy (local)
 
@@ -214,7 +214,7 @@ Kèm theo: Tổng quan, Lịch sử bán (đối soát OH/SAP), Danh mục hàng
 
 ```js
 VM.ui.register({ id, title, group: 'retail'|'loans'|'invoices'|'system', icon,
-  head: 'Vinmec Pharmacy' /* tùy chọn: chữ trên thanh tiêu đề thay cho title (rèm vẫn dùng title) */,
+  head: 'V-Pharma Hub' /* tùy chọn: chữ trên thanh tiêu đề thay cho title (rèm vẫn dùng title) */,
   detail: true /* tùy chọn: hiện nút "Hiển thị tất cả" cho màn có thông tin phụ .xd */,
   hot: true /* tùy chọn: tô nổi bật trên rèm */,
   render(view, topActions, arg) { ...; return cleanupFn /* tùy chọn */ },   // arg lấy từ #/<id>/<arg>
@@ -393,7 +393,7 @@ seq{ VAY<yyyymmdd>, ORD<yyyymmdd>, demoLoanHist, demoQtDay, demoCat2, demoCat3 }
 - **Thanh tiêu đề tự thu gọn** (`fitTop` trong `ui.js`, chạy khi đổi màn / đổi bề rộng / đổi nút): tiêu đề bị che thì lần lượt thêm `fit1` (nút phụ chỉ còn icon), `fit2` (ẩn chữ "Hiển thị tất cả", ẩn phím), `fit3` (mọi nút chỉ icon), `fit4` (tiêu đề xuống 2 dòng, nút hẹp hơn). Nút chỉ dùng ở máy bàn ẩn trên điện thoại bằng `hide-m`: Báo cáo trong ngày (POS), File mẫu / Nhập Excel (Danh mục), In sổ / Xuất Excel (Sổ vay), In / Excel (Sổ hóa đơn).
 - **Thanh phân loại** `VM.ui.catBar(el, { cat, counts(), onCat(k) })` → `{ set, refresh, cat }`: tab Tất cả / Thuốc / TPCN / Vật tư / Khác kèm số mặt hàng; bấm lại tab đang chọn thì về Tất cả. Ở Bán hàng: lọc danh sách hàng bên trái; ở Danh mục: lọc bảng. (Nút "Hay bán" đã bỏ theo yêu cầu khoa ngày 18/11/2026; `topProducts` vẫn còn trong store, dùng cho Tổng quan.)
 - **Chế độ tối giản / "Hiển thị tất cả":** mặc định chỉ hiện thông tin cần để làm việc. Phần tử có lớp `.xd` bị ẩn bằng `.app:not(.show-all) .xd{display:none!important}`; nút `#detailBtn` trên thanh tiêu đề (chỉ hiện ở màn khai báo `detail: true`: Bán hàng, Lịch sử bán, Danh mục, Sổ vay, Sổ hóa đơn) bật lớp `show-all` trên `#app`, lưu `vmhub.detail` và phát sự kiện `window` `vm-detail`. Khi viết màn mới: thông tin phụ (mã hàng, lô, HSD, PID, ngày tương đối, bộ lọc ít dùng…) gắn `.xd`, không gắn cho thứ cần để thao tác. Đã bỏ dòng chữ nhỏ (`crumb`) dưới tiêu đề ở mọi màn.
-- **Màn Bán hàng** (`modules/pos.js`), tiêu đề "Vinmec Pharmacy", chia đôi màn:
+- **Màn Bán hàng** (`modules/pos.js`), tiêu đề "V-Pharma Hub", chia đôi màn:
   - **trái** (`.pos-left`): thanh phân loại `#catBar`, ô `#posSearch` (chỉ ghi "Tìm kiếm") + nút micro, danh sách hàng `#posRes` (`.pr-i`: tag nhóm, tên, cảnh báo hết hàng / cận hạn, giá / ĐVT; mã hàng · tồn là `.xd`). Ô trống thì liệt kê cả nhóm (hàng còn bán trước, rồi theo `productFreq`). ↑ ↓ chọn dòng, Enter: thử `matchScan` trước (máy quét), không khớp thì thêm dòng đang tô; Esc xóa ô tìm;
   - **phải** (`aside.cart`, sticky): giỏ hàng `.crow` (tên + dòng nhỏ ĐVT / đơn giá, bước số lượng, thành tiền, xóa). **Đơn giá không sửa được** trong giỏ (bỏ 19/11/2026), giá lấy từ Danh mục; nháp cũ có giá đã sửa được đặt lại về giá danh mục khi mở, mục gập "Khách hàng / PID", tổng tiền, 2 nút QR (F4) / Tiền mặt (F8). Màn 1440×900 thấy ≥ 6–7 mặt hàng cùng tổng và nút thanh toán;
   - nút trên cùng: **Thêm hàng mới** (hàng ngoài danh mục), **Báo cáo trong ngày** (Excel đơn hôm nay), **Đơn mới** (F9). ≤1024px giỏ xuống dưới danh sách.
@@ -507,6 +507,12 @@ Mức cảnh báo của `backup.status()`:
   - Giới hạn còn lại: dữ liệu nghiệp vụ trên máy (localStorage) không mã hóa – ai dùng được trình duyệt của máy đó vẫn đọc được bằng DevTools; các quyền trong giao diện (Cài đặt, hủy đơn) chỉ kiểm tra phía trình duyệt cho tới khi có backend chung (Phase 3).
 
 ## 8. Nhật ký thay đổi
+
+### 21/11/2026 – Logo + tên mới "V-Pharma Hub" (nhánh `Duy`)
+
+- **Logo:** biểu tượng viên thuốc chữ V (cắt từ logo khoa gửi, nền teal) thay icon chữ thập ở rail, màn đăng nhập, màn chọn nghiệp vụ. Thêm favicon và icon "Thêm vào màn hình chính" (`app/assets/img/`: `logo-mark.png` 256px cho giao diện, `favicon-32/64.png`, `icon-192.png`, `apple-touch-icon.png` 180px). Ảnh là file riêng, không nhúng base64.
+- **Tên:** "Vinmec Pharmacy Hub" / "Pharmacy Hub" / "Vinmec Pharmacy" → **V-Pharma Hub** ở tiêu đề tab, cạnh logo, tiêu đề màn Bán hàng, thông báo máy chủ, `serve.py`, `chay.bat`, `npm run users`. Dòng phụ "VINMEC · KHOA DƯỢC" giữ nguyên. **Không** đổi tên khóa localStorage `vmhub.*`, tên file sao lưu `vinmec-pharmacy-backup_*.json`, project Vercel `vinmec-pharmacy` (đổi sẽ mất dữ liệu cũ / link cũ).
+- Kiểm tra: Chrome headless qua DevTools Protocol trên `dev.mjs` + SQLite tạm: logo hiện ở 3 màn, 4 thẻ icon trong `<head>`, không lỗi JS.
 
 ### 20/11/2026 – Đăng nhập theo cơ sở + tài khoản dược sĩ, danh mục thuốc chung (nhánh `Duy`)
 

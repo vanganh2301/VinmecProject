@@ -1,7 +1,7 @@
 {
   "name": "vinmec-pharmacy-hub",
   "private": true,
-  "description": "Vinmec Pharmacy Hub – app tĩnh trong app/, Vercel Functions trong api/ (OCR + giọng nói, đăng nhập, danh mục thuốc chung). Không có bước build. Thư viện duy nhất: @neondatabase/serverless (Postgres trên Vercel).",
+  "description": "V-Pharma Hub – app tĩnh trong app/, Vercel Functions trong api/ (OCR + giọng nói, đăng nhập, danh mục thuốc chung). Không có bước build. Thư viện duy nhất: @neondatabase/serverless (Postgres trên Vercel).",
   "type": "module",
   "engines": {
     "node": ">=20"

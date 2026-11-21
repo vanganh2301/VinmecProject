@@ -1,4 +1,4 @@
-"""Chạy Vinmec Pharmacy Hub trên máy: python serve.py
+"""Chạy V-Pharma Hub trên máy: python serve.py
 
 - Chạy được từ BẤT KỲ thư mục nào (tự tìm thư mục app/ cạnh file này).
 - Tự chọn cổng trống bắt đầu từ 8090, tự mở trình duyệt khi server đã sẵn sàng.
@@ -71,7 +71,7 @@ def lan_ip():
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Chạy Vinmec Pharmacy Hub")
+    ap = argparse.ArgumentParser(description="Chạy V-Pharma Hub")
     ap.add_argument("--port", type=int, default=8090)
     ap.add_argument("--no-open", action="store_true")
     ap.add_argument("--lan", action="store_true")
@@ -122,7 +122,7 @@ def main():
 
     url = f"http://127.0.0.1:{port}/"
     print("=" * 60)
-    print(" Vinmec Pharmacy Hub đang chạy")
+    print(" V-Pharma Hub đang chạy")
     print(f"   Trên máy này : {url}")
     if a.lan and lan_ip():
         print(f"   Máy khác cùng mạng: http://{lan_ip()}:{port}/  (micro/giọng nói cần HTTPS nên có thể không dùng được)")

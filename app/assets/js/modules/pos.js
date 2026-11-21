@@ -585,7 +585,7 @@
   }
 
   VM.pos = { printReceipt, receiptHtml };
-  VM.ui.register({ id: 'pos', title: 'Bán hàng', head: 'Vinmec Pharmacy', group: 'retail', icon: 'cart', render, hot: true, detail: true,
+  VM.ui.register({ id: 'pos', title: 'Bán hàng', head: 'V-Pharma Hub', group: 'retail', icon: 'cart', render, hot: true, detail: true,
     keys: [['F2', 'Tìm hàng'], ['↑ ↓ Enter', 'Chọn hàng'], ['F3', 'Giọng nói'], ['Esc', 'Xóa ô tìm / nghe sai'], ['F4', 'Thanh toán QR'], ['F8', 'Tiền mặt'], ['F9', 'Đơn mới']],
     tour: () => [
       { el: '#posSearchBox', title: 'Tìm hoặc quét thuốc', text: 'Gõ 1–2 chữ tên thuốc, hoạt chất hoặc mã (không dấu cũng được), danh sách bên dưới lọc ngay. Gõ <b>“2 para”</b> để thêm kèm số lượng. Máy quét mã vạch / DataMatrix: quét thẳng vào ô này. Phím tắt <kbd>F2</kbd>.' },

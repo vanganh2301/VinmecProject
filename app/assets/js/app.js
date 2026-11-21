@@ -10,7 +10,7 @@
   function gate(card) {
     $('#root').innerHTML = `<div class="login">
       <section class="login-art">
-        <div style="display:flex;align-items:center;gap:12px;position:relative;z-index:1"><div class="brand-mark"><img src="assets/img/logo-mark.png" alt=""></div><div><b style="font-size:17px">V-Pharma Hub</b><div style="opacity:.75;font-size:12px;letter-spacing:.08em">VINMEC · KHOA DƯỢC</div></div></div>
+        <div style="display:flex;align-items:center;gap:12px;position:relative;z-index:1"><div class="brand-mark"><img src="assets/img/logo-mark.png" alt=""></div><b style="font-size:17px">V-Pharma Hub</b></div>
         <div style="position:relative;z-index:1">
           <h2>Bán lẻ, sổ vay và sổ hóa đơn – trên một màn hình.</h2>
           <p>Thay sổ giấy và file Excel rời rạc: ghi nhanh, tự cảnh báo, xuất đúng định dạng SAP.</p>
